@@ -54,3 +54,5 @@ private
 inst/doc
 
 .DS_Store
+
+/.quarto/

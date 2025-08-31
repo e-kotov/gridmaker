@@ -45,6 +45,54 @@
   "softwareSuggestions": [
     {
       "@type": "SoftwareApplication",
+      "identifier": "giscoR",
+      "name": "giscoR",
+      "provider": {
+        "@id": "https://cran.r-project.org",
+        "@type": "Organization",
+        "name": "Comprehensive R Archive Network (CRAN)",
+        "url": "https://cran.r-project.org"
+      },
+      "sameAs": "https://CRAN.R-project.org/package=giscoR"
+    },
+    {
+      "@type": "SoftwareApplication",
+      "identifier": "knitr",
+      "name": "knitr",
+      "provider": {
+        "@id": "https://cran.r-project.org",
+        "@type": "Organization",
+        "name": "Comprehensive R Archive Network (CRAN)",
+        "url": "https://cran.r-project.org"
+      },
+      "sameAs": "https://CRAN.R-project.org/package=knitr"
+    },
+    {
+      "@type": "SoftwareApplication",
+      "identifier": "quarto",
+      "name": "quarto",
+      "provider": {
+        "@id": "https://cran.r-project.org",
+        "@type": "Organization",
+        "name": "Comprehensive R Archive Network (CRAN)",
+        "url": "https://cran.r-project.org"
+      },
+      "sameAs": "https://CRAN.R-project.org/package=quarto"
+    },
+    {
+      "@type": "SoftwareApplication",
+      "identifier": "rmarkdown",
+      "name": "rmarkdown",
+      "provider": {
+        "@id": "https://cran.r-project.org",
+        "@type": "Organization",
+        "name": "Comprehensive R Archive Network (CRAN)",
+        "url": "https://cran.r-project.org"
+      },
+      "sameAs": "https://CRAN.R-project.org/package=rmarkdown"
+    },
+    {
+      "@type": "SoftwareApplication",
       "identifier": "testthat",
       "name": "testthat",
       "version": ">= 3.0.0",
@@ -84,7 +132,7 @@
     },
     "SystemRequirements": null
   },
-  "fileSize": "26.82KB",
+  "fileSize": "154.181KB",
   "citation": [
     {
       "@type": "SoftwareSourceCode",
@@ -99,10 +147,14 @@
         }
       ],
       "name": "gridmaker: Create INSPIRE-compliant grids with IDs",
-      "url": "https://github.com/e-kotov/gridmaker"
+      "identifier": "10.32614/CRAN.package.gridmaker",
+      "url": "https://github.com/e-kotov/gridmaker",
+      "@id": "https://doi.org/10.32614/CRAN.package.gridmaker",
+      "sameAs": "https://doi.org/10.32614/CRAN.package.gridmaker"
     }
   ],
   "readme": "https://github.com/e-kotov/gridmaker/blob/main/README.md",
-  "contIntegration": ["https://github.com/e-kotov/gridmaker/actions/workflows/R-CMD-check.yaml", "https://github.com/e-kotov/gridmaker/actions/workflows/R-CMD-check.yaml"],
-  "developmentStatus": ["https://www.repostatus.org/#active", "https://lifecycle.r-lib.org/articles/stages.html#experimental"]
+  "contIntegration": ["https://github.com/e-kotov/gridmaker/actions/workflows/R-CMD-check.yaml", "https://github.com/e-kotov/gridmaker/actions/workflows/R-CMD-check.yaml", "https://github.com/e-kotov/gridmaker/actions?query=workflow%3Apkgcheck", "https://app.codecov.io/gh/e-kotov/gridmaker"],
+  "developmentStatus": ["https://www.repostatus.org/#active", "https://lifecycle.r-lib.org/articles/stages.html#experimental"],
+  "keywords": ["gisco", "grid", "inspire", "r"]
 }

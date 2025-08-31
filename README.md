@@ -29,6 +29,8 @@ corner coordinates. The resulting grids are always aligned to rounded
 coorindates as per INSPIRE requirements (see here
 <https://github.com/INSPIRE-MIF/technical-guidelines/tree/main/data/su>).
 
+![Create GISCO/INSPIRE grids on the fly](man/figures/malta.png)
+
 > [!TIP]
 >
 > Instead of
@@ -87,10 +89,10 @@ Geometry type: POLYGON
 Dimension:     XY
 Bounding box:  xmin: 1570000 ymin: 1340000 xmax: 1600000 ymax: 1360000
 Projected CRS: NAD83 / Conus Albers
-   id                       geometry   X_LLC   Y_LLC                      GRD_ID_LONG GRD_ID_SHORT
-1  54 POLYGON ((1580000 1340000, ... 1580000 1340000 CRS5070RES10000mN1340000E1580000 10kmN134E158
-2  55 POLYGON ((1590000 1340000, ... 1590000 1340000 CRS5070RES10000mN1340000E1590000 10kmN134E159
-3 132 POLYGON ((1570000 1350000, ... 1570000 1350000 CRS5070RES10000mN1350000E1570000 10kmN135E157
+     id   X_LLC   Y_LLC                      GRD_ID_LONG GRD_ID_SHORT                       geometry
+54   54 1580000 1340000 CRS5070RES10000mN1340000E1580000 10kmN134E158 POLYGON ((1580000 1340000, ...
+55   55 1590000 1340000 CRS5070RES10000mN1340000E1590000 10kmN134E159 POLYGON ((1590000 1340000, ...
+132 132 1570000 1350000 CRS5070RES10000mN1350000E1570000 10kmN135E157 POLYGON ((1570000 1350000, ...
 ```
 
 ``` r

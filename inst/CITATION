@@ -5,5 +5,6 @@ bibentry(
   author   = person("Egor", "Kotov", , "kotov.egor@gmail.com", role = c("aut", "cre", "cph"),
            comment = c(ORCID = "0000-0001-6690-5345")),
   year     = "2025",
-  url      = "https://github.com/e-kotov/gridmaker"
+  url      = "https://github.com/e-kotov/gridmaker",
+  doi      = "10.32614/CRAN.package.gridmaker"
 )

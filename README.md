@@ -23,7 +23,7 @@ coverage](https://codecov.io/gh/e-kotov/gridmaker/graph/badge.svg)](https://app.
 
 Creates GISCO compatible and INSPIRE-compliant grids with IDs that look
 like ‘CRS3035RES1000mN3497000E4448000’ or ‘1kmN3497E4447’. Input can be
-`sf`, `sfc` objects or bounding boxes. Outout can be `sf` polygons, `sf`
+`sf`, `sfc` objects or bounding boxes. Output can be `sf` polygons, `sf`
 centroids, or just `data.frame` with grid cell center or bottom left
 corner coordinates. The resulting grids are always aligned to rounded
 coorindates as per INSPIRE requirements (see here

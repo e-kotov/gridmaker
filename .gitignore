@@ -51,3 +51,6 @@ rsconnect/
 
 docs
 private
+inst/doc
+
+.DS_Store

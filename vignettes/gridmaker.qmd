@@ -1,0 +1,140 @@
+---
+title: "Quick Start: Generate grid for a specific EU country"
+vignette: >
+  %\VignetteIndexEntry{Quick Start: dump R docs and vignettes to text files for LLMs}
+  %\VignetteEngine{quarto::html}
+  %\VignetteEncoding{UTF-8}
+execute:
+  eval: false
+format:
+  html:
+    toc: true
+    toc-depth: 2
+    code-overflow: wrap
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r setup}
+library(gridmaker)
+```
+
+# Introduction
+
+`{gridmaker}` is an R package designed to create GISCO compatible and INSPIRE-compliant grids with IDs that look like 'CRS3035RES1000mN3497000E4448000' or '1kmN3497E4447'. Input can be `sf`, `sfc` objects or bounding boxes. Outout can be `sf` polygons, `sf` centroids, or just `data.frame` with grid cell center or bottom left corner coordinates. The resulting grids are always aligned to rounded coorindates as per INSPIRE requirements (see here [https://github.com/INSPIRE-MIF/technical-guidelines/tree/main/data/su](https://github.com/INSPIRE-MIF/technical-guidelines/tree/main/data/su)).
+
+# Installation
+
+<!-- 
+Install the latest stable release of `gridmaker` from CRAN with:
+
+```r
+install.packages("gridmaker")
+```
+ -->
+
+You can install the development version of `gridmaker` from R Universe with:
+
+```r
+install.packages('gridmaker',
+ repos = c('https://e-kotov.r-universe.dev', 'https://cloud.r-project.org')
+)
+```
+
+or from GitHub with:
+
+```r
+# install.packages("pak")
+pak::pak("e-kotov/gridmaker")
+```
+
+# Example: Create a 1km grid for Luxembourg
+
+We will use `giscoR` package to get the boundary of Luxembourg. If you don't have it installed, you can install it from CRAN with `install.packages("giscoR")`.
+
+```{r}
+# install.packages("giscoR")
+library(giscoR)
+library(sf)
+```
+
+Let's get the boundary of Luxembourg:
+
+```{r}
+lux_boundary <- gisco_get_countries(
+      year = "2024",
+      epsg = "3035",
+      country = "LUX",
+      resolution = "01"
+    )
+
+plot(lux_boundary$geometry)
+```
+
+
+```{r}
+#| include: false
+png("vignettes/figures/lux_boundary.png", width = 600, height = 600, units = "px")
+plot(lux_boundary$geometry)
+dev.off()
+```
+
+![Boundary of Luxembourg](figures/lux_boundary.png){width=400px alt="Boundary of Luxembourg"}
+
+Make sure the boundary is in a projected CRS (not in lat/lon):
+
+```{r}
+
+lux_boundary_3035 <- st_transform(lux_boundary, 3035)
+```
+
+Now we can create a 1km grid covering Luxembourg:
+
+
+```{r}
+lux_grid_1km <- create_grid(
+  grid_extent = lux_boundary_3035,
+  cellsize_m = 1000,
+  output_type = "sf_polygons",
+  clip_to_input = TRUE
+)
+```
+
+```{r}
+plot(st_geometry(lux_grid_1km), border = 'lightgrey')
+```
+
+
+```{r}
+#| include: false
+png("vignettes/figures/lux_grid_1km.png", width = 600, height = 600, units = "px")
+plot(st_geometry(lux_grid_1km), border = 'grey20')
+plot(st_geometry(lux_boundary_3035), add = TRUE, border = 'red', lwd = 2)
+dev.off()
+```
+
+
+![1km grid for Luxembourg](figures/lux_grid_1km.png){width=400px alt="1km grid for Luxembourg"}
+
+The resulting grid has INSPIRE-compliant IDs:
+
+```{r}
+head(lux_grid_1km, 3)
+```
+
+```
+Simple feature collection with 3 features and 5 fields
+Geometry type: POLYGON
+Dimension:     XY
+Bounding box:  xmin: 4033000 ymin: 2933000 xmax: 4058000 ymax: 2934000
+Projected CRS: ETRS89-extended / LAEA Europe
+   id                       geometry   X_LLC   Y_LLC                     GRD_ID_LONG  GRD_ID_SHORT
+20 20 POLYGON ((4033000 2933000, ... 4033000 2933000 CRS3035RES1000mN2933000E4033000 1kmN2933E4033
+21 21 POLYGON ((4034000 2933000, ... 4034000 2933000 CRS3035RES1000mN2933000E4034000 1kmN2933E4034
+44 44 POLYGON ((4057000 2933000, ... 4057000 2933000 CRS3035RES1000mN2933000E4057000 1kmN2933E4057
+```

@@ -359,5 +359,14 @@ create_grid <- function(
     out_obj <- out_obj[, c(first_cols, other_cols)]
   }
 
+  # Ensure geometry column is last for sf objects
+  if (inherits(out_obj, "sf")) {
+    geom_col_name <- attr(out_obj, "sf_column")
+    if (!is.null(geom_col_name) && geom_col_name %in% names(out_obj)) {
+      other_cols <- setdiff(names(out_obj), geom_col_name)
+      out_obj <- out_obj[, c(other_cols, geom_col_name)]
+    }
+  }
+
   return(out_obj)
 }

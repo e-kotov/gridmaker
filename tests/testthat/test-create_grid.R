@@ -208,3 +208,27 @@ test_that("Function handles errors and edge cases", {
   grid_from_point <- create_grid(point_geom, CELLSIZE, crs = TARGET_CRS)
   expect_equal(nrow(grid_from_point), 1)
 })
+
+test_that("Geometry column is always last in sf output", {
+  # For sf_polygons
+  grid_poly <- create_grid(
+    nc,
+    CELLSIZE,
+    crs = TARGET_CRS,
+    output_type = "sf_polygons"
+  )
+  col_names_poly <- names(grid_poly)
+  geom_col_poly <- attr(grid_poly, "sf_column")
+  expect_equal(tail(col_names_poly, 1), geom_col_poly)
+
+  # For sf_points
+  grid_pts <- create_grid(
+    nc,
+    CELLSIZE,
+    crs = TARGET_CRS,
+    output_type = "sf_points"
+  )
+  col_names_pts <- names(grid_pts)
+  geom_col_pts <- attr(grid_pts, "sf_column")
+  expect_equal(tail(col_names_pts, 1), geom_col_pts)
+})

@@ -9,7 +9,7 @@ Description: Creates GISCO compatible and INSPIRE-compliant grids with IDs
     Input can be 'sf', 'sfc' objects or bounding boxes. Output can be 'sf'
     polygons, 'sf' centroids, or just 'data.frame' with grid cell center
     or bottom left corner coordinates. The resulting grids are always
-    aligned to rounded coorindates as per INSPIRE requirements.
+    aligned to rounded coordinates as per INSPIRE requirements.
 License: MIT + file LICENSE
 URL: https://github.com/e-kotov/gridmaker,
     https://www.ekotov.pro/gridmaker

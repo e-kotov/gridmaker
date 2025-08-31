@@ -14,7 +14,7 @@
         "familyName": "Kotov",
         "givenName": "Egor"
       },
-      "description": "Creates GISCO compatible and INSPIRE-compliant grids with IDs that look like 'CRS3035RES1000mN3497000E4448000' or '1kmN3497E4447'. Input can be 'sf', 'sfc' objects or bounding boxes. Output can be 'sf' polygons, 'sf' centroids, or just 'data.frame' with grid cell center or bottom left corner coordinates. The resulting grids are always aligned to rounded coorindates as per INSPIRE requirements.",
+      "description": "Creates GISCO compatible and INSPIRE-compliant grids with IDs that look like 'CRS3035RES1000mN3497000E4448000' or '1kmN3497E4447'. Input can be 'sf', 'sfc' objects or bounding boxes. Output can be 'sf' polygons, 'sf' centroids, or just 'data.frame' with grid cell center or bottom left corner coordinates. The resulting grids are always aligned to rounded coordinates as per INSPIRE requirements.",
       "license": "https://spdx.org/licenses/MIT",
       "name": "gridmaker: Create INSPIRE-compliant grids with IDs",
       "programmingLanguage": {

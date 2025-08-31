@@ -138,3 +138,7 @@ Projected CRS: ETRS89-extended / LAEA Europe
 21 21 POLYGON ((4034000 2933000, ... 4034000 2933000 CRS3035RES1000mN2933000E4034000 1kmN2933E4034
 44 44 POLYGON ((4057000 2933000, ... 4057000 2933000 CRS3035RES1000mN2933000E4057000 1kmN2933E4057
 ```
+
+::: callout-note
+For original Eurostat's command line utility to create GISCO grids, see [https://github.com/eurostat/GridMaker](https://github.com/eurostat/GridMaker).
+:::

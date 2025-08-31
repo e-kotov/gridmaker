@@ -31,8 +31,9 @@ knitr::opts_chunk$set(
 Creates GISCO compatible and INSPIRE-compliant grids with IDs that look like 'CRS3035RES1000mN3497000E4448000' or '1kmN3497E4447'. Input can be `sf`, `sfc` objects or bounding boxes. Outout can be `sf` polygons, `sf` centroids, or just `data.frame` with grid cell center or bottom left corner coordinates. The resulting grids are always aligned to rounded coorindates as per INSPIRE requirements (see here [https://github.com/INSPIRE-MIF/technical-guidelines/tree/main/data/su](https://github.com/INSPIRE-MIF/technical-guidelines/tree/main/data/su)).
 
 ::: callout-tip
-Instead of downloading 2+ GB of Eurostat GISCO grid data, then extracting it for your region of interest, you can create grids on the fly with this package.
+Instead of [downloading](https://ec.europa.eu/eurostat/web/gisco/geodata/grids) 1.5 GB (points) or 2.6 GB (polygons) of Eurostat GISCO grid data, then extracting it for your region of interest, you can create grids on the fly with this package. The resulting grid will not carry all [the attributes of the original GISCO grid](https://gisco-services.ec.europa.eu/grid/GISCO_grid_metadata.pdf), such as NUTS codes, population count, distance to the coast, country land border, etc., but it will have identical geometry and IDs.
 :::
+
 
 ## Installation
 
@@ -119,3 +120,7 @@ BibTeX:
 toBibtex(citation("gridmaker"))
 ```
 ```
+
+::: callout-note
+For original Eurostat's command line utility to create GISCO grids, see [https://github.com/eurostat/GridMaker](https://github.com/eurostat/GridMaker).
+:::

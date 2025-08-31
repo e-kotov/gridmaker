@@ -31,9 +31,15 @@ coorindates as per INSPIRE requirements (see here
 
 > [!TIP]
 >
-> Instead of downloading 2+ GB of Eurostat GISCO grid data, then
+> Instead of
+> [downloading](https://ec.europa.eu/eurostat/web/gisco/geodata/grids)
+> 1.5 GB (points) or 2.6 GB (polygons) of Eurostat GISCO grid data, then
 > extracting it for your region of interest, you can create grids on the
-> fly with this package.
+> fly with this package. The resulting grid will not carry all [the
+> attributes of the original GISCO
+> grid](https://gisco-services.ec.europa.eu/grid/GISCO_grid_metadata.pdf),
+> such as NUTS codes, population count, distance to the coast, country
+> land border, etc., but it will have identical geometry and IDs.
 
 ## Installation
 
@@ -99,15 +105,19 @@ alt="10km grid for North Carolina" />
 
 To cite package ‘gridmaker’ in publications use:
 
-Kotov E (2025). *gridmaker: Create INSPIRE-compliant grids with IDs*. R
-package version 0.0.0.9000, <https://github.com/e-kotov/gridmaker>.
+Kotov E (2025). *gridmaker: Create INSPIRE-compliant grids with IDs*.
+<https://github.com/e-kotov/gridmaker>.
 
 BibTeX:
 
-    @Manual{,
+    @Manual{gridmaker,
       title = {gridmaker: Create INSPIRE-compliant grids with IDs},
       author = {Egor Kotov},
       year = {2025},
-      note = {R package version 0.0.0.9000},
       url = {https://github.com/e-kotov/gridmaker},
     }
+
+> [!NOTE]
+>
+> For original Eurostat’s command line utility to create GISCO grids,
+> see <https://github.com/eurostat/GridMaker>.

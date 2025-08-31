@@ -270,11 +270,9 @@ create_grid <- function(
     grid_sf$Y_LLC <- grid_df$Y_LLC
 
     if (!is.null(clipping_target)) {
-      grid_sf <- sf::st_filter(
-        grid_sf,
-        clipping_target,
-        .predicate = sf::st_intersects
-      )
+      intersects_list <- sf::st_intersects(grid_sf, clipping_target)
+      keep_indices <- lengths(intersects_list) > 0
+      grid_sf <- grid_sf[keep_indices, ]
     }
     out_obj <- grid_sf
   } else {

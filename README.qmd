@@ -85,6 +85,21 @@ Projected CRS: NAD83 / Conus Albers
 3 132 POLYGON ((1570000 1350000, ... 1570000 1350000 CRS5070RES10000mN1350000E1570000 10kmN135E157
 ```
 
+```{r}
+plot(st_geometry(nc_grid), border = 'grey20')
+plot(st_geometry(nc), add = TRUE, border = 'red', lwd = 2)
+```
+
+
+```{r}
+#| include: false
+png("man/figures/us-grid.png", width = 600, height = 600, units = "px")
+plot(st_geometry(nc_grid), border = 'grey20')
+plot(st_geometry(nc), add = TRUE, border = 'red', lwd = 2)
+dev.off()
+```
+
+![10km grid for North Carolina](man/figures/us-grid.png){width=400px alt="10km grid for North Carolina"}
 
 ## Citation
 

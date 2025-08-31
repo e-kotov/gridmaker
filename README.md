@@ -2,7 +2,7 @@
 
 <!-- README.md is generated from README.Rmd. Please edit that file -->
 
-# gridmaker
+# gridmaker Create INSPIRE-compliant grids with IDs <a href="https://www.ekotov.pro/gridmaker/"><img src="man/figures/logo.png" align="right" width="200" alt="gridmaker website" /></a>
 
 <!-- badges: start -->
 
@@ -75,7 +75,7 @@ nc <- st_transform(nc_raw, target_crs)
 # Create a grid covering the data
 nc_grid <- create_grid(
   grid_extent = nc,
-  cellsize_m = cellsize_m,
+  cellsize_m = 5000,
   output_type = "sf_polygons",
   clip_to_input = TRUE
 )

@@ -18,7 +18,13 @@ template:
             a.appendChild(r);
         })(window,document,'https://static.hotjar.com/c/hotjar-','.js?sv=');
        </script>
-
+  opengraph:
+    image:
+      src: man/figures/card.png
+      alt: "gridmaker: Create INSPIRE-compliant grids with IDs"
+    twitter:
+      creator: "@EgorKotov"
+      card: summary_large_image
 
 authors:
   Egor Kotov:

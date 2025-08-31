@@ -23,7 +23,7 @@
         "url": "https://r-project.org"
       },
       "runtimePlatform": "R version 4.5.1 (2025-06-13)",
-      "version": "0.0.0.9000"
+      "version": "0.1.0"
     },
     {
       "id": "https://doi.org/10.32614/CRAN.package.gridmaker",

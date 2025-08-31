@@ -8,7 +8,7 @@ message: 'To cite package "gridmaker" in publications use:'
 type: software
 license: MIT
 title: 'gridmaker: Create INSPIRE-compliant grids with IDs'
-version: 0.0.0.9000
+version: 0.1.0
 doi: 10.32614/CRAN.package.gridmaker
 abstract: Creates GISCO compatible and INSPIRE-compliant grids with IDs that look
   like 'CRS3035RES1000mN3497000E4448000' or '1kmN3497E4447'. Input can be 'sf', 'sfc'

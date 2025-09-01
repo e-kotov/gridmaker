@@ -88,9 +88,11 @@ including INSPIRE-compliant grid IDs.</p>
 
 <dt id="arg-crs">crs<a class="anchor" aria-label="anchor" href="#arg-crs"></a></dt>
 <dd><p>The coordinate reference system (CRS) for the output grid.
-Can be an EPSG code (e.g., 3035) or a <code>crs</code> object. If <code>NULL</code> (default),
-the CRS is automatically inherited from <code>grid_extent</code>. If <code>grid_extent</code>
-also lacks a CRS, the function will stop with an error.</p></dd>
+Accepts various formats handled by <code><a href="https://r-spatial.github.io/sf/reference/st_crs.html" class="external-link">sf::st_crs()</a></code>: an integer or numeric
+EPSG code (e.g., <code>3035</code>), a string representation like <code>"epsg:3035"</code>, or
+a <code>crs</code> object. If <code>NULL</code> (default), the CRS is inherited from
+<code>grid_extent</code>. If <code>grid_extent</code> also lacks a CRS, the function will stop
+with an error.</p></dd>
 
 
 <dt id="arg-output-type">output_type<a class="anchor" aria-label="anchor" href="#arg-output-type"></a></dt>

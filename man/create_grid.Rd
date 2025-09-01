@@ -26,9 +26,11 @@ create_grid(
 (e.g., 1000 for a 1 km grid).}
 
 \item{crs}{The coordinate reference system (CRS) for the output grid.
-Can be an EPSG code (e.g., 3035) or a \code{crs} object. If \code{NULL} (default),
-the CRS is automatically inherited from \code{grid_extent}. If \code{grid_extent}
-also lacks a CRS, the function will stop with an error.}
+Accepts various formats handled by \code{sf::st_crs()}: an integer or numeric
+EPSG code (e.g., \code{3035}), a string representation like \code{"epsg:3035"}, or
+a \code{crs} object. If \code{NULL} (default), the CRS is inherited from
+\code{grid_extent}. If \code{grid_extent} also lacks a CRS, the function will stop
+with an error.}
 
 \item{output_type}{The class of the output object: \code{"sf_polygons"} (default) creates
 a spatial object with polygon geometries, \code{"sf_points"} creates an \code{sf}

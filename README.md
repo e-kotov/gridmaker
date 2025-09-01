@@ -4,12 +4,12 @@
 
 # gridmaker Create INSPIRE-compliant grids with IDs <a href="https://www.ekotov.pro/gridmaker/"><img src="man/figures/logo.png" align="right" width="200" alt="gridmaker website" /></a>
 
-<!-- badges: start -->
+badges: start
 
 [![Project Status:
 Active](https://www.repostatus.org/badges/latest/active.svg)](https://www.repostatus.org/#active)
-\[![Lifecycle:
-stable](https://img.shields.io/badge/lifecycle-stable-brightgreen.svg)\](https://lifecycle.r-lib.org/articles/stages.
+[![Lifecycle:
+stable](https://img.shields.io/badge/lifecycle-stable-brightgreen.svg)](https://lifecycle.r-lib.org/articles/stages.html#stable)
 [![CRAN
 status](https://www.r-pkg.org/badges/version/gridmaker)](https://CRAN.R-project.org/package=gridmaker)
 [![gridmaker status

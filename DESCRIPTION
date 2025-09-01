@@ -18,8 +18,13 @@ Imports:
     sf,
     sfheaders
 Suggests: 
+    carrier,
+    furrr,
+    future,
     giscoR,
     knitr,
+    mirai,
+    purrr,
     quarto,
     rmarkdown,
     testthat (>= 3.0.0)

@@ -8,8 +8,8 @@
 
 [![Project Status:
 Active](https://www.repostatus.org/badges/latest/active.svg)](https://www.repostatus.org/#active)
-[![Lifecycle:
-experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://lifecycle.r-lib.org/articles/stages.html#experimental)
+\[![Lifecycle:
+stable](https://img.shields.io/badge/lifecycle-stable-brightgreen.svg)\](https://lifecycle.r-lib.org/articles/stages.
 [![CRAN
 status](https://www.r-pkg.org/badges/version/gridmaker)](https://CRAN.R-project.org/package=gridmaker)
 [![gridmaker status

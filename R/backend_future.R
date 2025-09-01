@@ -13,7 +13,7 @@ run_parallel_future <- function(grid_extent, cellsize_m, crs, dot_args) {
   dot_args$quiet <- NULL
 
   # --- 1. PREPARE GEOMETRIES  ---
-  grid_crs <- gridmaker:::`%||%`(crs, sf::st_crs(grid_extent))
+  grid_crs <- `%||%`(crs, sf::st_crs(grid_extent))
   if (is.na(grid_crs) || sf::st_is_longlat(grid_crs)) {
     stop("A projected CRS is required.")
   }

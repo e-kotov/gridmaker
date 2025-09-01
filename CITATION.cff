@@ -9,7 +9,6 @@ type: software
 license: MIT
 title: 'gridmaker: Create INSPIRE-compliant grids with IDs'
 version: 0.1.0
-doi: 10.32614/CRAN.package.gridmaker
 abstract: Creates GISCO compatible and INSPIRE-compliant grids with IDs that look
   like 'CRS3035RES1000mN3497000E4448000' or '1kmN3497E4447'. Input can be 'sf', 'sfc'
   objects or bounding boxes. Output can be 'sf' polygons, 'sf' centroids, or just
@@ -30,7 +29,6 @@ preferred-citation:
     orcid: https://orcid.org/0000-0001-6690-5345
   year: '2025'
   url: https://github.com/e-kotov/gridmaker
-  doi: 10.32614/CRAN.package.gridmaker
 repository-code: https://github.com/e-kotov/gridmaker
 url: https://www.ekotov.pro/gridmaker
 contact:

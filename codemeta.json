@@ -132,7 +132,7 @@
     },
     "SystemRequirements": null
   },
-  "fileSize": "217.03KB",
+  "fileSize": "218.141KB",
   "citation": [
     {
       "@type": "SoftwareSourceCode",
@@ -147,10 +147,7 @@
         }
       ],
       "name": "gridmaker: Create INSPIRE-compliant grids with IDs",
-      "identifier": "10.32614/CRAN.package.gridmaker",
-      "url": "https://github.com/e-kotov/gridmaker",
-      "@id": "https://doi.org/10.32614/CRAN.package.gridmaker",
-      "sameAs": "https://doi.org/10.32614/CRAN.package.gridmaker"
+      "url": "https://github.com/e-kotov/gridmaker"
     }
   ],
   "releaseNotes": "https://github.com/e-kotov/gridmaker/blob/master/NEWS.md",

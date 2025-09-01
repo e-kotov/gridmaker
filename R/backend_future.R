@@ -40,8 +40,23 @@ run_parallel_future <- function(grid_extent, cellsize_m, crs, dot_args) {
   ymin <- floor(as.numeric(full_bbox["ymin"]) / cellsize_m) * cellsize_m
   xmax <- ceiling(as.numeric(full_bbox["xmax"]) / cellsize_m) * cellsize_m
   ymax <- ceiling(as.numeric(full_bbox["ymax"]) / cellsize_m) * cellsize_m
+
+  # Get the tiling multiplier from R options, with a robust default of 2.
+  tile_multiplier <- getOption("gridmaker.tile_multiplier", default = 2)
+  if (
+    !is.numeric(tile_multiplier) ||
+      length(tile_multiplier) != 1 ||
+      tile_multiplier <= 0
+  ) {
+    warning(
+      "Invalid 'gridmaker.tile_multiplier' option. Using default of 2.",
+      call. = FALSE
+    )
+    tile_multiplier <- 2
+  }
   num_workers <- future::nbrOfWorkers()
-  num_tiles <- num_workers * 2
+  num_tiles <- as.integer(round(num_workers * tile_multiplier))
+
   if (!quiet) {
     message(paste(
       "Processing",

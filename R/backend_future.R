@@ -9,6 +9,9 @@ run_parallel_future <- function(grid_extent, cellsize_m, crs, dot_args) {
     )
   }
 
+  quiet <- isTRUE(dot_args$quiet)
+  dot_args$quiet <- NULL
+
   # --- 1. PREPARE GEOMETRIES  ---
   grid_crs <- gridmaker:::`%||%`(crs, sf::st_crs(grid_extent))
   if (is.na(grid_crs) || sf::st_is_longlat(grid_crs)) {
@@ -39,13 +42,15 @@ run_parallel_future <- function(grid_extent, cellsize_m, crs, dot_args) {
   ymax <- ceiling(as.numeric(full_bbox["ymax"]) / cellsize_m) * cellsize_m
   num_workers <- future::nbrOfWorkers()
   num_tiles <- num_workers * 2
-  message(paste(
-    "Processing",
-    num_tiles,
-    "tiles using",
-    num_workers,
-    "future workers..."
-  ))
+  if (!quiet) {
+    message(paste(
+      "Processing",
+      num_tiles,
+      "tiles using",
+      num_workers,
+      "future workers..."
+    ))
+  }
   y_breaks <- round(seq(ymin, ymax, length.out = num_tiles + 1))
   tile_bboxes <- lapply(1:num_tiles, function(i) {
     sf::st_bbox(
@@ -68,7 +73,7 @@ run_parallel_future <- function(grid_extent, cellsize_m, crs, dot_args) {
       }
       if (nrow(chunk) == 0) NULL else chunk
     },
-    .progress = TRUE,
+    .progress = !quiet,
     .options = furrr::furrr_options(
       seed = TRUE,
       packages = "gridmaker"
@@ -76,7 +81,9 @@ run_parallel_future <- function(grid_extent, cellsize_m, crs, dot_args) {
   )
 
   # --- 4. COMBINE AND DE-DUPLICATE ---
-  message("Combining results...")
+  if (!quiet) {
+    message("Combining results...")
+  }
   final_grid <- do.call(rbind, purrr::compact(grid_chunks))
   if (nrow(final_grid) == 0) {
     return(final_grid)
@@ -86,7 +93,7 @@ run_parallel_future <- function(grid_extent, cellsize_m, crs, dot_args) {
     num_before <- nrow(final_grid)
     final_grid <- final_grid[!duplicated(final_grid[[id_col_name]]), ]
     num_removed <- num_before - nrow(final_grid)
-    if (num_removed > 0) {
+    if (num_removed > 0 && !quiet) {
       message(paste("Removed", num_removed, "duplicate cells."))
     }
   }

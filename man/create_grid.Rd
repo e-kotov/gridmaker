@@ -2,7 +2,7 @@
 % Please edit documentation in R/create_grid.R
 \name{create_grid}
 \alias{create_grid}
-\title{Create a high-performance, standard-compliant spatial grid}
+\title{Create a standard-compliant spatial grid with INSPIRE IDs}
 \usage{
 create_grid(
   grid_extent,
@@ -15,7 +15,8 @@ create_grid(
   id_format = "both",
   include_llc = TRUE,
   point_type = "centroid",
-  parallel = "auto"
+  parallel = "auto",
+  quiet = FALSE
 )
 }
 \arguments{
@@ -74,6 +75,8 @@ sequential mode.
 }
 For parallelism, you must configure a backend \emph{before} calling this
 function, for example: \code{mirai::daemons(4)} or \code{future::plan("multisession")}.}
+
+\item{quiet}{logical value. If ‘TRUE’, all progress messages and progress bars are suppressed. Defaults to ‘FALSE’.}
 }
 \value{
 An \code{sf} object (with polygon or point geometries) or a \code{data.frame}

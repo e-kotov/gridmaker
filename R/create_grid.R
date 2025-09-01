@@ -1,4 +1,4 @@
-#' Create a high-performance, standard-compliant spatial grid
+#' Create a standard-compliant spatial grid with INSPIRE IDs
 #'
 #' @description{
 #' This function generates a regular spatial grid aligned to the CRS origin.
@@ -51,6 +51,7 @@
 #'   }
 #'   For parallelism, you must configure a backend *before* calling this
 #'   function, for example: `mirai::daemons(4)` or `future::plan("multisession")`.
+#' @param quiet logical value. If ‘TRUE’, all progress messages and progress bars are suppressed. Defaults to ‘FALSE’.
 #'
 #' @return An `sf` object (with polygon or point geometries) or a `data.frame`
 #'   representing the grid, with optional columns for coordinates and
@@ -89,7 +90,8 @@ create_grid <- function(
   id_format = "both",
   include_llc = TRUE,
   point_type = "centroid",
-  parallel = "auto"
+  parallel = "auto",
+  quiet = FALSE
 ) {
   # --- 1. Validate Arguments ---
   if (!is.character(parallel) && !is.logical(parallel)) {
@@ -97,6 +99,12 @@ create_grid <- function(
   }
   if (is.character(parallel) && parallel != "auto") {
     stop("If 'parallel' is a string, it must be 'auto'.", call. = FALSE)
+  }
+  if (!is.logical(quiet) || length(quiet) != 1) {
+    stop(
+      "'quiet' must be a single logical value (TRUE or FALSE).",
+      call. = FALSE
+    )
   }
 
   backend_args <- list(
@@ -108,6 +116,7 @@ create_grid <- function(
     include_llc = include_llc,
     point_type = point_type
   )
+  parallel_backend_args <- c(backend_args, list(quiet = quiet))
 
   # --- 2. Check Backend Status ---
   mirai_ready <- requireNamespace("mirai", quietly = TRUE) &&
@@ -164,13 +173,15 @@ create_grid <- function(
 
   # B. Forced or Fallback Sequential Execution
   if (run_mode == "sequential") {
-    if (parallel == "auto") {
-      # This is not a warning because 'auto' implies it's okay to fall back
-      message(
-        "No parallel backend detected. Running in sequential mode. See ?create_grid for details how to enable parallel processing to speed up large jobs."
-      )
-    } else {
-      message("Running in sequential mode.")
+    if (!quiet) {
+      if (parallel == "auto") {
+        # This is not a warning because 'auto' implies it's okay to fall back
+        message(
+          "No parallel backend detected. Running in sequential mode. See ?create_grid for details how to enable parallel processing to speed up large jobs."
+        )
+      } else {
+        message("Running in sequential mode.")
+      }
     }
 
     all_args <- c(
@@ -183,11 +194,25 @@ create_grid <- function(
   # C. Parallel Execution (from 'auto' or 'TRUE')
   if (run_mode == "parallel") {
     if (use_mirai) {
-      message("`mirai` backend detected. Running in parallel.")
-      return(run_parallel_mirai(grid_extent, cellsize_m, crs, backend_args))
+      if (!quiet) {
+        message("`mirai` backend detected. Running in parallel.")
+      }
+      return(run_parallel_mirai(
+        grid_extent,
+        cellsize_m,
+        crs,
+        parallel_backend_args
+      ))
     } else if (use_future) {
-      message("`future` backend detected. Running in parallel.")
-      return(run_parallel_future(grid_extent, cellsize_m, crs, backend_args))
+      if (!quiet) {
+        message("`future` backend detected. Running in parallel.")
+      }
+      return(run_parallel_future(
+        grid_extent,
+        cellsize_m,
+        crs,
+        parallel_backend_args
+      ))
     }
   }
 }

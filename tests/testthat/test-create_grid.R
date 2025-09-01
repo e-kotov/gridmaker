@@ -261,3 +261,48 @@ test_that("CRS is handled in various formats", {
     create_grid(nc, CELLSIZE, crs = "3035")
   )
 })
+
+test_that("`quiet` parameter correctly suppresses messages", {
+  # Test 1: quiet = TRUE should not produce any messages or progress bars.
+  # We wrap the function call in expect_silent() to verify this.
+  expect_silent(
+    grid_silent <- create_grid(
+      grid_extent = nc,
+      cellsize_m = CELLSIZE,
+      parallel = FALSE, # Force sequential mode to test its message suppression
+      quiet = TRUE
+    )
+  )
+
+  # Also, perform a basic check to ensure the output is still valid.
+  expect_s3_class(grid_silent, "sf")
+  expect_gt(nrow(grid_silent), 0) # Check that the grid is not empty
+
+  # Test 2: quiet = FALSE (explicitly set) should produce a message.
+  # We check for the specific message produced when running in sequential mode.
+  expect_message(
+    grid_verbose <- create_grid(
+      grid_extent = nc,
+      cellsize_m = CELLSIZE,
+      parallel = FALSE, # Force sequential mode to get a predictable message
+      quiet = FALSE
+    ),
+    regexp = "Running in sequential mode."
+  )
+
+  # Verify the output is still correct and consistent with the silent run.
+  expect_s3_class(grid_verbose, "sf")
+  expect_equal(nrow(grid_silent), nrow(grid_verbose))
+
+  # Test 3: Check the default behavior (quiet is not specified).
+  # The default is FALSE, so it should produce the fallback message
+  # when no parallel backend is configured.
+  expect_message(
+    create_grid(
+      grid_extent = nc,
+      cellsize_m = CELLSIZE,
+      parallel = "auto" # Allow auto-detection to fall back to sequential
+    ),
+    regexp = "No parallel backend detected"
+  )
+})

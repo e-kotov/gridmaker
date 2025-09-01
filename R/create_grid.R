@@ -11,9 +11,11 @@
 #' @param cellsize_m A single integer representing the grid cell size in metres
 #'   (e.g., 1000 for a 1 km grid).
 #' @param crs The coordinate reference system (CRS) for the output grid.
-#'   Can be an EPSG code (e.g., 3035) or a `crs` object. If `NULL` (default),
-#'   the CRS is automatically inherited from `grid_extent`. If `grid_extent`
-#'   also lacks a CRS, the function will stop with an error.
+#'   Accepts various formats handled by `sf::st_crs()`: an integer or numeric
+#'   EPSG code (e.g., `3035`), a string representation like `"epsg:3035"`, or
+#'   a `crs` object. If `NULL` (default), the CRS is inherited from
+#'   `grid_extent`. If `grid_extent` also lacks a CRS, the function will stop
+#'   with an error.
 #' @param output_type The class of the output object: `"sf_polygons"` (default) creates
 #'   a spatial object with polygon geometries, `"sf_points"` creates an `sf`
 #'   object with point geometries, and `"dataframe"` creates a data frame with

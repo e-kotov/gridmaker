@@ -232,3 +232,32 @@ test_that("Geometry column is always last in sf output", {
   geom_col_pts <- attr(grid_pts, "sf_column")
   expect_equal(tail(col_names_pts, 1), geom_col_pts)
 })
+
+test_that("CRS is handled in various formats", {
+  # EPSG code as integer
+  grid_int <- create_grid(nc, CELLSIZE, crs = 3035)
+  expect_s3_class(grid_int, "sf")
+  expect_true(sf::st_crs(grid_int) == sf::st_crs(3035))
+
+  # EPSG code as numeric
+  grid_num <- create_grid(nc, CELLSIZE, crs = 3035)
+  expect_s3_class(grid_num, "sf")
+  expect_true(sf::st_crs(grid_num) == sf::st_crs(3035))
+
+  # "epsg:<code>" string
+  grid_epsg_str <- create_grid(nc, CELLSIZE, crs = "epsg:3035")
+  expect_s3_class(grid_epsg_str, "sf")
+  expect_true(sf::st_crs(grid_epsg_str) == sf::st_crs(3035))
+
+  # sf_crs object
+  crs_obj <- sf::st_crs(3035)
+  grid_obj <- create_grid(nc, CELLSIZE, crs = crs_obj)
+  expect_s3_class(grid_obj, "sf")
+  expect_true(sf::st_crs(grid_obj) == sf::st_crs(3035))
+
+  # Invalid: "<code>" string - this should fail as it's ambiguous
+  # The error comes from sf::st_crs()
+  expect_error(
+    create_grid(nc, CELLSIZE, crs = "3035")
+  )
+})

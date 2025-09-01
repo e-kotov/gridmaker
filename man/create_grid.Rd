@@ -8,13 +8,14 @@ create_grid(
   grid_extent,
   cellsize_m,
   crs = NULL,
-  output_type = c("sf_polygons", "sf_points", "dataframe"),
+  output_type = "sf_polygons",
   clip_to_input = FALSE,
   use_convex_hull = FALSE,
   buffer_m = 0,
-  id_format = c("both", "long", "short", "none"),
+  id_format = "both",
   include_llc = TRUE,
-  point_type = c("centroid", "llc")
+  point_type = "centroid",
+  parallel = "auto"
 )
 }
 \arguments{
@@ -57,8 +58,22 @@ lower-left corner coordinates (\code{X_LLC}, \code{Y_LLC}) of each cell are incl
 in the output.}
 
 \item{point_type}{A character string, used only when \code{output_type = "sf_points"}.
-Determines the location of the points: \code{"centroid"} (default) for the center
-of the cell, or \code{"llc"} for the lower-left corner.}
+Determines the location of the points: \code{"centroid"} (default) for the center of the cell, or \code{"llc"} for the lower-left corner.}
+
+\item{parallel}{Controls parallel execution. Options are:
+\itemize{
+\item \strong{\code{'auto'} (default):} Automatically detects and uses a configured
+\code{mirai} or \code{future} backend if one is available. If both are set, it
+prefers the one with more available workers and issues a warning. If
+neither is configured, it runs sequentially.
+\item \strong{\code{TRUE}:} Forces the function to attempt parallel execution. It
+will raise an error if a valid parallel backend (with >1 worker) is
+not configured.
+\item \strong{\code{FALSE}:} Forces the function to run in single-threaded
+sequential mode.
+}
+For parallelism, you must configure a backend \emph{before} calling this
+function, for example: \code{mirai::daemons(4)} or \code{future::plan("multisession")}.}
 }
 \value{
 An \code{sf} object (with polygon or point geometries) or a \code{data.frame}
@@ -66,10 +81,11 @@ representing the grid, with optional columns for coordinates and
 INSPIRE-compliant grid IDs.
 }
 \description{
+{
 This function generates a regular spatial grid aligned to the CRS origin.
 It combines high performance for large areas (using \code{sfheaders}) with a
 flexible and robust set of features for input handling and output formatting,
-including INSPIRE-compliant grid IDs.
+including INSPIRE-compliant grid IDs and automatic parallel processing with \code{mirai} and \code{future} backends.}
 }
 \examples{
 library(sf)

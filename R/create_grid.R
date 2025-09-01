@@ -166,7 +166,9 @@ create_grid <- function(
   if (run_mode == "sequential") {
     if (parallel == "auto") {
       # This is not a warning because 'auto' implies it's okay to fall back
-      message("No parallel backend detected. Running in sequential mode.")
+      message(
+        "No parallel backend detected. Running in sequential mode. See ?create_grid for details how to enable parallel processing to speed up large jobs."
+      )
     } else {
       message("Running in sequential mode.")
     }

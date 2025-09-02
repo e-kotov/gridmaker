@@ -43,6 +43,8 @@ test_that("Parallel execution matches sequential result", {
   expect_equal(sf::st_crs(grid_fut), sf::st_crs(grid_seq))
   expect_equal(sort(grid_fut$GRD_ID_LONG), seq_ids_long)
   expect_equal(sort(grid_fut$GRD_ID_SHORT), seq_ids_short)
+  expect_false(any(duplicated(grid_fut$GRD_ID_LONG)))
+  expect_false(any(duplicated(grid_fut$GRD_ID_SHORT)))
 
   # --- 3. Test the `mirai` backend ---
   message("Testing 'mirai' backend...")

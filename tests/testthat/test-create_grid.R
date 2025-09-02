@@ -306,3 +306,22 @@ test_that("`quiet` parameter correctly suppresses messages", {
     regexp = "No parallel backend detected"
   )
 })
+
+test_that("GRD_IDs are unique", {
+  # Standard case
+  grid_sf <- create_grid(nc, CELLSIZE, crs = TARGET_CRS, id_format = "long")
+  expect_true("GRD_ID" %in% names(grid_sf))
+  expect_false(any(duplicated(grid_sf$GRD_ID)))
+
+  # Short IDs
+  grid_short <- create_grid(nc, CELLSIZE, crs = TARGET_CRS, id_format = "short")
+  expect_true("GRD_ID" %in% names(grid_short))
+  expect_false(any(duplicated(grid_short$GRD_ID)))
+
+  # Both IDs
+  grid_both <- create_grid(nc, CELLSIZE, crs = TARGET_CRS, id_format = "both")
+  expect_true("GRD_ID_LONG" %in% names(grid_both))
+  expect_true("GRD_ID_SHORT" %in% names(grid_both))
+  expect_false(any(duplicated(grid_both$GRD_ID_LONG)))
+  expect_false(any(duplicated(grid_both$GRD_ID_SHORT)))
+})

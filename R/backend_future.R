@@ -76,7 +76,7 @@ run_parallel_future <- function(grid_extent, cellsize_m, crs, dot_args) {
   # --- 3. PROCESS AND CLIP TILES IN PARALLEL ---
   grid_chunks <- furrr::future_map(
     .x = tile_bboxes,
-    .f = function(.x) {
+    .f = ~ {
       args_for_tile <- c(list(grid_extent = .x), all_args)
       args_for_tile$clip_to_input <- FALSE
       chunk <- do.call(gridmaker:::create_grid_internal, args_for_tile)

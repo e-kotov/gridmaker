@@ -44,13 +44,13 @@ create_grid_and_stream_mirai <- function(
     ))
   ) {
     stop(
-      "Packages 'mirai', 'promises', and 'later' are required for this function.",
+      "Packages 'mirai', 'promises', and 'later' are required.",
       call. = FALSE
     )
   }
   if (!mirai::daemons_set()) {
     stop(
-      "`mirai` daemons are not running. Please configure them first (e.g., `mirai::daemons(4)`).",
+      "`mirai` daemons are not running. Please configure them first.",
       call. = FALSE
     )
   }
@@ -60,7 +60,6 @@ create_grid_and_stream_mirai <- function(
   if (missing(layer)) {
     stop("'layer' must be provided.", call. = FALSE)
   }
-
   if (file.exists(dsn)) {
     if (!quiet) {
       message(paste(
@@ -78,8 +77,6 @@ create_grid_and_stream_mirai <- function(
   if (is.na(grid_crs) || sf::st_is_longlat(grid_crs)) {
     stop("A projected CRS is required.")
   }
-
-  # All arguments needed by the internal function must be in this list
   backend_args <- list(
     cellsize_m = cellsize_m,
     crs = grid_crs,
@@ -91,7 +88,6 @@ create_grid_and_stream_mirai <- function(
     include_llc = include_llc,
     point_type = point_type
   )
-
   clipping_target <- NULL
   if (isTRUE(backend_args$clip_to_input)) {
     if (sf::st_crs(grid_extent) != grid_crs) {
@@ -107,16 +103,13 @@ create_grid_and_stream_mirai <- function(
     }
     clipping_target <- target
   }
-
   full_bbox <- sf::st_bbox(grid_extent)
   xmin <- floor(as.numeric(full_bbox["xmin"]) / cellsize_m) * cellsize_m
   ymin <- floor(as.numeric(full_bbox["ymin"]) / cellsize_m) * cellsize_m
   xmax <- ceiling(as.numeric(full_bbox["xmax"]) / cellsize_m) * cellsize_m
   ymax <- ceiling(as.numeric(full_bbox["ymax"]) / cellsize_m) * cellsize_m
 
-  # New chunking logic
   if (!is.null(max_cells_per_chunk)) {
-    # Strategy 1: Chunk by cell count
     if (!quiet) {
       message(paste(
         "Tiling strategy: Aiming for max",
@@ -130,18 +123,15 @@ create_grid_and_stream_mirai <- function(
       rows_per_chunk <- 1
       if (!quiet) {
         warning(
-          "max_cells_per_chunk is smaller than the number of cells in a single row. Chunks will exceed the target size.",
+          "max_cells_per_chunk is smaller than the number of cells in a single row.",
           call. = FALSE
         )
       }
     }
     chunk_height_m <- rows_per_chunk * cellsize_m
     y_breaks <- seq(from = ymin, to = ymax, by = chunk_height_m)
-    if (tail(y_breaks, 1) < ymax) {
-      y_breaks <- c(y_breaks, ymax)
-    }
+    if (tail(y_breaks, 1) < ymax) y_breaks <- c(y_breaks, ymax)
   } else {
-    # Strategy 2: Default chunking by number of workers
     num_daemons <- mirai::status()$connections
     tile_multiplier <- getOption("gridmaker.tile_multiplier", default = 2)
     num_tiles <- as.integer(round(num_daemons * tile_multiplier))
@@ -162,7 +152,6 @@ create_grid_and_stream_mirai <- function(
   if (!quiet) {
     message(paste("Dispatching", num_tiles, "generation jobs..."))
   }
-
   tile_bboxes <- lapply(1:(length(y_breaks) - 1), function(i) {
     sf::st_bbox(
       c(xmin = xmin, ymin = y_breaks[i], xmax = xmax, ymax = y_breaks[i + 1]),
@@ -170,16 +159,35 @@ create_grid_and_stream_mirai <- function(
     )
   })
 
+  # *** NEW ETA LOGIC - PART 1: HELPER FUNCTION ***
+  # Helper function to format seconds into a readable string
+  format_time_eta <- function(seconds) {
+    if (is.na(seconds) || seconds < 0 || !is.finite(seconds)) {
+      return("...")
+    }
+    if (seconds < 60) {
+      return(sprintf("%.0f sec", seconds))
+    }
+    if (seconds < 3600) {
+      return(sprintf("%.1f min", seconds / 60))
+    }
+    return(sprintf("%.1f hr", seconds / 3600))
+  }
+
   # --- 3. THE ASYNCHRONOUS PIPELINE with mirai ---
   writer_promise_chain <- promises::promise_resolve(TRUE)
   is_first_chunk <- TRUE
+  chunks_completed <- 0
+
+  # *** NEW ETA LOGIC - PART 2: RECORD START TIME ***
+  start_time <- Sys.time()
 
   all_tasks_queued_promise <- promises::as.promise(
     mirai::mirai_map(
       .x = tile_bboxes,
       .f = function(.x) {
         args_for_tile <- c(list(grid_extent = .x), backend_args)
-        args_for_tile$clip_to_input <- FALSE # Internal clipping is handled below
+        args_for_tile$clip_to_input <- FALSE
         chunk <- do.call(gridmaker:::create_grid_internal, args_for_tile)
         if (nrow(chunk) > 0 && !is.null(clipping_target)) {
           intersects_indices <- sf::st_intersects(chunk, clipping_target)
@@ -190,14 +198,49 @@ create_grid_and_stream_mirai <- function(
       backend_args = backend_args,
       clipping_target = clipping_target,
       .promise = function(chunk) {
-        # Use promises::then() for robustness instead of the '%...>%' operator
         writer_promise_chain <<- promises::then(
           writer_promise_chain,
           function(value) {
             if (!is.null(chunk)) {
               if (!quiet) {
-                cat(".")
+                chunks_completed <<- chunks_completed + 1
+
+                # *** NEW ETA LOGIC - PART 3: CALCULATE AND DISPLAY ***
+                time_elapsed_s <- as.numeric(difftime(
+                  Sys.time(),
+                  start_time,
+                  units = "secs"
+                ))
+                eta_str <- if (chunks_completed > 1 && time_elapsed_s > 0) {
+                  chunks_per_second <- chunks_completed / time_elapsed_s
+                  chunks_remaining <- num_tiles - chunks_completed
+                  eta_seconds <- chunks_remaining / chunks_per_second
+                  format_time_eta(eta_seconds)
+                } else {
+                  "..." # Not enough data to estimate yet
+                }
+
+                percent <- floor((chunks_completed / num_tiles) * 100)
+                bar_width <- 30
+                done_width <- round(percent / 100 * bar_width)
+                bar <- paste0(
+                  "[",
+                  paste(rep("=", done_width), collapse = ""),
+                  paste(rep(" ", bar_width - done_width), collapse = ""),
+                  "]"
+                )
+
+                progress_string <- sprintf(
+                  "\rWriting chunks: %s %3d%% (%d/%d) | ETA: %-8s",
+                  bar,
+                  percent,
+                  chunks_completed,
+                  num_tiles,
+                  eta_str
+                )
+                cat(progress_string)
               }
+
               sf::st_write(
                 chunk,
                 dsn = dsn,
@@ -213,7 +256,6 @@ create_grid_and_stream_mirai <- function(
     )
   )
 
-  # The final promise waits for all queuing, THEN all writing
   final_promise <- promises::`%...>%`(
     all_tasks_queued_promise,
     (function(...) {
@@ -222,7 +264,6 @@ create_grid_and_stream_mirai <- function(
   )
 
   pipeline_finished <- FALSE
-
   promises::then(
     final_promise,
     onFulfilled = function(value) {
@@ -232,6 +273,9 @@ create_grid_and_stream_mirai <- function(
       pipeline_finished <<- TRUE
     },
     onRejected = function(err) {
+      if (!quiet) {
+        cat("\n")
+      }
       pipeline_finished <<- TRUE
       stop("Grid streaming failed: ", err$message, call. = FALSE)
     }

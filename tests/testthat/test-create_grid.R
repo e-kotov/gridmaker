@@ -306,3 +306,62 @@ test_that("`quiet` parameter correctly suppresses messages", {
     regexp = "No parallel backend detected"
   )
 })
+
+test_that("dataframe, sf_points and sf_polygons outputs are consistent", {
+  # Generate both types of grids with the same parameters, ensuring IDs are created
+  # for reliable row-wise comparison.
+  grid_poly <- create_grid(
+    nc,
+    CELLSIZE,
+    crs = TARGET_CRS,
+    clip_to_input = TRUE,
+    id_format = "long",
+    output_type = "sf_polygons"
+  )
+
+  grid_pts <- create_grid(
+    nc,
+    CELLSIZE,
+    crs = TARGET_CRS,
+    clip_to_input = TRUE,
+    id_format = "long",
+    output_type = "sf_points"
+  )
+
+  grid_df <- create_grid(
+    nc,
+    CELLSIZE,
+    crs = TARGET_CRS,
+    clip_to_input = TRUE,
+    id_format = "long",
+    output_type = "dataframe"
+  )
+
+  # Check for the same number of features
+  expect_equal(nrow(grid_poly), nrow(grid_pts))
+  expect_equal(nrow(grid_poly), nrow(grid_df))
+  expect_equal(nrow(grid_pts), nrow(grid_df))
+
+  # Check for spatial correspondence
+  # Ensure both are sorted by the same ID to match rows correctly
+  poly_sorted <- grid_poly[order(grid_poly$GRD_ID), ]
+  pts_sorted <- grid_pts[order(grid_pts$GRD_ID), ]
+
+  # Check the ids
+  expect_equal(poly_sorted$GRD_ID, pts_sorted$GRD_ID)
+  expect_equal(poly_sorted$GRD_ID, grid_df$GRD_ID)
+  expect_equal(pts_sorted$GRD_ID, grid_df$GRD_ID)
+
+  # Check that each polygon contains its corresponding point (centroid)
+  # st_contains() returns a sparse list by default; we can check its diagonal
+  # when converted to a dense matrix.
+  contains_matrix <- sf::st_contains(poly_sorted, pts_sorted, sparse = FALSE)
+
+  # The diagonal of this matrix must be all TRUE, meaning polygon `i`
+  # contains point `i`.
+  expect_true(all(diag(contains_matrix)))
+
+  # As a sanity check, the total number of TRUEs in the matrix should equal
+  # the number of points, meaning each point falls into exactly one polygon.
+  expect_equal(sum(contains_matrix), nrow(pts_sorted))
+})

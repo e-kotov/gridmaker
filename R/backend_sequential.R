@@ -60,14 +60,11 @@ create_grid_internal <- function(
   }
   cellsize_m <- as.integer(round(cellsize_m))
 
-  # Determine the grid CRS
   grid_crs <- if (!is.null(crs)) sf::st_crs(crs) else sf::st_crs(NA)
   input_crs <- sf::st_crs(NA)
-
   if (inherits(grid_extent, c("sf", "sfc", "bbox"))) {
     input_crs <- sf::st_crs(grid_extent)
   }
-
   if (is.na(grid_crs)) {
     if (is.na(input_crs)) {
       stop(
@@ -163,9 +160,9 @@ create_grid_internal <- function(
   }
   grid_df <- expand.grid(X_LLC = x_coords, Y_LLC = y_coords)
 
-  # --- 6. HANDLE CLIPPING TARGET PREPARATION ---
-  clipping_target <- NULL
+  # --- 6. UNIFIED CLIPPING LOGIC ---
   if (clip_to_input) {
+    clipping_target <- NULL
     if (!is.null(input_sf)) {
       target <- if (use_convex_hull) {
         sf::st_convex_hull(sf::st_union(input_sf))
@@ -182,86 +179,89 @@ create_grid_internal <- function(
         call. = FALSE
       )
     }
+
+    if (!is.null(clipping_target)) {
+      n_polygons <- nrow(grid_df)
+      x_llc_rep <- rep(grid_df$X_LLC, each = 5)
+      y_llc_rep <- rep(grid_df$Y_LLC, each = 5)
+      x_coords_poly <- x_llc_rep + c(0, cellsize_m, cellsize_m, 0, 0)
+      y_coords_poly <- y_llc_rep + c(0, 0, cellsize_m, cellsize_m, 0)
+      df_vertices <- data.frame(
+        id = rep(seq_len(n_polygons), each = 5),
+        x = x_coords_poly,
+        y = y_coords_poly
+      )
+      temp_geoms <- sfheaders::sf_polygon(
+        obj = df_vertices,
+        x = "x",
+        y = "y",
+        polygon_id = "id"
+      )
+      temp_grid_sf <- sf::st_sf(geometry = temp_geoms, crs = grid_crs)
+      intersects_list <- sf::st_intersects(temp_grid_sf, clipping_target)
+      keep_indices <- lengths(intersects_list) > 0
+      grid_df <- grid_df[keep_indices, ]
+    }
   }
 
   # --- 7. HANDLE OUTPUT TYPE ---
+  if (nrow(grid_df) == 0) {
+    return(
+      if (output_type %in% c("sf_polygons", "sf_points")) {
+        sf::st_sf(geometry = sf::st_sfc(crs = grid_crs))
+      } else {
+        data.frame()
+      }
+    )
+  }
+
   if (output_type == "sf_polygons") {
-    # --- 7a. SF POLYGON OUTPUT ---
     n_polygons <- nrow(grid_df)
     x_llc_rep <- rep(grid_df$X_LLC, each = 5)
     y_llc_rep <- rep(grid_df$Y_LLC, each = 5)
     x_coords_poly <- x_llc_rep + c(0, cellsize_m, cellsize_m, 0, 0)
     y_coords_poly <- y_llc_rep + c(0, 0, cellsize_m, cellsize_m, 0)
-
     df_vertices <- data.frame(
       id = rep(seq_len(n_polygons), each = 5),
       x = x_coords_poly,
       y = y_coords_poly
     )
-    grid_geoms <- sfheaders::sf_polygon(
+    # sfheaders::sf_polygon returns a full sf object
+    temp_sf_obj <- sfheaders::sf_polygon(
       obj = df_vertices,
       x = "x",
       y = "y",
       polygon_id = "id"
     )
-    grid_sf <- sf::st_sf(geometry = grid_geoms, crs = grid_crs)
-    grid_sf$X_LLC <- grid_df$X_LLC
-    grid_sf$Y_LLC <- grid_df$Y_LLC
 
-    if (!is.null(clipping_target)) {
-      intersects_list <- sf::st_intersects(grid_sf, clipping_target)
-      keep_indices <- lengths(intersects_list) > 0
-      grid_sf <- grid_sf[keep_indices, ]
-    }
-    out_obj <- grid_sf
-  } else {
-    # --- 7b. SF POINTS OR DATAFRAME OUTPUT ---
-    if (output_type == "sf_points") {
-      coords_to_use <- if (point_type == "centroid") {
-        list(
-          x = grid_df$X_LLC + (cellsize_m / 2),
-          y = grid_df$Y_LLC + (cellsize_m / 2),
-          names = c("X_centroid", "Y_centroid")
-        )
-      } else {
-        # llc
-        list(x = grid_df$X_LLC, y = grid_df$Y_LLC, names = c("X_LLC", "Y_LLC"))
-      }
-      points_df <- data.frame(x = coords_to_use$x, y = coords_to_use$y)
-      out_obj <- sf::st_as_sf(points_df, coords = c("x", "y"), crs = grid_crs)
-      # Re-attach all original attributes for consistency
-      out_obj <- cbind(out_obj, grid_df)
+    grid_geoms_sfc <- sf::st_geometry(temp_sf_obj)
+
+    # combine the attribute data frame with the valid sfc object
+    out_obj <- sf::st_sf(grid_df, geometry = grid_geoms_sfc, crs = grid_crs)
+  } else if (output_type == "sf_points") {
+    points_df <- grid_df
+    if (point_type == "centroid") {
+      points_df$x_coord <- points_df$X_LLC + (cellsize_m / 2)
+      points_df$y_coord <- points_df$Y_LLC + (cellsize_m / 2)
     } else {
-      # dataframe
-      grid_df$X_centroid <- grid_df$X_LLC + (cellsize_m / 2)
-      grid_df$Y_centroid <- grid_df$Y_LLC + (cellsize_m / 2)
-      out_obj <- grid_df
+      # llc
+      points_df$x_coord <- points_df$X_LLC
+      points_df$y_coord <- points_df$Y_LLC
     }
-
-    if (!is.null(clipping_target)) {
-      # For filtering, we always use centroids as the representative point
-      points_for_filter <- sf::st_as_sf(
-        data.frame(
-          x = grid_df$X_LLC + (cellsize_m / 2),
-          y = grid_df$Y_LLC + (cellsize_m / 2)
-        ),
-        coords = c("x", "y"),
-        crs = grid_crs
-      )
-      keep_indices <- sf::st_intersects(
-        points_for_filter,
-        clipping_target,
-        sparse = FALSE
-      )
-      out_obj <- out_obj[keep_indices[, 1], ]
-    }
+    out_obj <- sf::st_as_sf(
+      points_df,
+      coords = c("x_coord", "y_coord"),
+      crs = grid_crs,
+      remove = TRUE
+    )
+  } else {
+    # dataframe
+    grid_df$X_centroid <- grid_df$X_LLC + (cellsize_m / 2)
+    grid_df$Y_centroid <- grid_df$Y_LLC + (cellsize_m / 2)
+    out_obj <- grid_df
   }
 
   # --- 8. ADD ID & CLEAN UP COLUMNS ---
-  if (nrow(out_obj) == 0) {
-    return(out_obj)
-  }
-
   if (id_format != "none") {
     ids <- make_ids(
       out_obj$X_LLC,
@@ -283,10 +283,7 @@ create_grid_internal <- function(
     out_obj$X_LLC <- NULL
     out_obj$Y_LLC <- NULL
   } else if (!include_llc && "geometry" %in% names(out_obj)) {
-    # For sf objects, only remove if not the primary coordinate columns
-    if (output_type == "sf_points" && point_type == "llc") {
-      # Don't remove LLC columns as they are the source of the geometry
-    } else {
+    if (!(output_type == "sf_points" && point_type == "llc")) {
       out_obj$X_LLC <- NULL
       out_obj$Y_LLC <- NULL
     }
@@ -298,7 +295,6 @@ create_grid_internal <- function(
     out_obj <- out_obj[, c(first_cols, other_cols)]
   }
 
-  # Ensure geometry column is last for sf objects
   if (inherits(out_obj, "sf")) {
     geom_col_name <- attr(out_obj, "sf_column")
     if (!is.null(geom_col_name) && geom_col_name %in% names(out_obj)) {

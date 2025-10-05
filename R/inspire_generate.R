@@ -33,10 +33,10 @@
 #'   Increase this value if you are uncertain about the quality of your data.
 #' @inheritParams create_grid
 #'
-#' @returns \code{z22_inspire_generate} returns a character vector containing
+#' @returns \code{inspire_generate} returns a character vector containing
 #'   the INSPIRE identifiers.
 #'
-#'   \code{z22_inspire_extract} returns a dataframe or
+#'   \code{inspire_extract} returns a dataframe or
 #'   \code{\link[sf:st_sf]{sf}} dataframe (if \code{as_sf = TRUE}) containing
 #'   the points extracted from the INSPIRE identifiers and information about
 #'   the CRS and cell sizes. Note that the returned coordinates are always
@@ -48,17 +48,18 @@
 #' @examples
 #' # Generate IDs from a dataframe
 #' coords <- data.frame(x = c(4334100, 4334200), y = 2684000)
-#' gen <- inspire_generate(coords, llc = TRUE)
+#' gen <- inspire_generate(coords, llc = TRUE, cellsize_m = 100)
 #' ext <- inspire_extract(gen)[c("x", "y")]
-#' identical(ext, coords)
+#' # Note: inspire_extract gives cell centers, so this won't be identical if llc=TRUE
 #'
 #' # Extract coordinates from short ID strings
-#' inspire_extract("100mN34000E44000")
+#' inspire_extract("100mN34000E44000", crs = 3035)
 #'
 #' # Generate IDs from an sf dataframe
 #' if (requireNamespace("sf", quietly = TRUE)) {
-#'   coords <- sf::st_as_sf(coords, coords = c("x", "y"))
-#'   inspire_generate(coords)
+#'   coords_df <- data.frame(x = c(4334100, 4334200), y = 2684000)
+#'   coords_sf <- sf::st_as_sf(coords_df, coords = c("x", "y"), crs = 3035)
+#'   inspire_generate(coords_sf, cellsize_m = 1000)
 #' }
 inspire_generate <- function(
   coords,
@@ -69,12 +70,25 @@ inspire_generate <- function(
   sample = 2000
 ) {
   if (inherits(coords, c("sf", "sfc"))) {
+    # Check for empty sf object before extracting coordinates
+    if (nrow(coords) == 0) {
+      stop("Input 'coords' cannot be empty (0 rows).", call. = FALSE)
+    }
     coords <- sf::st_transform(coords, 3035)
     coords <- sf::st_coordinates(coords)
   }
 
   if (is.matrix(coords)) {
+    # Check for empty matrix before converting
+    if (nrow(coords) == 0) {
+      stop("Input 'coords' cannot be empty (0 rows).", call. = FALSE)
+    }
     coords <- as.data.frame(coords)
+  }
+
+  # Final check, primarily for data.frames
+  if (nrow(coords) == 0) {
+    stop("Input 'coords' cannot be empty (0 rows).", call. = FALSE)
   }
 
   colnames(coords) <- tolower(colnames(coords))
@@ -84,6 +98,11 @@ inspire_generate <- function(
   if (is.null(x) || is.null(y)) {
     x <- coords[[1]]
     y <- coords[[2]]
+  }
+
+  # Fail fast if any coordinates are NA, which is more robust.
+  if (any(is.na(x)) || any(is.na(y))) {
+    stop("Input 'coords' contains NA values in the coordinates.", call. = FALSE)
   }
 
   if (is.null(cellsize_m)) {
@@ -107,29 +126,62 @@ inspire_generate <- function(
 
 
 guess_resolution <- function(x, y, sample = 2000, tolerance = 1e-6) {
-  x <- x[seq(1, sample)] # take a sample
-  y <- y[seq(1, sample)]
+  # Guard against sampling more elements than exist
+  n_total <- length(x)
+  if (n_total < sample) {
+    sample <- n_total
+  }
+
+  # Sample from indices to maintain x-y correspondence if ever needed
+  sample_indices <- seq(1, n_total, length.out = sample)
+  x <- x[sample_indices]
+  y <- y[sample_indices]
+
   sx <- sort(unique(x))
   sy <- sort(unique(y))
   diff_x <- diff(sx)
   diff_y <- diff(sy)
-  res_x <- diff_x[1]
-  res_y <- diff_y[1]
 
-  if (length(sx) < 2 && length(sy) < 2) {
-    stop("Not enough coordinates to form a grid.")
+  if (length(diff_x) == 0 && length(diff_y) == 0) {
+    # This can happen if there's only one unique coordinate pair
+    stop(
+      "Cannot determine resolution: not enough unique coordinates in the sample to form a grid.",
+      call. = FALSE
+    )
   }
 
-  un_x <- all(abs(diff_x - diff_x[1]) < tolerance)
-  un_y <- all(abs(diff_y - diff_y[1]) < tolerance)
+  # Use the median of the differences to be more robust to outliers
+  res_x <- if (length(diff_x) > 0) stats::median(diff_x) else NA
+  res_y <- if (length(diff_y) > 0) stats::median(diff_y) else NA
 
-  if (!un_x || !un_y) {
-    stop("Coordinates have non-uniform spacing in X and/or Y dimensions.")
+  # Determine final resolution, preferring a valid value if one exists
+  final_res <- if (!is.na(res_x)) res_x else res_y
+  if (is.na(final_res)) {
+    stop(
+      "Cannot determine resolution from the provided coordinates.",
+      call. = FALSE
+    )
   }
 
-  if (!is.na(res_x) && !is.na(res_y) && !res_x == res_y) {
-    stop("Coordinates form an anisotropic grid. X and Y coordinates have a different resolution.")
+  # Check for uniform spacing and anisotropy based on the determined resolution
+  if (!is.na(res_x) && any(abs(diff_x - res_x) > tolerance)) {
+    stop(
+      "Coordinates have non-uniform spacing in the X dimension.",
+      call. = FALSE
+    )
+  }
+  if (!is.na(res_y) && any(abs(diff_y - res_y) > tolerance)) {
+    stop(
+      "Coordinates have non-uniform spacing in the Y dimension.",
+      call. = FALSE
+    )
+  }
+  if (!is.na(res_x) && !is.na(res_y) && abs(res_x - res_y) > tolerance) {
+    stop(
+      "Coordinates form an anisotropic grid. X and Y coordinates have a different resolution.",
+      call. = FALSE
+    )
   }
 
-  res_x
+  final_res
 }

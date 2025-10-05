@@ -65,10 +65,10 @@ Increase this value if you are uncertain about the quality of your data.}
 \value{
 A character vector of the converted INSPIRE IDs.
 
-\code{z22_inspire_generate} returns a character vector containing
+\code{inspire_generate} returns a character vector containing
 the INSPIRE identifiers.
 
-\code{z22_inspire_extract} returns a dataframe or
+\code{inspire_extract} returns a dataframe or
 \code{\link[sf:st_sf]{sf}} dataframe (if \code{as_sf = TRUE}) containing
 the points extracted from the INSPIRE identifiers and information about
 the CRS and cell sizes. Note that the returned coordinates are always
@@ -109,16 +109,17 @@ inspire_convert(short_ids)
 inspire_convert(short_ids, crs = 3857)
 # Generate IDs from a dataframe
 coords <- data.frame(x = c(4334100, 4334200), y = 2684000)
-gen <- inspire_generate(coords, llc = TRUE)
+gen <- inspire_generate(coords, llc = TRUE, cellsize_m = 100)
 ext <- inspire_extract(gen)[c("x", "y")]
-identical(ext, coords)
+# Note: inspire_extract gives cell centers, so this won't be identical if llc=TRUE
 
 # Extract coordinates from short ID strings
-inspire_extract("100mN34000E44000")
+inspire_extract("100mN34000E44000", crs = 3035)
 
 # Generate IDs from an sf dataframe
 if (requireNamespace("sf", quietly = TRUE)) {
-  coords <- sf::st_as_sf(coords, coords = c("x", "y"))
-  inspire_generate(coords)
+  coords_df <- data.frame(x = c(4334100, 4334200), y = 2684000)
+  coords_sf <- sf::st_as_sf(coords_df, coords = c("x", "y"), crs = 3035)
+  inspire_generate(coords_sf, cellsize_m = 1000)
 }
 }

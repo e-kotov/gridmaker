@@ -2,5 +2,6 @@
 
 export(create_grid)
 export(derive_grid)
+export(inspire_convert)
 export(inspire_extract)
 export(inspire_generate)

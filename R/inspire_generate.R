@@ -87,6 +87,7 @@ inspire_generate <- function(coords, res = NULL, short = FALSE) {
     res <- m_to_res(res)
     sprintf("%sN%sE%s", res, y, x)
   } else {
+    res <- format(res, scientific = FALSE)
     sprintf("CRS3035RES%smN%sE%s", res, y, x)
   }
 }

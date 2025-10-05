@@ -7,19 +7,16 @@ inspire_extract <- function(inspire, as_sf = FALSE) {
     parsed <- utils::strcapture(
       "^CRS([0-9]+)RES([0-9]+)mN([0-9]+)E([0-9]+)$",
       x = inspire,
-      proto = list(crs = integer(), res = numeric(), y = integer(), x = integer())
+      proto = list(crs = integer(), res = numeric(), y = numeric(), x = numeric())
     )
   } else {
     parsed <- utils::strcapture(
       "^([0-9]+k?m)N([0-9]+)E([0-9]+)$",
       x = inspire,
-      proto = list(res = character(), y = integer(), x = integer())
+      proto = list(res = character(), y = numeric(), x = numeric())
     )
     parsed$res <- res_to_m(parsed$res)
   }
-
-  parsed$x <- parsed$x * parsed$res + parsed$res / 2
-  parsed$y <- parsed$y * parsed$res + parsed$res / 2
 
   if (as_sf) {
     crs <- unique(parsed$crs)

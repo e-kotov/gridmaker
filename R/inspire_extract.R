@@ -13,9 +13,9 @@ inspire_extract <- function(inspire, as_sf = FALSE) {
     parsed <- utils::strcapture(
       "^([0-9]+k?m)N([0-9]+)E([0-9]+)$",
       x = inspire,
-      proto = list(res = character(), y = numeric(), x = numeric())
+      proto = list(cellsize = character(), y = numeric(), x = numeric())
     )
-    parsed$res <- res_to_m(parsed$cellsize)
+    parsed$cellsize <- res_to_m(parsed$cellsize)
   }
 
   if (as_sf) {

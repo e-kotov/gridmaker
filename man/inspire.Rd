@@ -64,14 +64,14 @@ INSPIRE grid cells.
 \examples{
 # Generate IDs from a dataframe
 coords <- data.frame(x = c(4334150, 4334250), y = c(2684050, 2684050))
-identical(z22_inspire_extract(z22_inspire_generate(coords)), coords)
+identical(inspire_extract(inspire_generate(coords))[c("x", "y")], coords)
 
 # Extract coordinates from legacy ID strings
-z22_inspire_extract("100mN34000E44000")
+inspire_extract("100mN34000E44000")
 
 # Generate IDs from an sf dataframe
 if (requireNamespace("sf", quietly = TRUE)) {
   coords <- sf::st_as_sf(coords, coords = c("x", "y"))
-  z22_inspire_generate(coords)
+  inspire_generate(coords)
 }
 }

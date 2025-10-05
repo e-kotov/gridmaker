@@ -12,6 +12,7 @@ inspire_generate(
   coords,
   cellsize_m = NULL,
   short = FALSE,
+  axis_order = "NE",
   llc = FALSE,
   tolerance = 1e-06,
   sample = 2000
@@ -41,6 +42,13 @@ extracted using \code{\link[sf]{st_coordinates}}.}
 
 \item{short}{If \code{TRUE}, generates short INSPIRE ID. Defaults to
 \code{FALSE}.}
+
+\item{axis_order}{A character string specifying the coordinate order for the
+output. This parameter is \strong{only used when \code{short = TRUE}}. It can be one of:
+\itemize{
+\item \code{"NE"} (the default) to produce the format \verb{\{cellsize\}N\{y\}E\{x\}}.
+\item \code{"EN"} to produce the format \verb{\{cellsize\}E\{x\}N\{y\}}.
+}}
 
 \item{llc}{Do the coordinates in \code{coords} represent the lower-left
 corners of their cells? If \code{FALSE}, subtracts each coordinate by
@@ -74,7 +82,8 @@ ETRS89-LAEA coordinates of the lower-left corner of the grid cell in its
 format.
 
 \preformatted{CRS3035{cellsize}mN{y}E{x} # long format
-{cellsize}N{y}E{x}         # short format}
+    {cellsize}N{y}E{x}         # short format (NE order)
+    {cellsize}E{x}N{y}         # short format (EN order)}
 
 The long format always uses meters while the short format aggregates
 cell sizes greater or equal to 1000m to km.
@@ -85,6 +94,15 @@ coords <- data.frame(x = c(4334100, 4334200), y = 2684000)
 gen <- inspire_generate(coords, llc = TRUE, cellsize_m = 100)
 ext <- inspire_extract(gen)[c("x", "y")]
 # Note: inspire_extract gives cell centers, so this won't be identical if llc=TRUE
+
+# Generate long format IDs
+inspire_generate(coords, llc = TRUE, cellsize_m = 100)
+
+# Generate short format IDs with default "NE" axis order
+inspire_generate(coords, llc = TRUE, cellsize_m = 1000, short = TRUE)
+
+# Generate short format IDs with "EN" axis order
+inspire_generate(coords, llc = TRUE, cellsize_m = 1000, short = TRUE, axis_order = "EN")
 
 # Extract coordinates from short ID strings
 inspire_extract("100mN34000E44000", crs = 3035)

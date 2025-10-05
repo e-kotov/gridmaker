@@ -54,6 +54,44 @@ test_that("inspire_generate produces correct long and short format IDs", {
   expect_equal(gen_short_100m, expected_short_100m)
 })
 
+test_that("inspire_generate respects the axis_order argument", {
+  coords <- data.frame(x = 4447500, y = 3497500)
+  cellsize <- 1000
+
+  # 1. Test short format with 'EN' order
+  expected_short_en <- "1kmE4447N3497"
+  gen_short_en <- inspire_generate(
+    coords,
+    cellsize_m = cellsize,
+    short = TRUE,
+    axis_order = "EN"
+  )
+  expect_equal(gen_short_en, expected_short_en)
+
+  # 2. Test that axis_order is ignored for long format
+  expected_long <- "CRS3035RES1000mN3497000E4447000"
+  gen_long_ignored <- inspire_generate(
+    coords,
+    cellsize_m = cellsize,
+    short = FALSE, # short is FALSE
+    axis_order = "EN" # axis_order should be ignored
+  )
+  expect_equal(gen_long_ignored, expected_long)
+})
+
+test_that("inspire_generate throws an error for invalid axis_order", {
+  coords <- data.frame(x = 4447500, y = 3497500)
+  expect_error(
+    inspire_generate(
+      coords,
+      cellsize_m = 1000,
+      short = TRUE,
+      axis_order = "XY"
+    ),
+    regexp = "'arg' should be one of"
+  )
+})
+
 test_that("inspire_generate handles different coordinate column names", {
   base_id <- "CRS3035RES10000mN2495000E4095000"
   # Standard lowercase

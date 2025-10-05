@@ -8,7 +8,8 @@
 #'   format.
 #'
 #'   \preformatted{CRS3035{cellsize}mN{y}E{x} # long format
-#' {cellsize}N{y}E{x}         # short format}
+#'     {cellsize}N{y}E{x}         # short format (NE order)
+#'     {cellsize}E{x}N{y}         # short format (EN order)}
 #'
 #'   The long format always uses meters while the short format aggregates
 #'   cell sizes greater or equal to 1000m to km.
@@ -21,6 +22,12 @@
 #'   extracted using \code{\link[sf]{st_coordinates}}.
 #' @param short If \code{TRUE}, generates short INSPIRE ID. Defaults to
 #'   \code{FALSE}.
+#' @param axis_order A character string specifying the coordinate order for the
+#'   output. This parameter is **only used when `short = TRUE`**. It can be one of:
+#'   \itemize{
+#'     \item `"NE"` (the default) to produce the format `{cellsize}N{y}E{x}`.
+#'     \item `"EN"` to produce the format `{cellsize}E{x}N{y}`.
+#'   }
 #' @param llc Do the coordinates in \code{coords} represent the lower-left
 #'   corners of their cells? If \code{FALSE}, subtracts each coordinate by
 #'   half of \code{cellsize_m}. If \code{TRUE}, leaves them as-is. Defaults
@@ -52,6 +59,15 @@
 #' ext <- inspire_extract(gen)[c("x", "y")]
 #' # Note: inspire_extract gives cell centers, so this won't be identical if llc=TRUE
 #'
+#' # Generate long format IDs
+#' inspire_generate(coords, llc = TRUE, cellsize_m = 100)
+#'
+#' # Generate short format IDs with default "NE" axis order
+#' inspire_generate(coords, llc = TRUE, cellsize_m = 1000, short = TRUE)
+#'
+#' # Generate short format IDs with "EN" axis order
+#' inspire_generate(coords, llc = TRUE, cellsize_m = 1000, short = TRUE, axis_order = "EN")
+#'
 #' # Extract coordinates from short ID strings
 #' inspire_extract("100mN34000E44000", crs = 3035)
 #'
@@ -65,12 +81,12 @@ inspire_generate <- function(
   coords,
   cellsize_m = NULL,
   short = FALSE,
+  axis_order = "NE",
   llc = FALSE,
   tolerance = 1e-6,
   sample = 2000
 ) {
   if (inherits(coords, c("sf", "sfc"))) {
-    # Check for empty sf object before extracting coordinates
     if (nrow(coords) == 0) {
       stop("Input 'coords' cannot be empty (0 rows).", call. = FALSE)
     }
@@ -79,14 +95,12 @@ inspire_generate <- function(
   }
 
   if (is.matrix(coords)) {
-    # Check for empty matrix before converting
     if (nrow(coords) == 0) {
       stop("Input 'coords' cannot be empty (0 rows).", call. = FALSE)
     }
     coords <- as.data.frame(coords)
   }
 
-  # Final check, primarily for data.frames
   if (nrow(coords) == 0) {
     stop("Input 'coords' cannot be empty (0 rows).", call. = FALSE)
   }
@@ -100,7 +114,6 @@ inspire_generate <- function(
     y <- coords[[2]]
   }
 
-  # Fail fast if any coordinates are NA, which is more robust.
   if (any(is.na(x)) || any(is.na(y))) {
     stop("Input 'coords' contains NA values in the coordinates.", call. = FALSE)
   }
@@ -115,15 +128,24 @@ inspire_generate <- function(
   }
 
   if (short) {
-    x <- trunc(x / cellsize_m)
-    y <- trunc(y / cellsize_m)
+    # Validate the new argument
+    axis_order <- match.arg(axis_order, choices = c("NE", "EN"))
+
+    x_short <- trunc(x / cellsize_m)
+    y_short <- trunc(y / cellsize_m)
     res <- m_to_res(cellsize_m)
-    sprintf("%sN%.0fE%.0f", res, y, x)
+
+    # Conditionally format the output string based on axis_order
+    if (axis_order == "NE") {
+      sprintf("%sN%.0fE%.0f", res, y_short, x_short)
+    } else {
+      # "EN"
+      sprintf("%sE%.0fN%.0f", res, x_short, y_short)
+    }
   } else {
     sprintf("CRS3035RES%.0fmN%.0fE%.0f", cellsize_m, y, x)
   }
 }
-
 
 guess_resolution <- function(x, y, sample = 2000, tolerance = 1e-6) {
   # Guard against sampling more elements than exist

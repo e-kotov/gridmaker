@@ -76,18 +76,31 @@ inspire_generate <- function(coords, res = NULL, short = FALSE) {
   }
 
   if (is.null(res)) {
-    res <- guess_resolution(x, y)
+    res_m <- guess_resolution(x, y)
   } else {
-    res <- res_to_m(res)
+    res_m <- res_to_m(res)
+  }
+
+  # Check if the numeric resolution is valid. This also catches NAs from "abc".
+  valid_resolutions_m <- res_to_m(grid_reses)
+  if (any(!res_m %in% valid_resolutions_m, na.rm = TRUE) || anyNA(res_m)) {
+    stop(
+      "'res' must be one of the standard INSPIRE resolutions: ",
+      paste(grid_reses, collapse = ", ")
+    )
   }
 
   if (short) {
-    x <- trunc(x / res)
-    y <- trunc(y / res)
-    res <- m_to_res(res)
-    sprintf("%sN%sE%s", res, y, x)
+    x_trunc <- trunc(x / res_m)
+    y_trunc <- trunc(y / res_m)
+    res_str <- m_to_res(res_m)
+    generated_ids <- sprintf("%sN%sE%s", res_str, y_trunc, x_trunc)
   } else {
-    res <- format(res, scientific = FALSE)
-    sprintf("CRS3035RES%smN%sE%s", res, y, x)
+    res_str <- format(res_m, scientific = FALSE)
+    generated_ids <- sprintf("CRS3035RES%smN%.0fE%.0f", res_str, y, x)
   }
+
+  generated_ids[is.na(x) | is.na(y)] <- NA_character_
+
+  generated_ids
 }

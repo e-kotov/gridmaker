@@ -21,9 +21,6 @@
 #'
 #'   Can also be a \code{sf}/\code{sfc} object in which case the coordinates are
 #'   extracted using \code{\link[sf]{st_coordinates}}.
-#' @param res Resolution of the grid. Can be \code{"100m"}, \code{"250m"},
-#'   \code{"1km"}, \code{"5km"}, \code{"10km"}, or \code{"100km"}. If
-#'   \code{NULL}, tries to guess the resolution from the provided coordinates.
 #' @param short If \code{TRUE}, generates short INSPIRE ID. Defaults to
 #'   \code{FALSE}.
 #' @param tolerance If \code{res} is \code{NULL}, controls the maximum
@@ -32,6 +29,7 @@
 #' @param sample If \code{res} is \code{NULL}, specifies the number of points
 #'   to guess a resolution from. Defaults to 2000 to keep performance high.
 #'   Increase this value if you are uncertain about the quality of your data.
+#' @inheritParams create_grid
 #'
 #' @returns \code{z22_inspire_generate} returns a character vector containing
 #'   the INSPIRE identifiers. \code{z22_inspire_extract} returns a dataframe
@@ -66,7 +64,7 @@
 #' }
 inspire_generate <- function(
   coords,
-  res = NULL,
+  cellsize_m = NULL,
   short = FALSE,
   tolerance = 1e-6,
   sample = 2000
@@ -88,19 +86,17 @@ inspire_generate <- function(
     y <- coords[[2]]
   }
 
-  if (is.null(res)) {
-    res <- guess_resolution(x, y, tolerance = tolerance, sample = sample)
-  } else {
-    res <- res_to_m(res)
+  if (is.null(cellsize_m)) {
+    cellsize_m <- guess_resolution(x, y, tolerance = tolerance, sample = sample)
   }
 
   if (short) {
-    x <- trunc(x / res)
-    y <- trunc(y / res)
-    res <- m_to_res(res)
+    x <- trunc(x / cellsize_m)
+    y <- trunc(y / cellsize_m)
+    res <- m_to_res(cellsize_m)
     sprintf("%sN%.0fE%.0f", res, y, x)
   } else {
-    sprintf("CRS3035RES%.0fmN%.0fE%.0f", res, y, x)
+    sprintf("CRS3035RES%.0fmN%.0fE%.0f", cellsize_m, y, x)
   }
 }
 

@@ -8,7 +8,13 @@
 \usage{
 inspire_extract(inspire, as_sf = FALSE)
 
-inspire_generate(coords, res = NULL, short = FALSE)
+inspire_generate(
+  coords,
+  cellsize_m = NULL,
+  short = FALSE,
+  tolerance = 1e-06,
+  sample = 2000
+)
 }
 \arguments{
 \item{inspire}{A vector of INSPIRE IDs. Can be either legacy or non-legacy.}
@@ -22,12 +28,19 @@ column position, respectively. Column names are converted to lowercase.
 Can also be a \code{sf}/\code{sfc} object in which case the coordinates are
 extracted using \code{\link[sf]{st_coordinates}}.}
 
-\item{res}{Resolution of the grid. Can be \code{"100m"}, \code{"250m"},
-\code{"1km"}, \code{"5km"}, \code{"10km"}, or \code{"100km"}. If
-\code{NULL}, tries to guess the resolution from the provided coordinates.}
+\item{cellsize_m}{A single integer representing the grid cell size in metres
+(e.g., 1000 for a 1 km grid).}
 
 \item{short}{If \code{TRUE}, generates short INSPIRE ID. Defaults to
 \code{FALSE}.}
+
+\item{tolerance}{If \code{res} is \code{NULL}, controls the maximum
+acceptable difference between calculated cell spacings to consider them
+uniform. Defaults to \code{1e-6}.}
+
+\item{sample}{If \code{res} is \code{NULL}, specifies the number of points
+to guess a resolution from. Defaults to 2000 to keep performance high.
+Increase this value if you are uncertain about the quality of your data.}
 }
 \value{
 \code{z22_inspire_generate} returns a character vector containing
@@ -47,7 +60,7 @@ coordinates. In case of \code{res = "100km"}, these are the first two
 digits, for \code{res = "100m"} the first five digits.
 
 \preformatted{CRS3035{cellsize}mN{y}E{x} # long format
-{cellsize}N{y}E{x}         # short format}
+  {cellsize}N{y}E{x}         # short format}
 
 The long format always uses meters while the short format aggregates
 cell sizes greater or equal to 1000m to km.

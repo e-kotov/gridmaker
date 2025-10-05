@@ -4,13 +4,11 @@
 #'   Given INSPIRE identifiers, can also extract the X and Y coordinates.
 #'
 #'   An INSPIRE ID contains information about the CRS, cell size and the
-#'   ETRS89-LAEA coordinates of the south-west corner of the grid cell in its
-#'   format. Only the relevant first digits are used in place of the full
-#'   coordinates. In case of \code{res = "100km"}, these are the first two
-#'   digits, for \code{res = "100m"} the first five digits.
+#'   ETRS89-LAEA coordinates of the lower-left corner of the grid cell in its
+#'   format.
 #'
 #'   \preformatted{CRS3035{cellsize}mN{y}E{x} # long format
-#'   {cellsize}N{y}E{x}         # short format}
+#' {cellsize}N{y}E{x}         # short format}
 #'
 #'   The long format always uses meters while the short format aggregates
 #'   cell sizes greater or equal to 1000m to km.
@@ -23,6 +21,10 @@
 #'   extracted using \code{\link[sf]{st_coordinates}}.
 #' @param short If \code{TRUE}, generates short INSPIRE ID. Defaults to
 #'   \code{FALSE}.
+#' @param llc Do the coordinates in \code{coords} represent the lower-left
+#'   corners of their cells? If \code{FALSE}, subtracts each coordinate by
+#'   half of \code{cellsize_m}. If \code{TRUE}, leaves them as-is. Defaults
+#'   to \code{FALSE}, i.e., treat coordinates as cell centroids.
 #' @param tolerance If \code{res} is \code{NULL}, controls the maximum
 #'   acceptable difference between calculated cell spacings to consider them
 #'   uniform. Defaults to \code{1e-6}.
@@ -32,27 +34,23 @@
 #' @inheritParams create_grid
 #'
 #' @returns \code{z22_inspire_generate} returns a character vector containing
-#'   the INSPIRE identifiers. \code{z22_inspire_extract} returns a dataframe
-#'   or \code{\link[sf:st_sfc]{sfc}} object containing the points extracted from
-#'   the INSPIRE identifiers. Note that the returned coordinates are always
-#'   the centers of the grid cells as opposed to the south-west corners.
-#' @export
+#'   the INSPIRE identifiers.
 #'
-#' @details
-#'   To remain fast even for huge grid datasets, the function is just a very
-#'   simple \code{\link{sprintf}} wrapper that performs no input checks. To
-#'   produce valid INSPIRE identifiers, make sure to transform your data to
-#'   ETRS89-LAEA (e.g. using
-#'   \code{\link[sf:st_transform]{st_transform}(..., 3035)}). You should also
-#'   make sure that the coordinates are the south-west corner of existing
-#'   INSPIRE grid cells.
+#'   \code{z22_inspire_extract} returns a dataframe or
+#'   \code{\link[sf:st_sf]{sf}} dataframe (if \code{as_sf = TRUE}) containing
+#'   the points extracted from the INSPIRE identifiers and information about
+#'   the CRS and cell sizes. Note that the returned coordinates are always
+#'   the centers of the grid cells as opposed to the lower-left corners.
+#' @export
 #'
 #' @name inspire
 #'
 #' @examples
 #' # Generate IDs from a dataframe
-#' coords <- data.frame(x = c(4334150, 4334250), y = c(2684050, 2684050))
-#' identical(inspire_extract(inspire_generate(coords))[c("x", "y")], coords)
+#' coords <- data.frame(x = c(4334100, 4334200), y = 2684000)
+#' gen <- inspire_generate(coords, llc = TRUE)
+#' ext <- inspire_extract(gen)[c("x", "y")]
+#' identical(ext, coords)
 #'
 #' # Extract coordinates from short ID strings
 #' inspire_extract("100mN34000E44000")
@@ -66,10 +64,12 @@ inspire_generate <- function(
   coords,
   cellsize_m = NULL,
   short = FALSE,
+  llc = FALSE,
   tolerance = 1e-6,
   sample = 2000
 ) {
   if (inherits(coords, c("sf", "sfc"))) {
+    coords <- sf::st_transform(coords, 3035)
     coords <- sf::st_coordinates(coords)
   }
 
@@ -88,6 +88,11 @@ inspire_generate <- function(
 
   if (is.null(cellsize_m)) {
     cellsize_m <- guess_resolution(x, y, tolerance = tolerance, sample = sample)
+  }
+
+  if (!llc) {
+    x <- x - cellsize_m / 2
+    y <- y - cellsize_m / 2
   }
 
   if (short) {
@@ -111,8 +116,8 @@ guess_resolution <- function(x, y, sample = 2000, tolerance = 1e-6) {
   res_x <- diff_x[1]
   res_y <- diff_y[1]
 
-  if (length(sx) < 2 || length(sy) < 2) {
-    stop("Not enough coordinates in one or both dimensions to form a grid.")
+  if (length(sx) < 2 && length(sy) < 2) {
+    stop("Not enough coordinates to form a grid.")
   }
 
   un_x <- all(abs(diff_x - diff_x[1]) < tolerance)
@@ -122,7 +127,7 @@ guess_resolution <- function(x, y, sample = 2000, tolerance = 1e-6) {
     stop("Coordinates have non-uniform spacing in X and/or Y dimensions.")
   }
 
-  if (!res_x == res_y) {
+  if (!is.na(res_x) && !is.na(res_y) && !res_x == res_y) {
     stop("Coordinates form an anisotropic grid. X and Y coordinates have a different resolution.")
   }
 

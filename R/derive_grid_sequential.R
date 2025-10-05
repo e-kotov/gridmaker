@@ -1,8 +1,8 @@
 derive_grid_internal <- function(
-    ids,
-    point_type = c("llc", "centroid"),
-    output_type = c("sf_polygons", "sf_points", "dataframe"),
-    quiet = FALSE
+  ids,
+  point_type = c("llc", "centroid"),
+  output_type = c("sf_polygons", "sf_points", "dataframe"),
+  quiet = FALSE
 ) {
   output_type <- match.arg(output_type)
   point_type <- match.arg(point_type)
@@ -13,7 +13,7 @@ derive_grid_internal <- function(
 
   if (
     output_type == "sf_polygons" &&
-    !requireNamespace("sfheaders", quietly = TRUE)
+      !requireNamespace("sfheaders", quietly = TRUE)
   ) {
     stop(
       "Package 'sfheaders' is required for 'sf' output. Please install it.",
@@ -22,7 +22,7 @@ derive_grid_internal <- function(
   }
 
   grid_df <- inspire_extract(ids, as_sf = FALSE)
-  names(grid_df) <- c("crs", "cs", "Y_LLC", "X_LLC")
+  names(grid_df) <- c("crs", "cellsize", "Y_LLC", "X_LLC")
 
   if (length(unique(grid_df$crs)) > 1) {
     stop(
@@ -31,7 +31,7 @@ derive_grid_internal <- function(
     )
   }
 
-  if (length(unique(grid_df$res)) > 1) {
+  if (length(unique(grid_df$cellsize)) > 1) {
     stop(
       "Invalid cell size: Multiple different cell sizes found. Please ensure that all INSPIRE IDs refer to the same cell size.",
       call. = FALSE
@@ -48,7 +48,7 @@ derive_grid_internal <- function(
 
   out_obj <- as_grid(
     grid_df,
-    cellsize = grid_df$cs[[1]],
+    cellsize = grid_df$cellsize[[1]],
     crs = grid_crs,
     output_type = output_type,
     point_type = point_type

@@ -5,33 +5,50 @@
 #' format to the short format, or vice-versa. It automatically detects the
 #' input format and is fully vectorized to handle large inputs efficiently.
 #'
-#' The long format is structured as `CRS{epsg}RES{cellsize}mN{y}E{x}`, while the
-#' short format is `{cellsize}N{y}E{x}`.
+#' The long format is `CRS{epsg}RES{cellsize}mN{y}E{x}`. The short format can be
+#' either `{cellsize}N{y}E{x}` or `{cellsize}E{x}N{y}`.
 #'
 #' @param ids A character vector of INSPIRE IDs. All IDs in the vector must be
 #'   of the same format (either all long or all short).
-#' @param crs An integer representing the EPSG code of the coordinate reference
-#'   system. This is only used when converting from the short format to the long
-#'   format, as the CRS is not contained in the short ID. Defaults to `3035`
-#'   (ETRS89-LAEA).
+#' @param crs An integer representing the EPSG code. This parameter is **only
+#'   used when converting from the short format to the long format**. It
+#'   defaults to `3035` (ETRS89-LAEA).
+#' @param axis_order A character string specifying the coordinate order for the
+#'   output. This parameter is **only used when converting from the long format
+#'   to the short format**. It can be one of:
+#'   \itemize{
+#'     \item `"NE"` (the default) to produce the format `{cellsize}N{y}E{x}`.
+#'     \item `"EN"` to produce the format `{cellsize}E{x}N{y}`.
+#'   }
 #'
 #' @return A character vector of the converted INSPIRE IDs.
 #' @export
-#' @name inspire
 #'
 #' @examples
 #' long_ids <- c("CRS3035RES1000mN2684000E4334000", "CRS3035RES10000mN2700000E4400000")
-#' short_ids <- c("1kmN2684E4334", "10kmN270E440")
+#' short_ids_ne <- c("1kmN2684E4334", "10kmN270E440")
+#' short_ids_en <- c("1kmE4334N2684", "10kmE440N270")
 #'
-#' # Convert long to short
+#' # --- Long to Short ---
+#'
+#' # Convert long to short with default "NE" order
 #' inspire_convert(long_ids)
 #'
-#' # Convert short to long
-#' inspire_convert(short_ids)
+#' # Convert long to short with specified "EN" order
+#' inspire_convert(long_ids, axis_order = "EN")
 #'
-#' # Convert short to long with a different CRS
-#' inspire_convert(short_ids, crs = 3857)
-inspire_convert <- function(ids, crs = 3035) {
+#' # --- Short to Long ---
+#'
+#' # Convert short ("NE" format) to long with default CRS (3035)
+#' inspire_convert(short_ids_ne)
+#'
+#' # The function also correctly parses the "EN" format
+#' inspire_convert(short_ids_en)
+#'
+#' # Override the CRS when converting short to long
+#' inspire_convert(short_ids_ne, crs = 3857)
+#'
+inspire_convert <- function(ids, crs = 3035, axis_order = "NE") {
   # 1. Handle empty or invalid input
   if (length(ids) == 0) {
     return(character(0))
@@ -53,13 +70,14 @@ inspire_convert <- function(ids, crs = 3035) {
   # 3. Perform conversion based on format
   if (is_long_format) {
     # --- CONVERT LONG TO SHORT (Vectorized) ---
+    axis_order <- match.arg(axis_order, choices = c("NE", "EN"))
+
     parsed <- utils::strcapture(
       "^CRS[0-9]+RES([0-9]+)mN([0-9]+)E([0-9]+)$",
       ids,
       proto = list(cellsize = numeric(), y = numeric(), x = numeric())
     )
 
-    # Vectorized conversion of cellsize (m) to resolution string (km or m)
     res_str <- ifelse(
       parsed$cellsize >= 1000,
       paste0(parsed$cellsize / 1000, "km"),
@@ -69,21 +87,38 @@ inspire_convert <- function(ids, crs = 3035) {
     y_short <- parsed$y / parsed$cellsize
     x_short <- parsed$x / parsed$cellsize
 
-    sprintf("%sN%.0fE%.0f", res_str, y_short, x_short)
+    if (axis_order == "NE") {
+      sprintf("%sN%.0fE%.0f", res_str, y_short, x_short)
+    } else {
+      # "EN"
+      sprintf("%sE%.0fN%.0f", res_str, x_short, y_short)
+    }
   } else {
     # --- CONVERT SHORT TO LONG (Vectorized) ---
+    # The 'axis_order' argument is ignored; we detect both NE and EN formats.
+
+    # First pass: try to parse the "NE" format
     parsed <- utils::strcapture(
-      "^([0-9]+(k?m))N([0-9]+)E([0-9]+)$",
+      "^([0-9.]+k?m)N([0-9.]+)E([0-9.]+)$",
       ids,
-      proto = list(
-        res_str = character(),
-        cellsize_str = character(),
-        y = numeric(),
-        x = numeric()
-      )
+      proto = list(res_str = character(), y = numeric(), x = numeric())
     )
 
-    # Vectorized conversion of resolution string to cellsize in meters
+    # Second pass: for IDs that failed, try parsing the "EN" format
+    failed_idx <- which(is.na(parsed$res_str))
+    if (length(failed_idx) > 0) {
+      # Note the swapped order of x and y in the prototype list
+      parsed_en <- utils::strcapture(
+        "^([0-9.]+k?m)E([0-9.]+)N([0-9.]+)$",
+        ids[failed_idx],
+        proto = list(res_str = character(), x = numeric(), y = numeric())
+      )
+      # Fill in the failed slots from the first pass with results from the second
+      if (nrow(parsed_en) > 0) {
+        parsed[failed_idx, ] <- parsed_en[, names(parsed)]
+      }
+    }
+
     is_km <- endsWith(parsed$res_str, "km")
     numeric_res <- as.numeric(gsub("k?m", "", parsed$res_str))
     cellsize_m <- ifelse(is_km, numeric_res * 1000, numeric_res)

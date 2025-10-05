@@ -1,4 +1,4 @@
-test_that("inspire_convert works correctly for long to short conversion", {
+test_that("inspire_convert works correctly for long to short conversion (default NE)", {
   long_ids <- c(
     "CRS3035RES1000mN2684000E4334000",
     "CRS3035RES10000mN2700000E4400000",
@@ -26,30 +26,81 @@ test_that("inspire_convert works correctly for short to long conversion with def
   expect_equal(inspire_convert(short_ids), expected_long)
 })
 
-test_that("inspire_convert works correctly for short to long conversion with a custom CRS", {
-  short_ids <- c("1kmN2684E4334", "10kmN270E440")
-  expected_long <- c(
+test_that("inspire_convert respects axis_order = 'EN' for long to short conversion", {
+  long_ids <- c(
     "CRS3035RES1000mN2684000E4334000",
     "CRS3035RES10000mN2700000E4400000"
   )
-  expect_equal(inspire_convert(short_ids, crs = 3035), expected_long)
+  expected_short_en <- c(
+    "1kmE4334N2684",
+    "10kmE440N270"
+  )
+  expect_equal(inspire_convert(long_ids, axis_order = "EN"), expected_short_en)
 })
 
-test_that("inspire_convert maintains round-trip consistency (long -> short -> long)", {
+test_that("inspire_convert correctly parses 'EN' axis order for short to long conversion", {
+  short_ids_en <- c(
+    "1kmE4334N2684",
+    "10kmE440N270",
+    "100mE44000N34000"
+  )
+  expected_long <- c(
+    "CRS3035RES1000mN2684000E4334000",
+    "CRS3035RES10000mN2700000E4400000",
+    "CRS3035RES100mN3400000E4400000"
+  )
+  expect_equal(inspire_convert(short_ids_en), expected_long)
+})
+
+
+test_that("inspire_convert works correctly for short to long with a custom CRS", {
+  short_ids_ne <- c("1kmN2684E4334", "10kmN270E440")
+  short_ids_en <- c("1kmE4334N2684", "10kmE440N270")
+
+  # Note: CRS is now 3857, not the default 3035
+  expected_long_3857 <- c(
+    "CRS3857RES1000mN2684000E4334000",
+    "CRS3857RES10000mN2700000E4400000"
+  )
+
+  # Test with NE input
+  expect_equal(inspire_convert(short_ids_ne, crs = 3857), expected_long_3857)
+  # Test with EN input
+  expect_equal(inspire_convert(short_ids_en, crs = 3857), expected_long_3857)
+})
+
+test_that("inspire_convert maintains round-trip consistency (long -> short 'NE' -> long)", {
   original_long <- c(
     "CRS3035RES1000mN2684000E4334000",
     "CRS3035RES5000mN2700000E4400000"
   )
-  shortened <- inspire_convert(original_long)
-  re_lengthened <- inspire_convert(shortened, crs = 3035) # Must specify CRS here
+  shortened <- inspire_convert(original_long, axis_order = "NE")
+  re_lengthened <- inspire_convert(shortened, crs = 3035)
   expect_equal(re_lengthened, original_long)
 })
 
-test_that("inspire_convert maintains round-trip consistency (short -> long -> short)", {
+test_that("inspire_convert maintains round-trip consistency (short 'NE' -> long -> short 'NE')", {
   original_short <- c("1kmN2684E4334", "5kmN540E880")
   lengthened <- inspire_convert(original_short)
-  re_shortened <- inspire_convert(lengthened)
+  re_shortened <- inspire_convert(lengthened, axis_order = "NE")
   expect_equal(re_shortened, original_short)
+})
+
+test_that("inspire_convert maintains round-trip consistency (long -> short 'EN' -> long)", {
+  original_long <- c(
+    "CRS3035RES1000mN2684000E4334000",
+    "CRS3035RES5000mN2700000E4400000"
+  )
+  shortened_en <- inspire_convert(original_long, axis_order = "EN")
+  re_lengthened <- inspire_convert(shortened_en, crs = 3035)
+  expect_equal(re_lengthened, original_long)
+})
+
+test_that("inspire_convert maintains round-trip consistency (short 'EN' -> long -> short 'EN')", {
+  original_short_en <- c("1kmE4334N2684", "5kmE880N540")
+  lengthened <- inspire_convert(original_short_en)
+  re_shortened_en <- inspire_convert(lengthened, axis_order = "EN")
+  expect_equal(re_shortened_en, original_short_en)
 })
 
 test_that("inspire_convert handles empty input gracefully", {
@@ -67,9 +118,26 @@ test_that("inspire_convert throws an error for mixed input formats", {
   )
 })
 
-test_that("inspire_convert handles single-item vectors correctly", {
+test_that("inspire_convert handles single-item vectors correctly for all formats", {
   long_id <- "CRS3035RES100mN12300E45600"
-  short_id <- "100mN123E456"
-  expect_equal(inspire_convert(long_id), short_id)
-  expect_equal(inspire_convert(short_id, crs = 3035), long_id)
+  short_id_ne <- "100mN123E456"
+  short_id_en <- "100mE456N123"
+
+  # Test long -> short (both orders)
+  expect_equal(inspire_convert(long_id, axis_order = "NE"), short_id_ne)
+  expect_equal(inspire_convert(long_id, axis_order = "EN"), short_id_en)
+
+  # Test short -> long (both orders)
+  expect_equal(inspire_convert(short_id_ne, crs = 3035), long_id)
+  expect_equal(inspire_convert(short_id_en, crs = 3035), long_id)
+})
+
+test_that("inspire_convert throws an error for invalid axis_order", {
+  long_ids <- "CRS3035RES1000mN2684000E4334000"
+  # Using `regexp = "'arg' should be one of"` which is a standard part of
+  # the error message from `match.arg`.
+  expect_error(
+    inspire_convert(long_ids, axis_order = "XY"),
+    regexp = "'arg' should be one of"
+  )
 })

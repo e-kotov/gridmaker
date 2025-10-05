@@ -4,6 +4,7 @@ Version: 0.1.0
 Authors@R: 
     person("Egor", "Kotov", , "kotov.egor@gmail.com", role = c("aut", "cre", "cph"),
            comment = c(ORCID = "0000-0001-6690-5345"))
+    person("Jonas", "Lieth", , "jonas.lieth@gesis.org", role = "ctb")
 Description: Creates GISCO compatible and INSPIRE-compliant grids with IDs
     that look like 'CRS3035RES1000mN3497000E4448000' or '1kmN3497E4447'.
     Input can be 'sf', 'sfc' objects or bounding boxes. Output can be 'sf'

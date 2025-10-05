@@ -1,5 +1,5 @@
 #' @name inspire
-#' @param inspire A vector of INSPIRE IDs. Can be either legacy or non-legacy.
+#' @param inspire A vector of INSPIRE IDs. Can be either long (e.g. `CRS3035RES1000mN3500000E4400000`) or short (e.g. `1kmN3500E4400`).
 #' @param as_sf Whether to return an object of class \code{sfc} or a dataframe.
 #' @export
 inspire_extract <- function(inspire, as_sf = FALSE) {
@@ -7,7 +7,12 @@ inspire_extract <- function(inspire, as_sf = FALSE) {
     parsed <- utils::strcapture(
       "^CRS([0-9]+)RES([0-9]+)mN([0-9]+)E([0-9]+)$",
       x = inspire,
-      proto = list(crs = integer(), res = numeric(), y = numeric(), x = numeric())
+      proto = list(
+        crs = integer(),
+        res = numeric(),
+        y = numeric(),
+        x = numeric()
+      )
     )
   } else {
     parsed <- utils::strcapture(

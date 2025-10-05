@@ -1,0 +1,106 @@
+# --- Tests for inspire_extract ---
+
+test_that("inspire_extract works with long format IDs", {
+  long_id <- "CRS3035RES1000mN3497000E4447000"
+
+  # Default output (dataframe)
+  parsed_df <- inspire_extract(long_id)
+  expect_s3_class(parsed_df, "data.frame")
+  expect_equal(names(parsed_df), c("crs", "cellsize", "y", "x"))
+  expect_equal(parsed_df$crs, 3035)
+  expect_equal(parsed_df$cellsize, 1000)
+  expect_equal(parsed_df$y, 3497000)
+  expect_equal(parsed_df$x, 4447000)
+
+  # sf output
+  parsed_sf <- inspire_extract(long_id, as_sf = TRUE)
+  expect_s3_class(parsed_sf, "sf")
+  expect_equal(sf::st_crs(parsed_sf), sf::st_crs(3035))
+  coords <- sf::st_coordinates(parsed_sf)
+  expect_equal(as.numeric(coords[1, "X"]), 4447000)
+  expect_equal(as.numeric(coords[1, "Y"]), 3497000)
+})
+
+test_that("inspire_extract works with short format IDs", {
+  short_id <- "10kmN349E444"
+
+  expect_warning(
+    parsed_df <- inspire_extract(short_id),
+    "CRS not specified for short-form IDs"
+  )
+
+  # Default output (dataframe)
+  parsed_df <- inspire_extract(short_id, crs = 3035)
+  expect_s3_class(parsed_df, "data.frame")
+  expect_equal(names(parsed_df), c("crs", "cellsize", "y", "x"))
+  expect_equal(parsed_df$cellsize, 10000) # Check m conversion
+  expect_equal(parsed_df$y, 349)
+  expect_equal(parsed_df$x, 444)
+
+  # sf output
+  parsed_sf <- inspire_extract(short_id, as_sf = TRUE, crs = 3035)
+  expect_s3_class(parsed_sf, "sf")
+  # Short format IDs default to CRS 3035
+  expect_equal(sf::st_crs(parsed_sf), sf::st_crs(3035))
+  coords <- sf::st_coordinates(parsed_sf)
+  expect_equal(as.numeric(coords[1, "X"]), 444)
+  expect_equal(as.numeric(coords[1, "Y"]), 349)
+})
+
+test_that("inspire_extract handles vectorization and mixed-format issues", {
+  ids_vec <- c(
+    "CRS3035RES1000mN3497000E4447000",
+    "1kmE4478N3618", # legacy short format
+    "1kmN3618E4478" # new short format
+  )
+
+  parsed_vec <- inspire_extract(ids_vec)
+  expect_equal(nrow(parsed_vec), 3)
+
+  expect_equal(parsed_vec$cellsize[1], 1000)
+  expect_equal(parsed_vec$x[1], 4447000)
+  expect_equal(parsed_vec$y[2], 3618)
+  expect_equal(parsed_vec$x[3], 4478)
+})
+
+test_that("inspire_extract handles edge cases: malformed, NA, and empty inputs", {
+  # Vector with a good ID, a malformed one, and an NA
+  ids_have_na <- c(
+    "1kmN100E200", # Valid
+    NA_character_ # NA
+  )
+  expect_error(
+    inspire_extract(ids_have_na),
+    "Input 'inspire' contains NA values"
+  )
+
+  ids_have_malformed <- c(
+    "1kmN100E200", # Valid
+    "1kmX100Y200" # Malformed
+  )
+
+  expect_error(
+    inspire_extract(ids_have_malformed),
+    "One or more INSPIRE IDs had a malformed format"
+  )
+
+  # fail on Empty input vector
+  expect_error(
+    inspire_extract(character(0)),
+    "Input 'inspire' cannot be an empty vector"
+  )
+})
+
+test_that("inspire_extract warns on multiple CRSs", {
+  # This only applies to long-form IDs where CRS is parsed
+  mixed_crs_ids <- c(
+    "CRS3035RES1mN1E1",
+    "CRS5070RES1mN2E2" # Different CRS
+  )
+
+  # Should warn when creating an sf object from mixed CRSs
+  expect_error(
+    parsed_sf <- inspire_extract(mixed_crs_ids, as_sf = TRUE),
+    "INSPIRE identifiers contain more than one CRS"
+  )
+})

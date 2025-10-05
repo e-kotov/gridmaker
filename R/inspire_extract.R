@@ -26,7 +26,10 @@ inspire_extract <- function(inspire, as_sf = FALSE) {
     }
 
     if (length(crs) > 1) {
-      warning("More than one CRS parsed. Taking the first one.")
+      stop(sprintf(
+        "INSPIRE identifiers contain more than one CRS (%s).",
+        paste(paste0("EPSG:", crs), collapse = ", ")
+      ))
       crs <- crs[1]
     }
 

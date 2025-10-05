@@ -81,10 +81,9 @@ inspire_generate <- function(coords, res = NULL, short = FALSE) {
     res <- res_to_m(res)
   }
 
-  x <- trunc(x / res)
-  y <- trunc(y / res)
-
   if (short) {
+    x <- trunc(x / res)
+    y <- trunc(y / res)
     res <- m_to_res(res)
     sprintf("%sN%sE%s", res, y, x)
   } else {

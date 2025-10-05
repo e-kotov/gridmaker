@@ -37,26 +37,6 @@ inspire_extract <- function(inspire, as_sf = FALSE) {
 }
 
 
-guess_resolution <- function(x, y) {
-  x <- x[1:2000] # take a sample
-  y <- y[1:2000]
-  diff_x <- diff(sort(x))
-  diff_y <- diff(sort(y))
-  diff_x <- diff_x[!diff_x == 0]
-  diff_y <- diff_y[!diff_y == 0]
-  dist <- stats::median(c(diff_x, diff_y))
-
-  if (!dist %in% res_to_m(grid_reses)) {
-    stop(paste(
-      "Provided coordinates are not properly aligned in a standard",
-      "grid. Standard grid resolutions are {.val {grid_reses}}."
-    ))
-  }
-
-  dist
-}
-
-
 res_to_m <- function(res) {
   is_km <- grepl("(?<=[0-9])km", res, perl = TRUE)
   numbers <- as.numeric(regex_match(res, "^[0-9]+", i = 1))
@@ -72,6 +52,3 @@ m_to_res <- function(m) {
     sprintf("%sm", m)
   }
 }
-
-
-grid_reses <- c("100m", "250m", "1km", "10km", "100km")

@@ -101,7 +101,7 @@ as_grid_points <- function(
 }
 
 
-as_grid_coordinates <- function(grid, cellsize) {
+as_grid_coordinates <- function(coords, cellsize) {
   coords$X_centroid <- coords$X_LLC + (cellsize / 2)
   coords$Y_centroid <- coords$Y_LLC + (cellsize / 2)
   coords

@@ -26,7 +26,7 @@ extracted using \code{\link[sf]{st_coordinates}}.}
 \code{"1km"}, \code{"5km"}, \code{"10km"}, or \code{"100km"}. If
 \code{NULL}, tries to guess the resolution from the provided coordinates.}
 
-\item{short}{If \code{TRUE}, generates legacy INSPIRE ID. Defaults to
+\item{short}{If \code{TRUE}, generates short INSPIRE ID. Defaults to
 \code{FALSE}.}
 }
 \value{
@@ -46,10 +46,10 @@ format. Only the relevant first digits are used in place of the full
 coordinates. In case of \code{res = "100km"}, these are the first two
 digits, for \code{res = "100m"} the first five digits.
 
-\preformatted{CRS3035{cellsize}mN{y}E{x} # new format
-{cellsize}N{y}E{x}         # legacy format}
+\preformatted{CRS3035{cellsize}mN{y}E{x} # long format
+{cellsize}N{y}E{x}         # short format}
 
-The legacy format always uses meters while the legacy formats aggregates
+The long format always uses meters while the short format aggregates
 cell sizes greater or equal to 1000m to km.
 }
 \details{
@@ -66,7 +66,7 @@ INSPIRE grid cells.
 coords <- data.frame(x = c(4334150, 4334250), y = c(2684050, 2684050))
 identical(inspire_extract(inspire_generate(coords))[c("x", "y")], coords)
 
-# Extract coordinates from legacy ID strings
+# Extract coordinates from short ID strings
 inspire_extract("100mN34000E44000")
 
 # Generate IDs from an sf dataframe

@@ -85,7 +85,7 @@ run_parallel_mirai <- function(grid_extent, cellsize_m, crs, dot_args) {
     function(tile_bbox) {
       args_for_tile <- c(list(grid_extent = tile_bbox), all_args)
       args_for_tile$clip_to_input <- FALSE
-      chunk <- do.call(gridmaker:::create_grid_internal, args_for_tile)
+      chunk <- do.call(create_grid_internal, args_for_tile)
       if (nrow(chunk) > 0 && !is.null(clipping_target)) {
         intersects_indices <- sf::st_intersects(chunk, clipping_target)
         chunk <- chunk[lengths(intersects_indices) > 0, ]
@@ -93,7 +93,8 @@ run_parallel_mirai <- function(grid_extent, cellsize_m, crs, dot_args) {
       if (nrow(chunk) == 0) NULL else chunk
     },
     all_args = all_args,
-    clipping_target = clipping_target
+    clipping_target = clipping_target,
+    create_grid_internal = create_grid_internal
   )
 
   grid_chunks <- purrr::map(tile_bboxes, parallel_worker, .progress = !quiet)

@@ -2,3 +2,7 @@
 
 export(create_grid)
 export(create_grid_and_stream_mirai)
+export(derive_grid)
+export(inspire_convert)
+export(inspire_extract)
+export(inspire_generate)

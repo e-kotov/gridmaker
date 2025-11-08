@@ -1,41 +1,17 @@
-#' Create a standard-compliant spatial grid and stream it to a file using mirai
-#'
-#' @description
-#' This function generates a regular spatial grid and writes it directly to a file
-#' using a memory-efficient asynchronous pipeline with the `mirai` backend.
-#' Chunks are generated in parallel and the `.promise` argument of `mirai_map`
-#' is used to write chunks to disk sequentially as they become available.
-#'
-#' @note
-#' This function requires that `mirai` daemons are already configured and running
-#' (e.g., via `mirai::daemons(4)`). It also requires the `promises` and `later`
-#' packages.
-#'
-#' @inheritParams create_grid
-#' @param dsn A character string for the data source name (e.g., file path).
-#' @param layer A character string for the layer name.
-#' @param max_cells_per_chunk An optional integer. If provided, the function will
-#'   create processing chunks that contain approximately this many grid cells at most.
-#'   This provides more granular control over memory usage than the default tiling
-#'   strategy. If `NULL` (the default), tiling is based on the number of workers.
-#' @export
-create_grid_and_stream_mirai <- function(
+#' Internal function to create a grid and stream it to a file using mirai.
+#' @note This is the memory-efficient streaming implementation for the mirai backend.
+#' @keywords internal
+#' @noRd
+async_stream_to_disk_with_mirai <- function(
   grid_extent,
   cellsize_m,
-  crs = NULL,
+  crs,
   dsn,
   layer,
-  output_type = "sf_polygons",
-  clip_to_input = FALSE,
-  use_convex_hull = FALSE,
-  buffer_m = 0,
-  id_format = "both",
-  include_llc = TRUE,
-  point_type = "centroid",
-  quiet = FALSE,
-  max_cells_per_chunk = NULL
+  dot_args,
+  quiet = FALSE
 ) {
-  # --- 1. Validate Dependencies and Arguments ---
+  # --- 1. Validate Dependencies ---
   if (
     !all(sapply(
       c("mirai", "promises", "later"),
@@ -44,7 +20,7 @@ create_grid_and_stream_mirai <- function(
     ))
   ) {
     stop(
-      "Packages 'mirai', 'promises', and 'later' are required.",
+      "Packages 'mirai', 'promises', and 'later' are required for streaming.",
       call. = FALSE
     )
   }
@@ -53,12 +29,6 @@ create_grid_and_stream_mirai <- function(
       "`mirai` daemons are not running. Please configure them first.",
       call. = FALSE
     )
-  }
-  if (missing(dsn)) {
-    stop("'dsn' must be provided.", call. = FALSE)
-  }
-  if (missing(layer)) {
-    stop("'layer' must be provided.", call. = FALSE)
   }
   if (file.exists(dsn)) {
     if (!quiet) {
@@ -77,17 +47,13 @@ create_grid_and_stream_mirai <- function(
   if (is.na(grid_crs) || sf::st_is_longlat(grid_crs)) {
     stop("A projected CRS is required.")
   }
-  backend_args <- list(
-    cellsize_m = cellsize_m,
-    crs = grid_crs,
-    output_type = output_type,
-    clip_to_input = clip_to_input,
-    use_convex_hull = use_convex_hull,
-    buffer_m = buffer_m,
-    id_format = id_format,
-    include_llc = include_llc,
-    point_type = point_type
+
+  # Combine backend arguments from dot_args
+  backend_args <- c(
+    list(cellsize_m = cellsize_m, crs = grid_crs),
+    dot_args
   )
+
   clipping_target <- NULL
   if (isTRUE(backend_args$clip_to_input)) {
     if (sf::st_crs(grid_extent) != grid_crs) {
@@ -99,55 +65,43 @@ create_grid_and_stream_mirai <- function(
       grid_extent
     }
     if (!is.null(backend_args$buffer_m) && backend_args$buffer_m > 0) {
-      target <- sf::st_buffer(target, dist = buffer_m)
+      target <- sf::st_buffer(target, dist = backend_args$buffer_m)
     }
     clipping_target <- target
   }
+
+  # --- 2. CREATE TILES ---
   full_bbox <- sf::st_bbox(grid_extent)
   xmin <- floor(as.numeric(full_bbox["xmin"]) / cellsize_m) * cellsize_m
   ymin <- floor(as.numeric(full_bbox["ymin"]) / cellsize_m) * cellsize_m
   xmax <- ceiling(as.numeric(full_bbox["xmax"]) / cellsize_m) * cellsize_m
   ymax <- ceiling(as.numeric(full_bbox["ymax"]) / cellsize_m) * cellsize_m
 
-  if (!is.null(max_cells_per_chunk)) {
-    if (!quiet) {
-      message(paste(
-        "Tiling strategy: Aiming for max",
-        format(max_cells_per_chunk, big.mark = ","),
-        "cells per chunk."
-      ))
-    }
-    n_cols <- ceiling((xmax - xmin) / cellsize_m)
-    rows_per_chunk <- floor(max_cells_per_chunk / n_cols)
-    if (rows_per_chunk == 0) {
-      rows_per_chunk <- 1
-      if (!quiet) {
-        warning(
-          "max_cells_per_chunk is smaller than the number of cells in a single row.",
-          call. = FALSE
-        )
-      }
-    }
-    chunk_height_m <- rows_per_chunk * cellsize_m
-    y_breaks <- seq(from = ymin, to = ymax, by = chunk_height_m)
-    if (tail(y_breaks, 1) < ymax) y_breaks <- c(y_breaks, ymax)
-  } else {
-    num_daemons <- mirai::status()$connections
-    tile_multiplier <- getOption("gridmaker.tile_multiplier", default = 2)
-    num_tiles <- as.integer(round(num_daemons * tile_multiplier))
-    if (!quiet) {
-      message(paste(
-        "Tiling strategy: Creating",
-        num_tiles,
-        "geographic slices for",
-        num_daemons,
-        "daemons."
-      ))
-    }
-    y_breaks <- round(seq(ymin, ymax, length.out = num_tiles + 1))
+  num_daemons <- mirai::status()$connections
+  tile_multiplier <- getOption("gridmaker.tile_multiplier", default = 2)
+  num_tiles <- as.integer(round(num_daemons * tile_multiplier))
+
+  if (!quiet) {
+    message(paste(
+      "Tiling strategy: Creating",
+      num_tiles,
+      "geographic slices for",
+      num_daemons,
+      "daemons."
+    ))
   }
 
-  y_breaks <- unique(y_breaks)
+  # Calculate total rows and divide them among tiles
+  total_rows <- as.integer(round((ymax - ymin) / cellsize_m))
+  if (total_rows < num_tiles) {
+    num_tiles <- total_rows
+  }
+
+  # Create breaks based on integer row counts, then convert to coordinates
+  row_breaks <- floor(seq.int(0, total_rows, length.out = num_tiles + 1))
+  y_breaks <- ymin + (row_breaks * cellsize_m)
+  y_breaks <- unique(y_breaks) # Ensure no zero-height tiles
+
   num_tiles <- length(y_breaks) - 1
   if (!quiet) {
     message(paste("Dispatching", num_tiles, "generation jobs..."))
@@ -159,7 +113,6 @@ create_grid_and_stream_mirai <- function(
     )
   })
 
-  # *** NEW ETA LOGIC - PART 1: HELPER FUNCTION ***
   # Helper function to format seconds into a readable string
   format_time_eta <- function(seconds) {
     if (is.na(seconds) || seconds < 0 || !is.finite(seconds)) {
@@ -178,8 +131,6 @@ create_grid_and_stream_mirai <- function(
   writer_promise_chain <- promises::promise_resolve(TRUE)
   is_first_chunk <- TRUE
   chunks_completed <- 0
-
-  # *** NEW ETA LOGIC - PART 2: RECORD START TIME ***
   start_time <- Sys.time()
 
   all_tasks_queued_promise <- promises::as.promise(
@@ -188,7 +139,7 @@ create_grid_and_stream_mirai <- function(
       .f = function(.x) {
         args_for_tile <- c(list(grid_extent = .x), backend_args)
         args_for_tile$clip_to_input <- FALSE
-        chunk <- do.call(gridmaker:::create_grid_internal, args_for_tile)
+        chunk <- do.call(create_grid_internal, args_for_tile)
         if (nrow(chunk) > 0 && !is.null(clipping_target)) {
           intersects_indices <- sf::st_intersects(chunk, clipping_target)
           chunk <- chunk[lengths(intersects_indices) > 0, ]
@@ -205,7 +156,6 @@ create_grid_and_stream_mirai <- function(
               if (!quiet) {
                 chunks_completed <<- chunks_completed + 1
 
-                # *** NEW ETA LOGIC - PART 3: CALCULATE AND DISPLAY ***
                 time_elapsed_s <- as.numeric(difftime(
                   Sys.time(),
                   start_time,
@@ -217,7 +167,7 @@ create_grid_and_stream_mirai <- function(
                   eta_seconds <- chunks_remaining / chunks_per_second
                   format_time_eta(eta_seconds)
                 } else {
-                  "..." # Not enough data to estimate yet
+                  "..."
                 }
 
                 percent <- floor((chunks_completed / num_tiles) * 100)

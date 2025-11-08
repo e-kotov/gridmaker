@@ -48,9 +48,9 @@ function, for example: \code{mirai::daemons(4)} or \code{future::plan("multisess
 \item{quiet}{logical value. If ‘TRUE’, all progress messages and progress bars are suppressed. Defaults to ‘FALSE’.}
 }
 \value{
-An \code{sf} object (with polygon or point geometries) or a \code{data.frame}
-representing the grid, with optional columns for coordinates and
-INSPIRE-compliant grid IDs.
+If \code{dsn} is \code{NULL} (the default), an \code{sf} object or \code{data.frame}
+representing the grid. If \code{dsn} is specified, the function writes the grid
+to a file and returns \code{invisible(NULL)}.
 }
 \description{
 {

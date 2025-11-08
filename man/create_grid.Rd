@@ -16,7 +16,9 @@ create_grid(
   include_llc = TRUE,
   point_type = "centroid",
   parallel = "auto",
-  quiet = FALSE
+  quiet = FALSE,
+  dsn = NULL,
+  layer = NULL
 )
 }
 \arguments{
@@ -77,18 +79,27 @@ For parallelism, you must configure a backend \emph{before} calling this
 function, for example: \code{mirai::daemons(4)} or \code{future::plan("multisession")}.}
 
 \item{quiet}{logical value. If ‘TRUE’, all progress messages and progress bars are suppressed. Defaults to ‘FALSE’.}
+
+\item{dsn}{An optional character string for the data source name (e.g.,
+file path). If provided, the grid is written to this file instead of
+being returned as an object.}
+
+\item{layer}{An optional character string for the layer name. Required if
+\code{dsn} is provided.}
 }
 \value{
-An \code{sf} object (with polygon or point geometries) or a \code{data.frame}
-representing the grid, with optional columns for coordinates and
-INSPIRE-compliant grid IDs.
+If \code{dsn} is \code{NULL} (the default), an \code{sf} object or \code{data.frame}
+representing the grid. If \code{dsn} is specified, the function writes the grid
+to a file and returns \code{invisible(NULL)}.
 }
 \description{
 {
 This function generates a regular spatial grid aligned to the CRS origin.
 It combines high performance for large areas (using \code{sfheaders}) with a
 flexible and robust set of features for input handling and output formatting,
-including INSPIRE-compliant grid IDs and automatic parallel processing with \code{mirai} and \code{future} backends.}
+including INSPIRE-compliant grid IDs and automatic parallel processing with
+\code{mirai} and \code{future} backends. When \code{dsn} is provided, the grid is written
+directly to a file and the function returns \code{NULL} invisibly.}
 }
 \examples{
 library(sf)

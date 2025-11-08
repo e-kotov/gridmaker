@@ -4,7 +4,9 @@
 #' This function generates a regular spatial grid aligned to the CRS origin.
 #' It combines high performance for large areas (using `sfheaders`) with a
 #' flexible and robust set of features for input handling and output formatting,
-#' including INSPIRE-compliant grid IDs and automatic parallel processing with `mirai` and `future` backends.}
+#' including INSPIRE-compliant grid IDs and automatic parallel processing with
+#' `mirai` and `future` backends. When `dsn` is provided, the grid is written
+#' directly to a file and the function returns `NULL` invisibly.}
 #'
 #' @param grid_extent A spatial object to define the grid's extent. Can be an
 #'   `sf` or `sfc` object, a 2x2 `bbox` matrix, or a numeric vector of
@@ -37,6 +39,11 @@
 #'   in the output.
 #' @param point_type A character string, used only when `output_type = "sf_points"`.
 #'   Determines the location of the points: `"centroid"` (default) for the center of the cell, or `"llc"` for the lower-left corner.
+#' @param dsn An optional character string for the data source name (e.g.,
+#'   file path). If provided, the grid is written to this file instead of
+#'   being returned as an object.
+#' @param layer An optional character string for the layer name. Required if
+#'   `dsn` is provided.
 #' @param parallel Controls parallel execution. Options are:
 #'   \itemize{
 #'     \item **`'auto'` (default):** Automatically detects and uses a configured
@@ -53,9 +60,9 @@
 #'   function, for example: `mirai::daemons(4)` or `future::plan("multisession")`.
 #' @param quiet logical value. If ‘TRUE’, all progress messages and progress bars are suppressed. Defaults to ‘FALSE’.
 #'
-#' @return An `sf` object (with polygon or point geometries) or a `data.frame`
-#'   representing the grid, with optional columns for coordinates and
-#'   INSPIRE-compliant grid IDs.
+#' @return If `dsn` is `NULL` (the default), an `sf` object or `data.frame`
+#'   representing the grid. If `dsn` is specified, the function writes the grid
+#'   to a file and returns `invisible(NULL)`.
 #' @export
 #'
 #' @examples
@@ -91,7 +98,9 @@ create_grid <- function(
   include_llc = TRUE,
   point_type = "centroid",
   parallel = "auto",
-  quiet = FALSE
+  quiet = FALSE,
+  dsn = NULL,
+  layer = NULL
 ) {
   # --- 1. Validate Arguments ---
   if (!is.character(parallel) && !is.logical(parallel)) {
@@ -105,6 +114,9 @@ create_grid <- function(
       "'quiet' must be a single logical value (TRUE or FALSE).",
       call. = FALSE
     )
+  }
+  if (!is.null(dsn) && is.null(layer)) {
+    stop("If 'dsn' is provided, 'layer' must also be provided.", call. = FALSE)
   }
 
   backend_args <- list(
@@ -171,11 +183,30 @@ create_grid <- function(
     # (Execution continues to section C)
   }
 
-  # B. Forced or Fallback Sequential Execution
-  if (run_mode == "sequential") {
+  # B. Generate the Grid (either in memory or to disk)
+
+  # CASE 1: STREAMING TO DISK (only for mirai)
+  if (!is.null(dsn) && use_mirai) {
+    if (!quiet) {
+      message(
+        "`mirai` backend detected. Running in parallel (streaming to disk)."
+      )
+    }
+    return(async_stream_to_disk_with_mirai(
+      grid_extent = grid_extent,
+      cellsize_m = cellsize_m,
+      crs = crs,
+      dsn = dsn,
+      layer = layer,
+      dot_args = backend_args,
+      quiet = quiet
+    ))
+  }
+
+  # CASE 2: GENERATE-IN-MEMORY (for sequential, future, and non-streaming mirai)
+  grid_object <- if (run_mode == "sequential") {
     if (!quiet) {
       if (parallel == "auto") {
-        # This is not a warning because 'auto' implies it's okay to fall back
         message(
           "No parallel backend detected. Running in sequential mode. See ?create_grid for details how to enable parallel processing to speed up large jobs."
         )
@@ -188,31 +219,38 @@ create_grid <- function(
       list(grid_extent = grid_extent, cellsize_m = cellsize_m, crs = crs),
       backend_args
     )
-    return(do.call(create_grid_internal, all_args))
-  }
-
-  # C. Parallel Execution (from 'auto' or 'TRUE')
-  if (run_mode == "parallel") {
+    do.call(create_grid_internal, all_args)
+  } else {
+    # Parallel (Future or Mirai non-streaming)
     if (use_mirai) {
       if (!quiet) {
-        message("`mirai` backend detected. Running in parallel.")
+        message("`mirai` backend detected. Running in parallel (in-memory).")
       }
-      return(run_parallel_mirai(
-        grid_extent,
-        cellsize_m,
-        crs,
-        parallel_backend_args
-      ))
+      run_parallel_mirai(grid_extent, cellsize_m, crs, parallel_backend_args)
     } else if (use_future) {
       if (!quiet) {
-        message("`future` backend detected. Running in parallel.")
+        message("`future` backend detected. Running in parallel (in-memory).")
       }
-      return(run_parallel_future(
-        grid_extent,
-        cellsize_m,
-        crs,
-        parallel_backend_args
-      ))
+      run_parallel_future(grid_extent, cellsize_m, crs, parallel_backend_args)
     }
+  }
+
+  # --- 5. Final Output Handling ---
+  if (!is.null(dsn)) {
+    # This block executes if dsn was provided but we didn't use the mirai stream
+    if (!quiet) {
+      message(paste("Writing grid to", dsn, "..."))
+    }
+    sf::st_write(
+      grid_object,
+      dsn = dsn,
+      layer = layer,
+      append = FALSE,
+      quiet = quiet
+    )
+    return(invisible(NULL))
+  } else {
+    # The default behavior: return the object
+    return(grid_object)
   }
 }

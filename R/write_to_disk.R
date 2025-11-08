@@ -242,3 +242,140 @@ async_stream_to_disk_with_mirai <- function(
 
   return(invisible(NULL))
 }
+
+#' Internal function to create a grid and stream it sequentially to a file.
+#' @note This provides a memory-safe fallback for writing to disk without a
+#'   parallel backend.
+#' @keywords internal
+#' @noRd
+stream_to_disk_sequential <- function(
+  grid_extent,
+  cellsize_m,
+  crs,
+  dsn,
+  layer,
+  dot_args,
+  quiet = FALSE
+) {
+  # --- 1. VALIDATE AND PREPARE ---
+  if (file.exists(dsn)) {
+    if (!quiet) {
+      message(paste(
+        "Output file '",
+        dsn,
+        "' exists and will be overwritten.",
+        sep = ""
+      ))
+    }
+    unlink(dsn, recursive = TRUE)
+  }
+
+  grid_crs <- `%||%`(crs, sf::st_crs(grid_extent))
+  if (is.na(grid_crs) || sf::st_is_longlat(grid_crs)) {
+    stop("A projected CRS is required.")
+  }
+
+  backend_args <- c(
+    list(cellsize_m = cellsize_m, crs = grid_crs),
+    dot_args
+  )
+
+  clipping_target <- NULL
+  if (isTRUE(backend_args$clip_to_input)) {
+    if (sf::st_crs(grid_extent) != grid_crs) {
+      grid_extent <- sf::st_transform(grid_extent, grid_crs)
+    }
+    target <- if (isTRUE(backend_args$use_convex_hull)) {
+      sf::st_convex_hull(sf::st_union(grid_extent))
+    } else {
+      grid_extent
+    }
+    if (!is.null(backend_args$buffer_m) && backend_args$buffer_m > 0) {
+      target <- sf::st_buffer(target, dist = backend_args$buffer_m)
+    }
+    clipping_target <- target
+  }
+
+  # --- 2. CREATE TILES (DATA-BASED CHUNKING) ---
+  full_bbox <- sf::st_bbox(grid_extent)
+  xmin <- floor(as.numeric(full_bbox["xmin"]) / cellsize_m) * cellsize_m
+  ymin <- floor(as.numeric(full_bbox["ymin"]) / cellsize_m) * cellsize_m
+  xmax <- ceiling(as.numeric(full_bbox["xmax"]) / cellsize_m) * cellsize_m
+  ymax <- ceiling(as.numeric(full_bbox["ymax"]) / cellsize_m) * cellsize_m
+
+  # Use max_cells_per_chunk for tiling, or a sensible default
+  max_cells <- backend_args$max_cells_per_chunk %||% 500000
+  n_cols <- ceiling((xmax - xmin) / cellsize_m)
+  rows_per_chunk <- floor(max_cells / n_cols)
+  if (rows_per_chunk == 0) {
+    rows_per_chunk <- 1
+  }
+
+  chunk_height_m <- rows_per_chunk * cellsize_m
+  y_breaks <- seq(from = ymin, to = ymax, by = chunk_height_m)
+  if (utils::tail(y_breaks, 1) < ymax) {
+    y_breaks <- c(y_breaks, ymax)
+  }
+  y_breaks <- unique(y_breaks)
+
+  num_tiles <- length(y_breaks) - 1
+  if (!quiet) {
+    message(paste(
+      "Sequentially generating and writing",
+      num_tiles,
+      "chunks..."
+    ))
+  }
+
+  tile_bboxes <- lapply(1:(length(y_breaks) - 1), function(i) {
+    sf::st_bbox(
+      c(xmin = xmin, ymin = y_breaks[i], xmax = xmax, ymax = y_breaks[i + 1]),
+      crs = grid_crs
+    )
+  })
+
+  # --- 3. SEQUENTIAL GENERATION AND WRITING LOOP ---
+  is_first_chunk <- TRUE
+  if (!quiet) {
+    pb <- utils::txtProgressBar(min = 0, max = num_tiles, style = 3)
+  }
+
+  for (i in seq_along(tile_bboxes)) {
+    tile_bbox <- tile_bboxes[[i]]
+
+    # A. Generate one chunk
+    args_for_tile <- c(list(grid_extent = tile_bbox), backend_args)
+    args_for_tile$clip_to_input <- FALSE
+    chunk <- do.call(create_grid_internal, args_for_tile)
+
+    # B. Clip if necessary
+    if (nrow(chunk) > 0 && !is.null(clipping_target)) {
+      intersects_indices <- sf::st_intersects(chunk, clipping_target)
+      chunk <- chunk[lengths(intersects_indices) > 0, ]
+    }
+
+    # C. Write to disk
+    if (nrow(chunk) > 0) {
+      sf::st_write(
+        chunk,
+        dsn = dsn,
+        layer = layer,
+        append = !is_first_chunk,
+        quiet = TRUE
+      )
+      if (is_first_chunk) is_first_chunk <- FALSE
+    }
+
+    # D. Update progress
+    if (!quiet) {
+      utils::setTxtProgressBar(pb, i)
+    }
+  }
+
+  if (!quiet) {
+    close(pb)
+    cat("\nGrid streaming complete.\n")
+  }
+
+  return(invisible(NULL))
+}

@@ -18,7 +18,8 @@ create_grid(
   parallel = "auto",
   quiet = FALSE,
   dsn = NULL,
-  layer = NULL
+  layer = NULL,
+  ...
 )
 }
 \arguments{
@@ -86,6 +87,10 @@ being returned as an object.}
 
 \item{layer}{An optional character string for the layer name. Required if
 \code{dsn} is provided.}
+
+\item{...}{Additional arguments passed to specific backend handlers. For
+streaming backends (\code{mirai} or sequential), this can include
+\code{max_cells_per_chunk} to control memory usage.}
 }
 \value{
 If \code{dsn} is \code{NULL} (the default), an \code{sf} object or \code{data.frame}

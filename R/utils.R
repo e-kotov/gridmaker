@@ -71,49 +71,10 @@ regex_match <- function(text, pattern, i = NULL, ...) {
   include_llc,
   point_type
 ) {
-  # --- This logic is adapted from create_grid_internal ---
-  grid_crs <- if (!is.null(crs)) sf::st_crs(crs) else sf::st_crs(NA)
-  if (inherits(grid_extent, c("sf", "sfc", "bbox"))) {
-    input_crs <- sf::st_crs(grid_extent)
-    if (is.na(grid_crs)) grid_crs <- input_crs
-  }
+  grid_crs <- if (!is.null(crs)) sf::st_crs(crs) else sf::st_crs(grid_extent)
+  if (is.na(grid_crs)) return(0)
 
-  # A CRS is essential for calculations
-  if (is.na(grid_crs)) {
-    return(0)
-  }
-
-  if (inherits(grid_extent, c("sf", "sfc"))) {
-    if (sf::st_crs(grid_extent) != grid_crs) {
-      grid_extent <- sf::st_transform(grid_extent, grid_crs)
-    }
-    bbox <- sf::st_bbox(grid_extent)
-  } else if (inherits(grid_extent, "bbox")) {
-    bbox <- sf::st_bbox(sf::st_transform(sf::st_as_sfc(grid_extent), grid_crs))
-  } else if (is.matrix(grid_extent) && all(dim(grid_extent) == c(2, 2))) {
-    bbox <- sf::st_bbox(
-      c(
-        xmin = grid_extent[1, 1],
-        ymin = grid_extent[2, 1],
-        xmax = grid_extent[1, 2],
-        ymax = grid_extent[2, 2]
-      ),
-      crs = grid_crs
-    )
-  } else if (is.numeric(grid_extent) && length(grid_extent) == 4) {
-    bbox <- sf::st_bbox(
-      c(
-        xmin = grid_extent[1],
-        ymin = grid_extent[2],
-        xmax = grid_extent[3],
-        ymax = grid_extent[4]
-      ),
-      crs = grid_crs
-    )
-  } else {
-    return(0) # Cannot determine bbox
-  }
-  # --- End of adapted logic ---
+  bbox <- .get_bbox_from_grid_extent(grid_extent, grid_crs)
 
   # --- 1. Calculate total number of cells ---
   xmin <- floor(as.numeric(bbox["xmin"]) / cellsize_m) * cellsize_m
@@ -169,4 +130,61 @@ regex_match <- function(text, pattern, i = NULL, ...) {
   estimated_gb <- total_memory_bytes / (1024^3)
 
   return(estimated_gb)
+}
+
+.get_bbox_from_grid_extent <- function(grid_extent, crs = NULL) {
+  grid_crs <- if (!is.null(crs)) sf::st_crs(crs) else sf::st_crs(NA)
+  if (inherits(grid_extent, c("sf", "sfc", "bbox"))) {
+    input_crs <- sf::st_crs(grid_extent)
+    if (is.na(grid_crs)) grid_crs <- input_crs
+  }
+
+  # A CRS is essential for calculations
+  if (is.na(grid_crs)) {
+    stop("CRS is missing and cannot be derived from 'grid_extent'.", call. = FALSE)
+  }
+
+  if (inherits(grid_extent, c("sf", "sfc"))) {
+    if (sf::st_crs(grid_extent) != grid_crs) {
+      grid_extent <- sf::st_transform(grid_extent, grid_crs)
+    }
+    bbox <- sf::st_bbox(grid_extent)
+  } else if (inherits(grid_extent, "bbox")) {
+    bbox <- sf::st_bbox(sf::st_transform(sf::st_as_sfc(grid_extent), grid_crs))
+  } else if (is.matrix(grid_extent) && all(dim(grid_extent) == c(2, 2))) {
+    bbox <- sf::st_bbox(
+      c(
+        xmin = grid_extent[1, 1],
+        ymin = grid_extent[2, 1],
+        xmax = grid_extent[1, 2],
+        ymax = grid_extent[2, 2]
+      ),
+      crs = grid_crs
+    )
+  } else if (is.numeric(grid_extent) && length(grid_extent) == 4) {
+    if (all(c("xmin", "ymin", "xmax", "ymax") %in% names(grid_extent))) {
+      bbox <- sf::st_bbox(
+        c(
+          xmin = grid_extent["xmin"],
+          ymin = grid_extent["ymin"],
+          xmax = grid_extent["xmax"],
+          ymax = grid_extent["ymax"]
+        ),
+        crs = grid_crs
+      )
+    } else {
+      bbox <- sf::st_bbox(
+        c(
+          xmin = grid_extent[1],
+          ymin = grid_extent[2],
+          xmax = grid_extent[3],
+          ymax = grid_extent[4]
+        ),
+        crs = grid_crs
+      )
+    }
+  } else {
+    stop("Invalid 'grid_extent' format.", call. = FALSE)
+  }
+  return(bbox)
 }

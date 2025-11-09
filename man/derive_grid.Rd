@@ -50,7 +50,7 @@ function, for example: \code{mirai::daemons(4)} or \code{future::plan("multisess
 \value{
 If \code{dsn} is \code{NULL} (the default), an \code{sf} object or \code{data.frame}
 representing the grid. If \code{dsn} is specified, the function writes the grid
-to a file and returns \code{invisible(NULL)}.
+to a file and returns \code{invisible(dsn)}.
 }
 \description{
 {

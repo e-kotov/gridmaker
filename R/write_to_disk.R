@@ -71,11 +71,12 @@ async_stream_to_disk_with_mirai <- function(
   }
 
   # --- 2. CREATE TILES ---
-  full_bbox <- sf::st_bbox(grid_extent)
-  xmin <- floor(as.numeric(full_bbox["xmin"]) / cellsize_m) * cellsize_m
-  ymin <- floor(as.numeric(full_bbox["ymin"]) / cellsize_m) * cellsize_m
-  xmax <- ceiling(as.numeric(full_bbox["xmax"]) / cellsize_m) * cellsize_m
-  ymax <- ceiling(as.numeric(full_bbox["ymax"]) / cellsize_m) * cellsize_m
+  full_bbox <- .get_bbox_from_grid_extent(grid_extent, grid_crs)
+  bbox_values <- as.numeric(full_bbox)
+  xmin <- floor(bbox_values[1] / cellsize_m) * cellsize_m
+  ymin <- floor(bbox_values[2] / cellsize_m) * cellsize_m
+  xmax <- ceiling(bbox_values[3] / cellsize_m) * cellsize_m
+  ymax <- ceiling(bbox_values[4] / cellsize_m) * cellsize_m
 
   num_daemons <- mirai::status()$connections
   tile_multiplier <- getOption("gridmaker.tile_multiplier", default = 2)
@@ -297,11 +298,12 @@ stream_to_disk_sequential <- function(
   }
 
   # --- 2. CREATE TILES (DATA-BASED CHUNKING) ---
-  full_bbox <- sf::st_bbox(grid_extent)
-  xmin <- floor(as.numeric(full_bbox["xmin"]) / cellsize_m) * cellsize_m
-  ymin <- floor(as.numeric(full_bbox["ymin"]) / cellsize_m) * cellsize_m
-  xmax <- ceiling(as.numeric(full_bbox["xmax"]) / cellsize_m) * cellsize_m
-  ymax <- ceiling(as.numeric(full_bbox["ymax"]) / cellsize_m) * cellsize_m
+  full_bbox <- .get_bbox_from_grid_extent(grid_extent, grid_crs)
+  bbox_values <- as.numeric(full_bbox)
+  xmin <- floor(bbox_values[1] / cellsize_m) * cellsize_m
+  ymin <- floor(bbox_values[2] / cellsize_m) * cellsize_m
+  xmax <- ceiling(bbox_values[3] / cellsize_m) * cellsize_m
+  ymax <- ceiling(bbox_values[4] / cellsize_m) * cellsize_m
 
   # Use max_cells_per_chunk for tiling, or a sensible default
   max_cells <- backend_args$max_cells_per_chunk %||% 500000

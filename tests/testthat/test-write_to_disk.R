@@ -96,7 +96,7 @@ test_that("create_grid handles `layer` argument correctly for disk output", {
   dir.create(temp_dir)
   withr::defer(unlink(temp_dir, recursive = TRUE, force = TRUE))
 
-  simple_extent <- c(xmin = 0, ymin = 0, xmax = 100, ymax = 100)
+  simple_extent <- sf::st_bbox(c(xmin = 0, ymin = 0, xmax = 100, ymax = 100), crs = 3035)
 
   # Test 1: When layer is NULL, it defaults from dsn and gives a message
   dsn_default <- file.path(temp_dir, "default.gpkg")
@@ -105,7 +105,6 @@ test_that("create_grid handles `layer` argument correctly for disk output", {
     create_grid(
       grid_extent = simple_extent,
       cellsize_m = 10,
-      crs = 3035,
       dsn = dsn_default,
       layer = NULL,
       quiet = FALSE
@@ -124,7 +123,6 @@ test_that("create_grid handles `layer` argument correctly for disk output", {
   create_grid(
     grid_extent = simple_extent,
     cellsize_m = 10,
-    crs = 3035,
     dsn = dsn_specified,
     layer = custom_layer,
     quiet = TRUE
@@ -132,4 +130,29 @@ test_that("create_grid handles `layer` argument correctly for disk output", {
 
   expect_true(file.exists(dsn_specified))
   expect_equal(sf::st_layers(dsn_specified)$name, custom_layer)
+})
+
+test_that("create_grid returns dsn invisibly when writing to disk", {
+  skip_if_not_installed("sf")
+
+  temp_dsn <- tempfile(fileext = ".gpkg")
+  withr::defer(unlink(temp_dsn, force = TRUE))
+
+  # Use expect_silent to capture the return value without printing it
+  # The result of create_grid should be the dsn path
+  returned_dsn <- expect_silent(
+    create_grid(
+      grid_extent = c(0, 0, 100, 100),
+      cellsize_m = 10,
+      crs = 3035,
+      dsn = temp_dsn,
+      quiet = TRUE
+    )
+  )
+
+  # Check that the returned value is the same as the dsn path provided
+  expect_equal(returned_dsn, temp_dsn)
+
+  # Also check that the file was actually created
+  expect_true(file.exists(temp_dsn))
 })

@@ -6,7 +6,8 @@
 #' flexible and robust set of features for input handling and output formatting,
 #' including INSPIRE-compliant grid IDs and automatic parallel processing with
 #' `mirai` and `future` backends. When `dsn` is provided, the grid is written
-#' directly to a file and the function returns `NULL` invisibly.}
+#' directly to a file and the function returns the path to the created data
+#' source (`dsn`) invisibly.}
 #'
 #' @param grid_extent A spatial object to define the grid's extent. Can be an
 #'   `sf` or `sfc` object, a 2x2 `bbox` matrix, or a numeric vector of
@@ -68,7 +69,7 @@
 #'
 #' @return If `dsn` is `NULL` (the default), an `sf` object or `data.frame`
 #'   representing the grid. If `dsn` is specified, the function writes the grid
-#'   to a file and returns `invisible(NULL)`.
+#'   to a file and returns `invisible(dsn)`.
 #' @export
 #'
 #' @examples

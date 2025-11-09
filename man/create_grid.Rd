@@ -98,7 +98,7 @@ streaming backends (\code{mirai} or sequential), this can include
 \value{
 If \code{dsn} is \code{NULL} (the default), an \code{sf} object or \code{data.frame}
 representing the grid. If \code{dsn} is specified, the function writes the grid
-to a file and returns \code{invisible(NULL)}.
+to a file and returns \code{invisible(dsn)}.
 }
 \description{
 {
@@ -107,7 +107,8 @@ It combines high performance for large areas (using \code{sfheaders}) with a
 flexible and robust set of features for input handling and output formatting,
 including INSPIRE-compliant grid IDs and automatic parallel processing with
 \code{mirai} and \code{future} backends. When \code{dsn} is provided, the grid is written
-directly to a file and the function returns \code{NULL} invisibly.}
+directly to a file and the function returns the path to the created data
+source (\code{dsn}) invisibly.}
 }
 \examples{
 library(sf)

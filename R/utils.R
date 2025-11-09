@@ -2,7 +2,6 @@
 # From rlang::`%||%`
 `%||%` <- function(a, b) if (!is.null(a)) a else b
 
-
 regex_match <- function(text, pattern, i = NULL, ...) {
   match <- regmatches(text, regexec(pattern, text, ...))
   if (!is.null(i)) {
@@ -15,4 +14,296 @@ regex_match <- function(text, pattern, i = NULL, ...) {
     })
   }
   match
+}
+
+#' Get memory stats
+#' @keywords internal
+#' @return A `numeric` amount of available RAM in GB.
+#' @noRd
+.get_ram_gb <- function(type = NULL) {
+  # Allow faking RAM for testing purposes
+  fake_ram_gb <- getOption("gridmaker.fake_ram")
+  if (!is.null(fake_ram_gb)) {
+    if (is.null(type)) {
+      return(list(total = 16, available = fake_ram_gb))
+    }
+    if (type == "avail") {
+      return(fake_ram_gb)
+    }
+  }
+
+  mem_info <- ps::ps_system_memory()
+
+  # Convert all values to GB and round to 2 decimal places
+  mem_info_gb <- lapply(mem_info, function(x) {
+    if (is.numeric(x)) {
+      return(round(x / 1024^3, 2))
+    }
+    return(x) # Keep non-numeric values as-is (like $percent)
+  })
+
+  # If type is specified, return just that value
+  if (!is.null(type)) {
+    if (!type %in% names(mem_info_gb)) {
+      # Fallback for systems that may not have 'available'
+      if (type == "avail" && "free" %in% names(mem_info_gb)) {
+        return(mem_info_gb[["free"]])
+      }
+      return(NULL)
+    }
+    return(mem_info_gb[[type]])
+  }
+
+  # Otherwise return the whole list
+  return(mem_info_gb)
+}
+
+#' Estimate the memory required to generate a grid in-memory.
+#' @keywords internal
+#' @return A `numeric` estimate of required memory in GB.
+#' @noRd
+.estimate_grid_memory_gb <- function(
+  grid_extent,
+  cellsize_m,
+  crs,
+  output_type,
+  id_format,
+  include_llc,
+  point_type
+) {
+  grid_crs <- if (!is.null(crs)) sf::st_crs(crs) else sf::st_crs(grid_extent)
+  if (is.na(grid_crs)) {
+    return(0)
+  }
+
+  bbox <- .get_bbox_from_grid_extent(grid_extent, grid_crs)
+
+  # --- 1. Calculate total number of cells ---
+  xmin <- floor(as.numeric(bbox["xmin"]) / cellsize_m) * cellsize_m
+  ymin <- floor(as.numeric(bbox["ymin"]) / cellsize_m) * cellsize_m
+  xmax <- ceiling(as.numeric(bbox["xmax"]) / cellsize_m) * cellsize_m
+  ymax <- ceiling(as.numeric(bbox["ymax"]) / cellsize_m) * cellsize_m
+
+  if (anyNA(c(xmin, ymin, xmax, ymax))) {
+    return(0)
+  }
+
+  if (xmax <= xmin) {
+    xmax <- xmin + cellsize_m
+  }
+  if (ymax <= ymin) {
+    ymax <- ymin + cellsize_m
+  }
+
+  num_cols <- (xmax - xmin) / cellsize_m
+  num_rows <- (ymax - ymin) / cellsize_m
+  total_cells <- num_cols * num_rows
+
+  # Avoid estimation if grid is trivially small or enormous
+  if (total_cells <= 1) {
+    return(0)
+  }
+  if (!is.finite(total_cells)) {
+    return(Inf)
+  }
+
+  # --- 2. Empirically determine memory per ADDITIONAL cell ---
+  # To get an accurate per-cell cost, we measure the memory difference
+  # between two small grids. This method calculates the slope of memory
+  # growth, effectively removing the fixed overhead of the sf object structure
+  # that skewed the previous one-cell estimation method.
+
+  # Define the number of cells for our two sample points.
+  n1 <- 10
+  n2 <- 20
+
+  # Create the first, smaller sample grid.
+  sample_extent_1 <- sf::st_bbox(
+    c(xmin = 0, ymin = 0, xmax = n1 * cellsize_m, ymax = cellsize_m),
+    crs = grid_crs
+  )
+  sample_grid_1 <- create_grid_internal(
+    grid_extent = sample_extent_1,
+    cellsize_m = cellsize_m,
+    output_type = output_type,
+    id_format = id_format,
+    include_llc = include_llc,
+    point_type = point_type
+  )
+  size1 <- as.numeric(utils::object.size(sample_grid_1))
+
+  # Create the second, larger sample grid.
+  sample_extent_2 <- sf::st_bbox(
+    c(xmin = 0, ymin = 0, xmax = n2 * cellsize_m, ymax = cellsize_m),
+    crs = grid_crs
+  )
+  sample_grid_2 <- create_grid_internal(
+    grid_extent = sample_extent_2,
+    cellsize_m = cellsize_m,
+    output_type = output_type,
+    id_format = id_format,
+    include_llc = include_llc,
+    point_type = point_type
+  )
+  size2 <- as.numeric(utils::object.size(sample_grid_2))
+
+  # Calculate the memory cost per additional cell (the slope).
+  # Add a small epsilon to avoid division by zero if sizes are identical.
+  size_per_additional_cell <- (size2 - size1) / (n2 - n1 + 1e-9)
+
+  # --- 3. Calculate total estimated size in GB ---
+  # Project the total memory using the accurate per-cell cost.
+  # We add a safety factor because this estimates the final object size, and
+  # peak memory allocation during the function run might be slightly higher.
+  safety_factor <- 1.25
+  total_memory_bytes <- (size_per_additional_cell * total_cells) * safety_factor
+  estimated_gb <- total_memory_bytes / (1024^3)
+
+  return(estimated_gb)
+}
+
+.get_bbox_from_grid_extent <- function(grid_extent, crs = NULL) {
+  grid_crs <- if (!is.null(crs)) sf::st_crs(crs) else sf::st_crs(NA)
+  if (inherits(grid_extent, c("sf", "sfc", "bbox"))) {
+    input_crs <- sf::st_crs(grid_extent)
+    if (is.na(grid_crs)) grid_crs <- input_crs
+  }
+
+  # A CRS is essential for calculations
+  if (is.na(grid_crs)) {
+    stop(
+      "CRS is missing and cannot be derived from 'grid_extent'.",
+      call. = FALSE
+    )
+  }
+
+  if (inherits(grid_extent, c("sf", "sfc"))) {
+    if (sf::st_crs(grid_extent) != grid_crs) {
+      grid_extent <- sf::st_transform(grid_extent, grid_crs)
+    }
+    bbox <- sf::st_bbox(grid_extent)
+  } else if (inherits(grid_extent, "bbox")) {
+    bbox <- sf::st_bbox(sf::st_transform(sf::st_as_sfc(grid_extent), grid_crs))
+  } else if (is.matrix(grid_extent) && all(dim(grid_extent) == c(2, 2))) {
+    bbox <- sf::st_bbox(
+      c(
+        xmin = grid_extent[1, 1],
+        ymin = grid_extent[2, 1],
+        xmax = grid_extent[1, 2],
+        ymax = grid_extent[2, 2]
+      ),
+      crs = grid_crs
+    )
+  } else if (is.numeric(grid_extent) && length(grid_extent) == 4) {
+    if (all(c("xmin", "ymin", "xmax", "ymax") %in% names(grid_extent))) {
+      bbox <- sf::st_bbox(
+        c(
+          xmin = grid_extent["xmin"],
+          ymin = grid_extent["ymin"],
+          xmax = grid_extent["xmax"],
+          ymax = grid_extent["ymax"]
+        ),
+        crs = grid_crs
+      )
+    } else {
+      bbox <- sf::st_bbox(
+        c(
+          xmin = grid_extent[1],
+          ymin = grid_extent[2],
+          xmax = grid_extent[3],
+          ymax = grid_extent[4]
+        ),
+        crs = grid_crs
+      )
+    }
+  } else {
+    stop("Invalid 'grid_extent' format.", call. = FALSE)
+  }
+  return(bbox)
+}
+
+#' Calculate the optimal number of rows per chunk based on memory constraints.
+#' @keywords internal
+#' @return A `numeric` value for the number of rows per chunk.
+#' @noRd
+.calculate_rows_per_chunk <- function(
+  grid_extent,
+  cellsize_m,
+  crs,
+  dot_args,
+  max_memory_gb = NULL
+) {
+  # --- 1. Determine the memory limit ---
+  # If user provides a limit, use it. Otherwise, use 50% of available RAM.
+  limit_gb <- if (!is.null(max_memory_gb)) {
+    max_memory_gb
+  } else {
+    available_gb <- .get_ram_gb("available")
+    if (is.null(available_gb) || is.na(available_gb) || available_gb == 0) {
+      # Fallback to a safe default of 1 GB if RAM can't be determined
+      1
+    } else {
+      # Use 50% of available RAM as a safe default
+      floor(available_gb * 0.5)
+    }
+  }
+  limit_bytes <- limit_gb * (1024^3)
+
+  # --- 2. Estimate memory usage per cell ---
+  # Create a tiny extent guaranteed to produce just one cell
+  grid_crs <- if (!is.null(crs)) sf::st_crs(crs) else sf::st_crs(grid_extent)
+  one_cell_extent <- sf::st_bbox(
+    c(xmin = 0, ymin = 0, xmax = cellsize_m, ymax = cellsize_m),
+    crs = grid_crs
+  )
+
+  # Generate that single, representative cell
+  one_cell_grid <- create_grid_internal(
+    grid_extent = one_cell_extent,
+    cellsize_m = cellsize_m,
+    output_type = dot_args$output_type %||% "sf_polygons",
+    id_format = dot_args$id_format %||% "both",
+    include_llc = dot_args$include_llc %||% TRUE,
+    point_type = dot_args$point_type %||% "centroid"
+  )
+
+  # Get its size in bytes
+  size_per_cell_bytes <- as.numeric(utils::object.size(one_cell_grid))
+
+  if (size_per_cell_bytes == 0) {
+    # Avoid division by zero; return a reasonably large number of rows.
+    # This might happen if the object is empty/null.
+    return(500000)
+  }
+
+  # --- 3. Calculate grid dimensions ---
+  bbox <- .get_bbox_from_grid_extent(grid_extent, grid_crs)
+  xmin <- floor(as.numeric(bbox["xmin"]) / cellsize_m) * cellsize_m
+  xmax <- ceiling(as.numeric(bbox["xmax"]) / cellsize_m) * cellsize_m
+  n_cols <- ceiling((xmax - xmin) / cellsize_m)
+
+  if (n_cols == 0) {
+    return(1) # Grid has no width, so 1 row per chunk is fine.
+  }
+
+  # --- 4. Determine rows per chunk ---
+  # Calculate how many cells can fit in the memory limit
+  max_cells_in_memory <- floor(limit_bytes / size_per_cell_bytes)
+
+  # Calculate how many rows that corresponds to
+  rows_per_chunk <- floor(max_cells_in_memory / n_cols)
+
+  # Ensure at least one row is processed at a time
+  if (rows_per_chunk == 0) {
+    warning(
+      "The memory limit of ",
+      round(limit_gb, 2),
+      " GB is very low for the grid's width. ",
+      "Processing one row at a time, which may be slow.",
+      call. = FALSE
+    )
+    return(1)
+  }
+
+  return(rows_per_chunk)
 }

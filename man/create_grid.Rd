@@ -16,7 +16,11 @@ create_grid(
   include_llc = TRUE,
   point_type = "centroid",
   parallel = "auto",
-  quiet = FALSE
+  quiet = FALSE,
+  dsn = NULL,
+  layer = NULL,
+  max_memory_gb = NULL,
+  ...
 )
 }
 \arguments{
@@ -77,18 +81,37 @@ For parallelism, you must configure a backend \emph{before} calling this
 function, for example: \code{mirai::daemons(4)} or \code{future::plan("multisession")}.}
 
 \item{quiet}{logical value. If ‘TRUE’, all progress messages and progress bars are suppressed. Defaults to ‘FALSE’.}
+
+\item{dsn}{The destination for the output grid, passed directly to
+\code{sf::st_write}. This can be a file path (e.g., \code{"path/to/grid.gpkg"})
+or a database connection string. If \code{dsn} is provided, the grid is
+written to the specified location instead of being returned as an object.}
+
+\item{layer}{The name of the grid layer, passed directly to \code{sf::st_write}.
+Its interpretation depends on the destination driver. For a GeoPackage
+file, this will be the layer name. If \code{dsn} is a file path and \code{layer} is
+not specified, it defaults to the file's base name.}
+
+\item{max_memory_gb}{A numeric value. Maximum memory in gigabytes to use for grid creation. Default is NULL, in which case there is an automatic limit of available system memory. The available memory detection may fail on certain HPC (High Performance Computing) systems where jobs are allocated a fixed amount of memory that is less than the total system memory of the allocated node.}
+
+\item{...}{Additional arguments passed to specific backend handlers. For
+streaming backends (\code{mirai} or sequential), this can include
+\code{max_cells_per_chunk} to control memory usage.}
 }
 \value{
-An \code{sf} object (with polygon or point geometries) or a \code{data.frame}
-representing the grid, with optional columns for coordinates and
-INSPIRE-compliant grid IDs.
+If \code{dsn} is \code{NULL} (the default), an \code{sf} object or \code{data.frame}
+representing the grid. If \code{dsn} is specified, the function writes the grid
+to a file and returns \code{invisible(dsn)}.
 }
 \description{
 {
 This function generates a regular spatial grid aligned to the CRS origin.
 It combines high performance for large areas (using \code{sfheaders}) with a
 flexible and robust set of features for input handling and output formatting,
-including INSPIRE-compliant grid IDs and automatic parallel processing with \code{mirai} and \code{future} backends.}
+including INSPIRE-compliant grid IDs and automatic parallel processing with
+\code{mirai} and \code{future} backends. When \code{dsn} is provided, the grid is written
+directly to a file and the function returns the path to the created data
+source (\code{dsn}) invisibly.}
 }
 \examples{
 library(sf)

@@ -60,7 +60,10 @@ test_that("derive_grid_internal point_type logic is correct", {
 test_that("derive_grid_internal handles short format IDs", {
   # The underlying inspire_extract is tested thoroughly, this is an integration check
   short_ids <- c("10kmN350E440", "10kmN351E440")
-  grid_short <- derive_grid_internal(short_ids, output_type = "sf_polygons")
+  expect_warning(
+    grid_short <- derive_grid_internal(short_ids, output_type = "sf_polygons"),
+    regexp = "CRS not specified for short-form IDs"
+  )
   expect_s3_class(grid_short, "sf")
   expect_equal(nrow(grid_short), 2)
   expect_equal(st_crs(grid_short), st_crs(3035))

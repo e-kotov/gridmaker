@@ -2,7 +2,7 @@
 
 test_that("Parallel execution matches sequential result", {
   # These tests are long-running and require optional packages.
-  skip_on_cran()
+  # skip_on_cran() # maybe don't skip on CRAN, as using 2 cores is ok there
   skip_if_not_installed("future")
   skip_if_not_installed("mirai")
 
@@ -26,7 +26,7 @@ test_that("Parallel execution matches sequential result", {
   message("Testing 'future' backend...")
 
   old_plan <- future::plan()
-  on.exit(future::plan(old_plan), add = TRUE)
+  # on.exit(future::plan(old_plan), add = TRUE) # should cleanup manually, as otehrwise the next test with mirai will give a warning
   future::plan("multisession", workers = 2)
 
   grid_fut <- create_grid(
@@ -45,6 +45,7 @@ test_that("Parallel execution matches sequential result", {
   expect_equal(sort(grid_fut$GRD_ID_SHORT), seq_ids_short)
   expect_false(any(duplicated(grid_fut$GRD_ID_LONG)))
   expect_false(any(duplicated(grid_fut$GRD_ID_SHORT)))
+  future::plan(old_plan)
 
   # --- 3. Test the `mirai` backend ---
   message("Testing 'mirai' backend...")

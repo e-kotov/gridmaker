@@ -60,14 +60,11 @@ create_grid_internal <- function(
   }
   cellsize_m <- as.integer(round(cellsize_m))
 
-  # Determine the grid CRS
   grid_crs <- if (!is.null(crs)) sf::st_crs(crs) else sf::st_crs(NA)
   input_crs <- sf::st_crs(NA)
-
   if (inherits(grid_extent, c("sf", "sfc", "bbox"))) {
     input_crs <- sf::st_crs(grid_extent)
   }
-
   if (is.na(grid_crs)) {
     if (is.na(input_crs)) {
       stop(
@@ -163,7 +160,7 @@ create_grid_internal <- function(
   }
   grid_df <- expand.grid(X_LLC = x_coords, Y_LLC = y_coords)
 
-  # --- 6. HANDLE CLIPPING TARGET PREPARATION ---
+  # --- 6. PREPARE CLIPPING TARGET ---
   clipping_target <- NULL
   if (clip_to_input) {
     if (!is.null(input_sf)) {
@@ -186,7 +183,7 @@ create_grid_internal <- function(
 
   # --- 7. HANDLE OUTPUT TYPE ---
   out_obj <- as_grid(
-    grid_df,
+    coords = grid_df,
     cellsize = cellsize_m,
     crs = grid_crs,
     output_type = output_type,
@@ -195,11 +192,7 @@ create_grid_internal <- function(
   )
 
   # --- 8. ADD ID & CLEAN UP COLUMNS ---
-  if (nrow(out_obj) == 0) {
-    return(out_obj)
-  }
-
-  if (id_format != "none") {
+  if (nrow(out_obj) > 0 && id_format != "none") {
     ids <- make_ids(
       out_obj$X_LLC,
       out_obj$Y_LLC,
@@ -220,10 +213,7 @@ create_grid_internal <- function(
     out_obj$X_LLC <- NULL
     out_obj$Y_LLC <- NULL
   } else if (!include_llc && "geometry" %in% names(out_obj)) {
-    # For sf objects, only remove if not the primary coordinate columns
-    if (output_type == "sf_points" && point_type == "llc") {
-      # Don't remove LLC columns as they are the source of the geometry
-    } else {
+    if (!(output_type == "sf_points" && point_type == "llc")) {
       out_obj$X_LLC <- NULL
       out_obj$Y_LLC <- NULL
     }
@@ -235,7 +225,6 @@ create_grid_internal <- function(
     out_obj <- out_obj[, c(first_cols, other_cols)]
   }
 
-  # Ensure geometry column is last for sf objects
   if (inherits(out_obj, "sf")) {
     geom_col_name <- attr(out_obj, "sf_column")
     if (!is.null(geom_col_name) && geom_col_name %in% names(out_obj)) {
@@ -246,4 +235,3 @@ create_grid_internal <- function(
 
   return(out_obj)
 }
-

@@ -4,7 +4,10 @@
 #' This function generates a regular spatial grid aligned to the CRS origin.
 #' It combines high performance for large areas (using `sfheaders`) with a
 #' flexible and robust set of features for input handling and output formatting,
-#' including INSPIRE-compliant grid IDs and automatic parallel processing with `mirai` and `future` backends.}
+#' including INSPIRE-compliant grid IDs and automatic parallel processing with
+#' `mirai` and `future` backends. When `dsn` is provided, the grid is written
+#' directly to a file and the function returns the path to the created data
+#' source (`dsn`) invisibly.}
 #'
 #' @param grid_extent A spatial object to define the grid's extent. Can be an
 #'   `sf` or `sfc` object, a 2x2 `bbox` matrix, or a numeric vector of
@@ -37,6 +40,14 @@
 #'   in the output.
 #' @param point_type A character string, used only when `output_type = "sf_points"`.
 #'   Determines the location of the points: `"centroid"` (default) for the center of the cell, or `"llc"` for the lower-left corner.
+#' @param dsn The destination for the output grid, passed directly to
+#'   `sf::st_write`. This can be a file path (e.g., `"path/to/grid.gpkg"`)
+#'   or a database connection string. If `dsn` is provided, the grid is
+#'   written to the specified location instead of being returned as an object.
+#' @param layer The name of the grid layer, passed directly to `sf::st_write`.
+#'   Its interpretation depends on the destination driver. For a GeoPackage
+#'   file, this will be the layer name. If `dsn` is a file path and `layer` is
+#'   not specified, it defaults to the file's base name.
 #' @param parallel Controls parallel execution. Options are:
 #'   \itemize{
 #'     \item **`'auto'` (default):** Automatically detects and uses a configured
@@ -52,10 +63,14 @@
 #'   For parallelism, you must configure a backend *before* calling this
 #'   function, for example: `mirai::daemons(4)` or `future::plan("multisession")`.
 #' @param quiet logical value. If ‘TRUE’, all progress messages and progress bars are suppressed. Defaults to ‘FALSE’.
+#' @param max_memory_gb A numeric value. Maximum memory in gigabytes to use for grid creation. Default is NULL, in which case there is an automatic limit of available system memory. The available memory detection may fail on certain HPC (High Performance Computing) systems where jobs are allocated a fixed amount of memory that is less than the total system memory of the allocated node.
+#' @param ... Additional arguments passed to specific backend handlers. For
+#'   streaming backends (`mirai` or sequential), this can include
+#'   `max_cells_per_chunk` to control memory usage.
 #'
-#' @return An `sf` object (with polygon or point geometries) or a `data.frame`
-#'   representing the grid, with optional columns for coordinates and
-#'   INSPIRE-compliant grid IDs.
+#' @return If `dsn` is `NULL` (the default), an `sf` object or `data.frame`
+#'   representing the grid. If `dsn` is specified, the function writes the grid
+#'   to a file and returns `invisible(dsn)`.
 #' @export
 #'
 #' @examples
@@ -91,7 +106,11 @@ create_grid <- function(
   include_llc = TRUE,
   point_type = "centroid",
   parallel = "auto",
-  quiet = FALSE
+  quiet = FALSE,
+  dsn = NULL,
+  layer = NULL,
+  max_memory_gb = NULL,
+  ...
 ) {
   # --- 1. Validate Arguments ---
   if (!is.character(parallel) && !is.logical(parallel)) {
@@ -107,6 +126,45 @@ create_grid <- function(
     )
   }
 
+  # If dsn is provided but layer is not, derive from dsn
+  if (!is.null(dsn) && is.null(layer)) {
+    layer <- tools::file_path_sans_ext(basename(dsn))
+    if (!quiet) {
+      message("`layer` not specified, defaulting to '", layer, "'.")
+    }
+  }
+
+  # Only check if generating an in-memory object (dsn is NULL)
+  if (is.null(dsn)) {
+    available_gb <- .get_ram_gb("avail")
+
+    # Proceed only if we could get available RAM
+    if (!is.null(available_gb)) {
+      estimated_gb <- .estimate_grid_memory_gb(
+        grid_extent = grid_extent,
+        cellsize_m = cellsize_m,
+        crs = crs,
+        output_type = output_type,
+        id_format = id_format,
+        include_llc = include_llc,
+        point_type = point_type
+      )
+
+      if (estimated_gb > available_gb) {
+        warning(
+          "Estimated grid size is ~",
+          round(estimated_gb, 1),
+          " GB, ",
+          "which may exceed your available system memory of ~",
+          available_gb,
+          " GB.\n",
+          "  Consider writing the grid directly to disk by providing the 'dsn' and 'layer' arguments.",
+          call. = FALSE
+        )
+      }
+    }
+  }
+
   backend_args <- list(
     output_type = output_type,
     clip_to_input = clip_to_input,
@@ -114,7 +172,8 @@ create_grid <- function(
     buffer_m = buffer_m,
     id_format = id_format,
     include_llc = include_llc,
-    point_type = point_type
+    point_type = point_type,
+    ...
   )
   parallel_backend_args <- c(backend_args, list(quiet = quiet))
 
@@ -129,73 +188,76 @@ create_grid <- function(
 
   use_mirai <- FALSE
   use_future <- FALSE
-
-  # --- 3. Dispatcher Logic ---
   run_mode <- "sequential"
 
   if (parallel == "auto" || parallel == TRUE) {
     if (mirai_ready && future_ready && n_mirai > 0 && n_future > 1) {
-      # Conflict: both are configured
       warning(
-        "Both `mirai` and `future` backends are configured. ",
-        "Choosing the one with more workers. It is recommended to only configure one backend.",
+        "Both `mirai` and `future` backends are configured...",
         call. = FALSE
       )
-      if (n_mirai >= n_future) {
-        use_mirai <- TRUE
-      } else {
-        use_future <- TRUE
-      }
+      if (n_mirai >= n_future) use_mirai <- TRUE else use_future <- TRUE
     } else if (mirai_ready && n_mirai > 0) {
       use_mirai <- TRUE
     } else if (future_ready && n_future > 1) {
       use_future <- TRUE
     }
-
-    if (use_mirai || use_future) {
-      run_mode <- "parallel"
-    }
+    if (use_mirai || use_future) run_mode <- "parallel"
   }
 
-  # --- 4. Execute Based on Mode ---
-  # A. Forced Parallel Execution
-  if (parallel == TRUE) {
-    if (run_mode != "parallel") {
-      stop(
-        "parallel = TRUE, but no valid parallel backend with >1 worker was found.\n",
-        "Please install the required packages ('mirai', 'future', 'furrr', etc.) and\n",
-        "configure a backend, e.g., `mirai::daemons(n)` or `future::plan('multisession')`.",
-        call. = FALSE
-      )
-    }
-    # (Execution continues to section C)
-  }
-
-  # B. Forced or Fallback Sequential Execution
-  if (run_mode == "sequential") {
-    if (!quiet) {
-      if (parallel == "auto") {
-        # This is not a warning because 'auto' implies it's okay to fall back
-        message(
-          "No parallel backend detected. Running in sequential mode. See ?create_grid for details how to enable parallel processing to speed up large jobs."
-        )
-      } else {
-        message("Running in sequential mode.")
-      }
-    }
-
-    all_args <- c(
-      list(grid_extent = grid_extent, cellsize_m = cellsize_m, crs = crs),
-      backend_args
+  if (parallel == TRUE && run_mode != "parallel") {
+    stop(
+      "parallel = TRUE, but no valid parallel backend was found...",
+      call. = FALSE
     )
-    return(do.call(create_grid_internal, all_args))
   }
 
-  # C. Parallel Execution (from 'auto' or 'TRUE')
+  # --- 3. DISPATCHER LOGIC ---
+
+  # --- A. WRITING TO DISK ---
+  if (!is.null(dsn)) {
+    # Use the highly efficient mirai stream if available
+    if (use_mirai) {
+      if (!quiet) {
+        message(
+          "`mirai` backend detected. Running in parallel (streaming to disk)."
+        )
+      }
+      return(async_stream_to_disk_with_mirai(
+        grid_extent = grid_extent,
+        cellsize_m = cellsize_m,
+        crs = crs,
+        dsn = dsn,
+        layer = layer,
+        dot_args = backend_args,
+        quiet = quiet,
+        max_memory_gb = max_memory_gb
+      ))
+    } else {
+      # Otherwise, use the safe, sequential streaming method
+      if (!quiet) {
+        message(
+          "No parallel backend detected. Running in sequential mode (streaming to disk)."
+        )
+      }
+      return(stream_to_disk_sequential(
+        grid_extent = grid_extent,
+        cellsize_m = cellsize_m,
+        crs = crs,
+        dsn = dsn,
+        layer = layer,
+        dot_args = backend_args,
+        quiet = quiet,
+        max_memory_gb = max_memory_gb
+      ))
+    }
+  }
+
+  # --- B. GENERATING IN-MEMORY ---
   if (run_mode == "parallel") {
     if (use_mirai) {
       if (!quiet) {
-        message("`mirai` backend detected. Running in parallel.")
+        message("`mirai` backend detected. Running in parallel (in-memory).")
       }
       return(run_parallel_mirai(
         grid_extent,
@@ -205,7 +267,7 @@ create_grid <- function(
       ))
     } else if (use_future) {
       if (!quiet) {
-        message("`future` backend detected. Running in parallel.")
+        message("`future` backend detected. Running in parallel (in-memory).")
       }
       return(run_parallel_future(
         grid_extent,
@@ -215,4 +277,20 @@ create_grid <- function(
       ))
     }
   }
+
+  # Fallback to sequential in-memory generation
+  if (!quiet) {
+    if (parallel == "auto") {
+      message(
+        "No parallel backend detected. Running in sequential mode. See ?create_grid for details how to enable parallel processing to speed up large jobs."
+      )
+    } else {
+      message("Running in sequential mode.")
+    }
+  }
+  all_args <- c(
+    list(grid_extent = grid_extent, cellsize_m = cellsize_m, crs = crs),
+    backend_args
+  )
+  return(do.call(create_grid_internal, all_args))
 }

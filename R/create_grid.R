@@ -39,13 +39,14 @@
 #'   in the output.
 #' @param point_type A character string, used only when `output_type = "sf_points"`.
 #'   Determines the location of the points: `"centroid"` (default) for the center of the cell, or `"llc"` for the lower-left corner.
-#' @param dsn An optional character string for the data source name (e.g.,
-#'   file path). If provided, the grid is written to this file instead of
-#'   being returned as an object.
-#' @param layer An optional character string for the layer name. When writing
-#'   to a file (i.e., when `dsn` is specified), if `layer` is `NULL`, it
-#'   defaults to the file name of the data source. This is useful for formats
-#'   like GeoPackage, but may be ignored by others (e.g., GeoJSON).
+#' @param dsn The destination for the output grid, passed directly to
+#'   `sf::st_write`. This can be a file path (e.g., `"path/to/grid.gpkg"`)
+#'   or a database connection string. If `dsn` is provided, the grid is
+#'   written to the specified location instead of being returned as an object.
+#' @param layer The name of the grid layer, passed directly to `sf::st_write`.
+#'   Its interpretation depends on the destination driver. For a GeoPackage
+#'   file, this will be the layer name. If `dsn` is a file path and `layer` is
+#'   not specified, it defaults to the file's base name.
 #' @param parallel Controls parallel execution. Options are:
 #'   \itemize{
 #'     \item **`'auto'` (default):** Automatically detects and uses a configured

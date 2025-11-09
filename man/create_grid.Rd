@@ -81,14 +81,15 @@ function, for example: \code{mirai::daemons(4)} or \code{future::plan("multisess
 
 \item{quiet}{logical value. If ‘TRUE’, all progress messages and progress bars are suppressed. Defaults to ‘FALSE’.}
 
-\item{dsn}{An optional character string for the data source name (e.g.,
-file path). If provided, the grid is written to this file instead of
-being returned as an object.}
+\item{dsn}{The destination for the output grid, passed directly to
+\code{sf::st_write}. This can be a file path (e.g., \code{"path/to/grid.gpkg"})
+or a database connection string. If \code{dsn} is provided, the grid is
+written to the specified location instead of being returned as an object.}
 
-\item{layer}{An optional character string for the layer name. When writing
-to a file (i.e., when \code{dsn} is specified), if \code{layer} is \code{NULL}, it
-defaults to the file name of the data source. This is useful for formats
-like GeoPackage, but may be ignored by others (e.g., GeoJSON).}
+\item{layer}{The name of the grid layer, passed directly to \code{sf::st_write}.
+Its interpretation depends on the destination driver. For a GeoPackage
+file, this will be the layer name. If \code{dsn} is a file path and \code{layer} is
+not specified, it defaults to the file's base name.}
 
 \item{...}{Additional arguments passed to specific backend handlers. For
 streaming backends (\code{mirai} or sequential), this can include

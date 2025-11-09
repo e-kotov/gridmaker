@@ -54,7 +54,10 @@ test_that("inspire_extract handles vectorization and mixed-format issues", {
     "1kmN3618E4478" # new short format
   )
 
-  parsed_vec <- inspire_extract(ids_vec)
+  expect_warning(
+    parsed_vec <- inspire_extract(ids_vec),
+    regexp = "contains a mix of long"
+  )
   expect_equal(nrow(parsed_vec), 3)
 
   expect_equal(parsed_vec$cellsize[1], 1000)

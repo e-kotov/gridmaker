@@ -20,6 +20,7 @@ BugReports: https://github.com/e-kotov/gridmaker/issues
 Imports: 
     later,
     promises,
+    ps,
     sf,
     sfheaders
 Suggests: 

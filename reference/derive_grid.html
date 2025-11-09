@@ -112,9 +112,9 @@ function, for example: <code>mirai::daemons(4)</code> or <code>future::plan("mul
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
-    <p>An <code>sf</code> object (with polygon or point geometries) or a <code>data.frame</code>
-representing the grid, with optional columns for coordinates and
-INSPIRE-compliant grid IDs.</p>
+    <p>If <code>dsn</code> is <code>NULL</code> (the default), an <code>sf</code> object or <code>data.frame</code>
+representing the grid. If <code>dsn</code> is specified, the function writes the grid
+to a file and returns <code>invisible(dsn)</code>.</p>
     </div>
 
     <div class="section level2">
@@ -141,7 +141,7 @@ INSPIRE-compliant grid IDs.</p>
 </div>
 
 <div class="pkgdown-footer-right">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.1.3.</p>
+  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.0.</p>
 </div>
 
     </footer></div>

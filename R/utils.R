@@ -27,7 +27,7 @@ regex_match <- function(text, pattern, i = NULL, ...) {
     if (is.null(type)) {
       return(list(total = 16, available = fake_ram_gb))
     }
-    if (type == "available") {
+    if (type == "avail") {
       return(fake_ram_gb)
     }
   }
@@ -46,7 +46,7 @@ regex_match <- function(text, pattern, i = NULL, ...) {
   if (!is.null(type)) {
     if (!type %in% names(mem_info_gb)) {
       # Fallback for systems that may not have 'available'
-      if (type == "available" && "free" %in% names(mem_info_gb)) {
+      if (type == "avail" && "free" %in% names(mem_info_gb)) {
         return(mem_info_gb[["free"]])
       }
       return(NULL)
@@ -72,7 +72,9 @@ regex_match <- function(text, pattern, i = NULL, ...) {
   point_type
 ) {
   grid_crs <- if (!is.null(crs)) sf::st_crs(crs) else sf::st_crs(grid_extent)
-  if (is.na(grid_crs)) return(0)
+  if (is.na(grid_crs)) {
+    return(0)
+  }
 
   bbox <- .get_bbox_from_grid_extent(grid_extent, grid_crs)
 
@@ -141,7 +143,10 @@ regex_match <- function(text, pattern, i = NULL, ...) {
 
   # A CRS is essential for calculations
   if (is.na(grid_crs)) {
-    stop("CRS is missing and cannot be derived from 'grid_extent'.", call. = FALSE)
+    stop(
+      "CRS is missing and cannot be derived from 'grid_extent'.",
+      call. = FALSE
+    )
   }
 
   if (inherits(grid_extent, c("sf", "sfc"))) {
@@ -187,4 +192,90 @@ regex_match <- function(text, pattern, i = NULL, ...) {
     stop("Invalid 'grid_extent' format.", call. = FALSE)
   }
   return(bbox)
+}
+
+#' Calculate the optimal number of rows per chunk based on memory constraints.
+#' @keywords internal
+#' @return A `numeric` value for the number of rows per chunk.
+#' @noRd
+.calculate_rows_per_chunk <- function(
+  grid_extent,
+  cellsize_m,
+  crs,
+  dot_args,
+  max_memory_gb = NULL
+) {
+  # --- 1. Determine the memory limit ---
+  # If user provides a limit, use it. Otherwise, use 50% of available RAM.
+  limit_gb <- if (!is.null(max_memory_gb)) {
+    max_memory_gb
+  } else {
+    available_gb <- .get_ram_gb("available")
+    if (is.null(available_gb) || is.na(available_gb) || available_gb == 0) {
+      # Fallback to a safe default of 1 GB if RAM can't be determined
+      1
+    } else {
+      # Use 50% of available RAM as a safe default
+      floor(available_gb * 0.5)
+    }
+  }
+  limit_bytes <- limit_gb * (1024^3)
+
+  # --- 2. Estimate memory usage per cell ---
+  # Create a tiny extent guaranteed to produce just one cell
+  grid_crs <- if (!is.null(crs)) sf::st_crs(crs) else sf::st_crs(grid_extent)
+  one_cell_extent <- sf::st_bbox(
+    c(xmin = 0, ymin = 0, xmax = cellsize_m, ymax = cellsize_m),
+    crs = grid_crs
+  )
+
+  # Generate that single, representative cell
+  one_cell_grid <- create_grid_internal(
+    grid_extent = one_cell_extent,
+    cellsize_m = cellsize_m,
+    output_type = dot_args$output_type %||% "sf_polygons",
+    id_format = dot_args$id_format %||% "both",
+    include_llc = dot_args$include_llc %||% TRUE,
+    point_type = dot_args$point_type %||% "centroid"
+  )
+
+  # Get its size in bytes
+  size_per_cell_bytes <- as.numeric(object.size(one_cell_grid))
+
+  if (size_per_cell_bytes == 0) {
+    # Avoid division by zero; return a reasonably large number of rows.
+    # This might happen if the object is empty/null.
+    return(500000)
+  }
+
+  # --- 3. Calculate grid dimensions ---
+  bbox <- .get_bbox_from_grid_extent(grid_extent, grid_crs)
+  xmin <- floor(as.numeric(bbox["xmin"]) / cellsize_m) * cellsize_m
+  xmax <- ceiling(as.numeric(bbox["xmax"]) / cellsize_m) * cellsize_m
+  n_cols <- ceiling((xmax - xmin) / cellsize_m)
+
+  if (n_cols == 0) {
+    return(1) # Grid has no width, so 1 row per chunk is fine.
+  }
+
+  # --- 4. Determine rows per chunk ---
+  # Calculate how many cells can fit in the memory limit
+  max_cells_in_memory <- floor(limit_bytes / size_per_cell_bytes)
+
+  # Calculate how many rows that corresponds to
+  rows_per_chunk <- floor(max_cells_in_memory / n_cols)
+
+  # Ensure at least one row is processed at a time
+  if (rows_per_chunk == 0) {
+    warning(
+      "The memory limit of ",
+      round(limit_gb, 2),
+      " GB is very low for the grid's width. ",
+      "Processing one row at a time, which may be slow.",
+      call. = FALSE
+    )
+    return(1)
+  }
+
+  return(rows_per_chunk)
 }

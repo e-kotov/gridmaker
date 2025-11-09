@@ -9,7 +9,8 @@ async_stream_to_disk_with_mirai <- function(
   dsn,
   layer,
   dot_args,
-  quiet = FALSE
+  quiet = FALSE,
+  max_memory_gb = NULL
 ) {
   # --- 1. Validate Dependencies ---
   if (
@@ -42,7 +43,7 @@ async_stream_to_disk_with_mirai <- function(
     unlink(dsn, recursive = TRUE)
   }
 
-  # --- 2. Prepare Geometries and Tiles ---
+  # --- 2. Prepare Geometries and CRS ---
   grid_crs <- `%||%`(crs, sf::st_crs(grid_extent))
   if (is.na(grid_crs) || sf::st_is_longlat(grid_crs)) {
     stop("A projected CRS is required.")
@@ -70,7 +71,7 @@ async_stream_to_disk_with_mirai <- function(
     clipping_target <- target
   }
 
-  # --- 2. CREATE TILES ---
+  # --- 3. CREATE TILES (BALANCING MEMORY AND PARALLELISM) ---
   full_bbox <- .get_bbox_from_grid_extent(grid_extent, grid_crs)
   bbox_values <- as.numeric(full_bbox)
   xmin <- floor(bbox_values[1] / cellsize_m) * cellsize_m
@@ -78,35 +79,65 @@ async_stream_to_disk_with_mirai <- function(
   xmax <- ceiling(bbox_values[3] / cellsize_m) * cellsize_m
   ymax <- ceiling(bbox_values[4] / cellsize_m) * cellsize_m
 
+  # Calculate the maximum rows per chunk based on memory constraints
+  max_rows_per_chunk <- .calculate_rows_per_chunk(
+    grid_extent,
+    cellsize_m,
+    grid_crs,
+    dot_args,
+    max_memory_gb
+  )
+
+  # Calculate total rows in the grid
+  total_rows <- as.integer(round((ymax - ymin) / cellsize_m))
+
+  # Determine optimal number of chunks for parallelism
   num_daemons <- mirai::status()$connections
   tile_multiplier <- getOption("gridmaker.tile_multiplier", default = 2)
-  num_tiles <- as.integer(round(num_daemons * tile_multiplier))
+  desired_tiles <- as.integer(round(num_daemons * tile_multiplier))
+
+  # Calculate rows per chunk needed to achieve desired parallelism
+  desired_rows_per_chunk <- ceiling(total_rows / desired_tiles)
+
+  # Use the MINIMUM of memory-constrained and parallelism-optimal values
+  # This ensures we never exceed memory while maximizing parallelism
+  actual_rows_per_chunk <- min(max_rows_per_chunk, desired_rows_per_chunk)
+
+  # Ensure at least 1 row per chunk
+  if (actual_rows_per_chunk < 1) {
+    actual_rows_per_chunk <- 1
+  }
+
+  # Calculate actual number of chunks we'll create
+  num_tiles <- ceiling(total_rows / actual_rows_per_chunk)
+
+  # Create evenly-sized chunks based on row counts
+  row_breaks <- floor(seq.int(0, total_rows, length.out = num_tiles + 1))
+  y_breaks <- ymin + (row_breaks * cellsize_m)
+  y_breaks <- unique(y_breaks)
+
+  num_tiles <- length(y_breaks) - 1
 
   if (!quiet) {
     message(paste(
-      "Tiling strategy: Creating",
+      "Creating",
       num_tiles,
-      "geographic slices for",
+      "chunks (",
+      actual_rows_per_chunk,
+      "rows/chunk) for",
       num_daemons,
       "daemons."
     ))
+    if (actual_rows_per_chunk < desired_rows_per_chunk) {
+      message(paste(
+        "  Note: Memory constraints limited chunk size",
+        "(max",
+        max_rows_per_chunk,
+        "rows/chunk)"
+      ))
+    }
   }
 
-  # Calculate total rows and divide them among tiles
-  total_rows <- as.integer(round((ymax - ymin) / cellsize_m))
-  if (total_rows < num_tiles) {
-    num_tiles <- total_rows
-  }
-
-  # Create breaks based on integer row counts, then convert to coordinates
-  row_breaks <- floor(seq.int(0, total_rows, length.out = num_tiles + 1))
-  y_breaks <- ymin + (row_breaks * cellsize_m)
-  y_breaks <- unique(y_breaks) # Ensure no zero-height tiles
-
-  num_tiles <- length(y_breaks) - 1
-  if (!quiet) {
-    message(paste("Dispatching", num_tiles, "generation jobs..."))
-  }
   tile_bboxes <- lapply(1:(length(y_breaks) - 1), function(i) {
     sf::st_bbox(
       c(xmin = xmin, ymin = y_breaks[i], xmax = xmax, ymax = y_breaks[i + 1]),
@@ -128,7 +159,7 @@ async_stream_to_disk_with_mirai <- function(
     return(sprintf("%.1f hr", seconds / 3600))
   }
 
-  # --- 3. THE ASYNCHRONOUS PIPELINE with mirai ---
+  # --- 4. THE ASYNCHRONOUS PIPELINE with mirai ---
   writer_promise_chain <- promises::promise_resolve(TRUE)
   is_first_chunk <- TRUE
   chunks_completed <- 0
@@ -232,7 +263,7 @@ async_stream_to_disk_with_mirai <- function(
     }
   )
 
-  # --- 4. Execute the promise chain ---
+  # --- 5. Execute the promise chain ---
   if (!quiet) {
     message("Starting asynchronous generation and writing pipeline...")
   }
@@ -256,7 +287,8 @@ stream_to_disk_sequential <- function(
   dsn,
   layer,
   dot_args,
-  quiet = FALSE
+  quiet = FALSE,
+  max_memory_gb = NULL
 ) {
   # --- 1. VALIDATE AND PREPARE ---
   if (file.exists(dsn)) {
@@ -297,7 +329,7 @@ stream_to_disk_sequential <- function(
     clipping_target <- target
   }
 
-  # --- 2. CREATE TILES (DATA-BASED CHUNKING) ---
+  # --- 2. CREATE TILES (BALANCING MEMORY AND PARALLELISM) ---
   full_bbox <- .get_bbox_from_grid_extent(grid_extent, grid_crs)
   bbox_values <- as.numeric(full_bbox)
   xmin <- floor(bbox_values[1] / cellsize_m) * cellsize_m
@@ -305,28 +337,59 @@ stream_to_disk_sequential <- function(
   xmax <- ceiling(bbox_values[3] / cellsize_m) * cellsize_m
   ymax <- ceiling(bbox_values[4] / cellsize_m) * cellsize_m
 
-  # Use max_cells_per_chunk for tiling, or a sensible default
-  max_cells <- backend_args$max_cells_per_chunk %||% 500000
-  n_cols <- ceiling((xmax - xmin) / cellsize_m)
-  rows_per_chunk <- floor(max_cells / n_cols)
-  if (rows_per_chunk == 0) {
-    rows_per_chunk <- 1
+  # Calculate the maximum rows per chunk based on memory constraints
+  max_rows_per_chunk <- .calculate_rows_per_chunk(
+    grid_extent,
+    cellsize_m,
+    grid_crs,
+    backend_args,
+    max_memory_gb
+  )
+
+  # Calculate total rows in the grid
+  total_rows <- as.integer(round((ymax - ymin) / cellsize_m))
+
+  # For sequential mode, we want fewer, memory-safe chunks
+  # Use a modest multiplier to balance chunk count with memory
+  desired_tiles <- max(4, total_rows %/% max_rows_per_chunk)
+
+  # Calculate rows per chunk needed to achieve desired parallelism
+  desired_rows_per_chunk <- ceiling(total_rows / desired_tiles)
+
+  # Use the MINIMUM of memory-constrained and parallelism-optimal values
+  actual_rows_per_chunk <- min(max_rows_per_chunk, desired_rows_per_chunk)
+
+  # Ensure at least 1 row per chunk
+  if (actual_rows_per_chunk < 1) {
+    actual_rows_per_chunk <- 1
   }
 
-  chunk_height_m <- rows_per_chunk * cellsize_m
-  y_breaks <- seq(from = ymin, to = ymax, by = chunk_height_m)
-  if (utils::tail(y_breaks, 1) < ymax) {
-    y_breaks <- c(y_breaks, ymax)
-  }
+  # Calculate actual number of chunks we'll create
+  num_tiles <- ceiling(total_rows / actual_rows_per_chunk)
+
+  # Create evenly-sized chunks based on row counts
+  row_breaks <- floor(seq.int(0, total_rows, length.out = num_tiles + 1))
+  y_breaks <- ymin + (row_breaks * cellsize_m)
   y_breaks <- unique(y_breaks)
 
   num_tiles <- length(y_breaks) - 1
+
   if (!quiet) {
     message(paste(
       "Sequentially generating and writing",
       num_tiles,
-      "chunks..."
+      "chunks (",
+      actual_rows_per_chunk,
+      "rows/chunk)..."
     ))
+    if (actual_rows_per_chunk < desired_rows_per_chunk) {
+      message(paste(
+        "  Note: Memory constraints limited chunk size",
+        "(max",
+        max_rows_per_chunk,
+        "rows/chunk)"
+      ))
+    }
   }
 
   tile_bboxes <- lapply(1:(length(y_breaks) - 1), function(i) {

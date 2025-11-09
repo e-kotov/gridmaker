@@ -19,6 +19,7 @@ create_grid(
   quiet = FALSE,
   dsn = NULL,
   layer = NULL,
+  max_memory_gb = NULL,
   ...
 )
 }

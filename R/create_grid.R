@@ -108,6 +108,7 @@ create_grid <- function(
   quiet = FALSE,
   dsn = NULL,
   layer = NULL,
+  max_memory_gb = NULL,
   ...
 ) {
   # --- 1. Validate Arguments ---
@@ -134,7 +135,7 @@ create_grid <- function(
 
   # Only check if generating an in-memory object (dsn is NULL)
   if (is.null(dsn)) {
-    available_gb <- .get_ram_gb("available")
+    available_gb <- .get_ram_gb("avail")
 
     # Proceed only if we could get available RAM
     if (!is.null(available_gb)) {
@@ -228,7 +229,8 @@ create_grid <- function(
         dsn = dsn,
         layer = layer,
         dot_args = backend_args,
-        quiet = quiet
+        quiet = quiet,
+        max_memory_gb = max_memory_gb
       ))
     } else {
       # Otherwise, use the safe, sequential streaming method
@@ -244,7 +246,8 @@ create_grid <- function(
         dsn = dsn,
         layer = layer,
         dot_args = backend_args,
-        quiet = quiet
+        quiet = quiet,
+        max_memory_gb = max_memory_gb
       ))
     }
   }

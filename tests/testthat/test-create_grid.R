@@ -388,8 +388,10 @@ test_that("GRD_IDs are unique", {
 test_that("Memory warning is triggered with insufficient (fake) RAM", {
   # Set fake RAM to a ridiculously small value to guarantee a warning
   withr::with_options(
-    list(gridmaker.fake_ram = 1e-9), # approx 1 byte
-    # options("gridmaker.fake_ram" = 1e-9)
+    list(gridmaker.fake_ram = 0.001), # approx 1 Mb
+    # options("gridmaker.fake_ram" = 0.001)
+    # options("gridmaker.fake_ram" = NULL)
+    # .get_ram_gb("avail")
     {
       expect_warning(
         create_grid(nc, CELLSIZE, crs = TARGET_CRS),

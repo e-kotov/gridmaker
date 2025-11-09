@@ -240,7 +240,7 @@ async_stream_to_disk_with_mirai <- function(
     Sys.sleep(0.1)
   }
 
-  return(invisible(NULL))
+  return(invisible(dsn))
 }
 
 #' Internal function to create a grid and stream it sequentially to a file.
@@ -377,5 +377,5 @@ stream_to_disk_sequential <- function(
     cat("\nGrid streaming complete.\n")
   }
 
-  return(invisible(NULL))
+  return(invisible(dsn))
 }

@@ -125,7 +125,7 @@ regex_match <- function(text, pattern, i = NULL, ...) {
   )
 
   # Get its size in bytes
-  size_per_cell_bytes <- as.numeric(object.size(one_cell_grid))
+  size_per_cell_bytes <- as.numeric(utils::object.size(one_cell_grid))
 
   # --- 3. Calculate total estimated size in GB ---
   total_memory_bytes <- size_per_cell_bytes * total_cells
@@ -240,7 +240,7 @@ regex_match <- function(text, pattern, i = NULL, ...) {
   )
 
   # Get its size in bytes
-  size_per_cell_bytes <- as.numeric(object.size(one_cell_grid))
+  size_per_cell_bytes <- as.numeric(utils::object.size(one_cell_grid))
 
   if (size_per_cell_bytes == 0) {
     # Avoid division by zero; return a reasonably large number of rows.

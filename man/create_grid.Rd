@@ -92,6 +92,8 @@ Its interpretation depends on the destination driver. For a GeoPackage
 file, this will be the layer name. If \code{dsn} is a file path and \code{layer} is
 not specified, it defaults to the file's base name.}
 
+\item{max_memory_gb}{A numeric value. Maximum memory in gigabytes to use for grid creation. Default is NULL, in which case there is an automatic limit of available system memory. The available memory detection may fail on certain HPC (High Performance Computing) systems where jobs are allocated a fixed amount of memory that is less than the total system memory of the allocated node.}
+
 \item{...}{Additional arguments passed to specific backend handlers. For
 streaming backends (\code{mirai} or sequential), this can include
 \code{max_cells_per_chunk} to control memory usage.}

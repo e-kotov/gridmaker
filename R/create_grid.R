@@ -123,6 +123,37 @@ create_grid <- function(
     stop("If 'dsn' is provided, 'layer' must also be provided.", call. = FALSE)
   }
 
+  # Only check if generating an in-memory object (dsn is NULL)
+  if (is.null(dsn)) {
+    available_gb <- .get_ram_gb("available")
+
+    # Proceed only if we could get available RAM
+    if (!is.null(available_gb)) {
+      estimated_gb <- .estimate_grid_memory_gb(
+        grid_extent = grid_extent,
+        cellsize_m = cellsize_m,
+        crs = crs,
+        output_type = output_type,
+        id_format = id_format,
+        include_llc = include_llc,
+        point_type = point_type
+      )
+
+      if (estimated_gb > available_gb) {
+        warning(
+          "Estimated grid size is ~",
+          round(estimated_gb, 1),
+          " GB, ",
+          "which may exceed your available system memory of ~",
+          available_gb,
+          " GB.\n",
+          "  Consider writing the grid directly to disk by providing the 'dsn' and 'layer' arguments.",
+          call. = FALSE
+        )
+      }
+    }
+  }
+
   backend_args <- list(
     output_type = output_type,
     clip_to_input = clip_to_input,

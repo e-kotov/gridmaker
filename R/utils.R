@@ -21,6 +21,17 @@ regex_match <- function(text, pattern, i = NULL, ...) {
 #' @return A `numeric` amount of available RAM in GB.
 #' @noRd
 .get_ram_gb <- function(type = NULL) {
+  # Allow faking RAM for testing purposes
+  fake_ram_gb <- getOption("gridmaker.fake_ram")
+  if (!is.null(fake_ram_gb)) {
+    if (is.null(type)) {
+      return(list(total = 16, available = fake_ram_gb))
+    }
+    if (type == "available") {
+      return(fake_ram_gb)
+    }
+  }
+
   mem_info <- ps::ps_system_memory()
 
   # Convert all values to GB and round to 2 decimal places

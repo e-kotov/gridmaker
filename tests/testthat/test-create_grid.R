@@ -384,3 +384,33 @@ test_that("GRD_IDs are unique", {
   expect_false(any(duplicated(grid_both$GRD_ID_LONG)))
   expect_false(any(duplicated(grid_both$GRD_ID_SHORT)))
 })
+
+test_that("Memory warning is triggered with insufficient (fake) RAM", {
+  # Set fake RAM to a ridiculously small value to guarantee a warning
+  withr::with_options(
+    list(gridmaker.fake_ram = 1e-9), # approx 1 byte
+    # options("gridmaker.fake_ram" = 1e-9)
+    {
+      expect_warning(
+        create_grid(nc, CELLSIZE, crs = TARGET_CRS),
+        regexp = "Estimated grid size is.*which may exceed your available system memory"
+      )
+    }
+  )
+
+  # Ensure no warning is issued when there's plenty of (fake) RAM
+  withr::with_options(
+    list(gridmaker.fake_ram = 1000), # 1000 GB should be enough
+    {
+      # Using expect_silent because expect_no_warning is not in testthat < 3.0.0
+      # and we want to be robust. expect_silent checks for warnings, messages,
+      # and other output.
+      expect_silent(
+        create_grid(nc, CELLSIZE, crs = TARGET_CRS, quiet = TRUE)
+      )
+    }
+  )
+
+  # Ensure the option is unset and doesn't interfere with other tests
+  expect_null(getOption("gridmaker.fake_ram"))
+})

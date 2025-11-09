@@ -42,8 +42,10 @@
 #' @param dsn An optional character string for the data source name (e.g.,
 #'   file path). If provided, the grid is written to this file instead of
 #'   being returned as an object.
-#' @param layer An optional character string for the layer name. Required if
-#'   `dsn` is provided.
+#' @param layer An optional character string for the layer name. When writing
+#'   to a file (i.e., when `dsn` is specified), if `layer` is `NULL`, it
+#'   defaults to the file name of the data source. This is useful for formats
+#'   like GeoPackage, but may be ignored by others (e.g., GeoJSON).
 #' @param parallel Controls parallel execution. Options are:
 #'   \itemize{
 #'     \item **`'auto'` (default):** Automatically detects and uses a configured
@@ -119,8 +121,13 @@ create_grid <- function(
       call. = FALSE
     )
   }
+
+  # If dsn is provided but layer is not, derive from dsn
   if (!is.null(dsn) && is.null(layer)) {
-    stop("If 'dsn' is provided, 'layer' must also be provided.", call. = FALSE)
+    layer <- tools::file_path_sans_ext(basename(dsn))
+    if (!quiet) {
+      message("`layer` not specified, defaulting to '", layer, "'.")
+    }
   }
 
   # Only check if generating an in-memory object (dsn is NULL)

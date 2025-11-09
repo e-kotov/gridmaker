@@ -88,3 +88,48 @@ test_that("create_grid streams correctly to disk with mirai backend", {
     sf::st_as_binary(sf::st_geometry(grid_in_memory_sorted))
   )
 })
+
+test_that("create_grid handles `layer` argument correctly for disk output", {
+  skip_if_not_installed("sf")
+
+  temp_dir <- tempfile("grid_test_")
+  dir.create(temp_dir)
+  withr::defer(unlink(temp_dir, recursive = TRUE, force = TRUE))
+
+  simple_extent <- c(xmin = 0, ymin = 0, xmax = 100, ymax = 100)
+
+  # Test 1: When layer is NULL, it defaults from dsn and gives a message
+  dsn_default <- file.path(temp_dir, "default.gpkg")
+
+  expect_message(
+    create_grid(
+      grid_extent = simple_extent,
+      cellsize_m = 10,
+      crs = 3035,
+      dsn = dsn_default,
+      layer = NULL,
+      quiet = FALSE
+    ),
+    "defaulting to 'default'"
+  )
+
+  expect_true(file.exists(dsn_default))
+  expect_equal(sf::st_layers(dsn_default)$name, "default")
+
+  # Test 2: When layer is specified, it is used correctly
+  dsn_specified <- file.path(temp_dir, "specified.gpkg")
+  custom_layer <- "my_grid"
+
+  # Using quiet = TRUE to avoid other messages and focus the test
+  create_grid(
+    grid_extent = simple_extent,
+    cellsize_m = 10,
+    crs = 3035,
+    dsn = dsn_specified,
+    layer = custom_layer,
+    quiet = TRUE
+  )
+
+  expect_true(file.exists(dsn_specified))
+  expect_equal(sf::st_layers(dsn_specified)$name, custom_layer)
+})

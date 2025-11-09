@@ -85,8 +85,10 @@ function, for example: \code{mirai::daemons(4)} or \code{future::plan("multisess
 file path). If provided, the grid is written to this file instead of
 being returned as an object.}
 
-\item{layer}{An optional character string for the layer name. Required if
-\code{dsn} is provided.}
+\item{layer}{An optional character string for the layer name. When writing
+to a file (i.e., when \code{dsn} is specified), if \code{layer} is \code{NULL}, it
+defaults to the file name of the data source. This is useful for formats
+like GeoPackage, but may be ignored by others (e.g., GeoJSON).}
 
 \item{...}{Additional arguments passed to specific backend handlers. For
 streaming backends (\code{mirai} or sequential), this can include

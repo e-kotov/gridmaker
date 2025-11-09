@@ -100,35 +100,63 @@ regex_match <- function(text, pattern, i = NULL, ...) {
   total_cells <- num_cols * num_rows
 
   # Avoid estimation if grid is trivially small or enormous
-  if (total_cells == 0) {
+  if (total_cells <= 1) {
     return(0)
   }
   if (!is.finite(total_cells)) {
     return(Inf)
   }
 
-  # --- 2. Empirically determine memory per cell ---
-  # Create a tiny extent guaranteed to produce just one cell
-  one_cell_extent <- sf::st_bbox(
-    c(xmin = 0, ymin = 0, xmax = cellsize_m, ymax = cellsize_m),
+  # --- 2. Empirically determine memory per ADDITIONAL cell ---
+  # To get an accurate per-cell cost, we measure the memory difference
+  # between two small grids. This method calculates the slope of memory
+  # growth, effectively removing the fixed overhead of the sf object structure
+  # that skewed the previous one-cell estimation method.
+
+  # Define the number of cells for our two sample points.
+  n1 <- 10
+  n2 <- 20
+
+  # Create the first, smaller sample grid.
+  sample_extent_1 <- sf::st_bbox(
+    c(xmin = 0, ymin = 0, xmax = n1 * cellsize_m, ymax = cellsize_m),
     crs = grid_crs
   )
-
-  # Generate that single, representative cell
-  one_cell_grid <- create_grid_internal(
-    grid_extent = one_cell_extent,
+  sample_grid_1 <- create_grid_internal(
+    grid_extent = sample_extent_1,
     cellsize_m = cellsize_m,
     output_type = output_type,
     id_format = id_format,
     include_llc = include_llc,
     point_type = point_type
   )
+  size1 <- as.numeric(utils::object.size(sample_grid_1))
 
-  # Get its size in bytes
-  size_per_cell_bytes <- as.numeric(utils::object.size(one_cell_grid))
+  # Create the second, larger sample grid.
+  sample_extent_2 <- sf::st_bbox(
+    c(xmin = 0, ymin = 0, xmax = n2 * cellsize_m, ymax = cellsize_m),
+    crs = grid_crs
+  )
+  sample_grid_2 <- create_grid_internal(
+    grid_extent = sample_extent_2,
+    cellsize_m = cellsize_m,
+    output_type = output_type,
+    id_format = id_format,
+    include_llc = include_llc,
+    point_type = point_type
+  )
+  size2 <- as.numeric(utils::object.size(sample_grid_2))
+
+  # Calculate the memory cost per additional cell (the slope).
+  # Add a small epsilon to avoid division by zero if sizes are identical.
+  size_per_additional_cell <- (size2 - size1) / (n2 - n1 + 1e-9)
 
   # --- 3. Calculate total estimated size in GB ---
-  total_memory_bytes <- size_per_cell_bytes * total_cells
+  # Project the total memory using the accurate per-cell cost.
+  # We add a safety factor because this estimates the final object size, and
+  # peak memory allocation during the function run might be slightly higher.
+  safety_factor <- 1.25
+  total_memory_bytes <- (size_per_additional_cell * total_cells) * safety_factor
   estimated_gb <- total_memory_bytes / (1024^3)
 
   return(estimated_gb)

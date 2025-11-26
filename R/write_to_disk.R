@@ -93,7 +93,8 @@ async_stream_to_disk_with_mirai <- function(
 
   # Determine optimal number of chunks for parallelism
   num_daemons <- mirai::status()$connections
-  tile_multiplier <- getOption("gridmaker.tile_multiplier", default = 2)
+  tile_multiplier <- getOption("gridmaker.tile_multiplier", default = 1)
+  user_set_multiplier <- !is.null(getOption("gridmaker.tile_multiplier"))
   desired_tiles <- as.integer(round(num_daemons * tile_multiplier))
 
   # Calculate rows per chunk needed to achieve desired parallelism
@@ -119,6 +120,7 @@ async_stream_to_disk_with_mirai <- function(
   num_tiles <- length(y_breaks) - 1
 
   if (!quiet) {
+    # Explain chunking strategy
     message(paste(
       "Creating",
       num_tiles,
@@ -128,12 +130,37 @@ async_stream_to_disk_with_mirai <- function(
       num_daemons,
       "daemons."
     ))
+
+    # Explain why this configuration was chosen
     if (actual_rows_per_chunk < desired_rows_per_chunk) {
       message(paste(
-        "  Note: Memory constraints limited chunk size",
+        "  Info: Chunk size limited by available memory",
         "(max",
         max_rows_per_chunk,
-        "rows/chunk)"
+        "rows/chunk)."
+      ))
+      message(paste(
+        "  Recommendation: Consider writing to disk with fewer workers",
+        "or increasing available memory."
+      ))
+    } else {
+      message(paste(
+        "  Info: Chunk size optimized for",
+        num_daemons,
+        "workers (tile_multiplier =",
+        tile_multiplier,
+        "-> ~",
+        round(num_tiles / num_daemons, 1),
+        "chunks per worker)."
+      ))
+    }
+
+    # Warning if user set a non-optimal multiplier
+    if (user_set_multiplier && tile_multiplier > 1) {
+      message(paste(
+        "  Note: You set gridmaker.tile_multiplier =",
+        tile_multiplier,
+        ". For disk writing, tile_multiplier = 1 often performs best."
       ))
     }
   }

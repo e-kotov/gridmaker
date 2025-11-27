@@ -163,6 +163,14 @@ async_stream_to_disk_with_mirai <- function(
         ". For disk writing, tile_multiplier = 1 often performs best."
       ))
     }
+
+    # Hint for high worker counts
+    if (num_daemons > 32) {
+      message(paste(
+        "  Tip: Using > 32 workers may not improve performance due to overhead.",
+        "Consider reducing workers to 8-16."
+      ))
+    }
   }
 
   tile_bboxes <- lapply(1:(length(y_breaks) - 1), function(i) {

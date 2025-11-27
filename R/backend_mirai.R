@@ -47,7 +47,12 @@ run_parallel_mirai <- function(grid_extent, cellsize_m, crs, dot_args) {
   num_daemons <- mirai::status()$connections
   # Note: For in-memory operations, tile_multiplier = 2 can help balance load
   # For disk writing operations, tile_multiplier = 1 is typically better
-  tile_multiplier <- getOption("gridmaker.tile_multiplier", default = 2)
+  # We also scale down the multiplier for very high core counts to avoid excessive overhead
+  default_multiplier <- if (num_daemons > 16) 1 else 2
+  tile_multiplier <- getOption(
+    "gridmaker.tile_multiplier",
+    default = default_multiplier
+  )
   num_tiles <- if (num_daemons > 0) {
     as.integer(round(num_daemons * tile_multiplier))
   } else {

@@ -43,7 +43,9 @@ not configured.
 sequential mode.
 }
 For parallelism, you must configure a backend \emph{before} calling this
-function, for example: \code{mirai::daemons(4)} or \code{future::plan("multisession")}.}
+function, for example: \code{mirai::daemons(4)} or \code{future::plan("multisession")}.
+Note that more workers is not always faster; for typical grid sizes, 4-16
+workers often provide the best trade-off between speed and overhead.}
 
 \item{quiet}{logical value. If ‘TRUE’, all progress messages and progress bars are suppressed. Defaults to ‘FALSE’.}
 }

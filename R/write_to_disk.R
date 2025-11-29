@@ -93,11 +93,30 @@ async_stream_to_disk_with_mirai <- function(
 
   # Determine optimal number of chunks for parallelism
   num_daemons <- mirai::status()$connections
+
+  # Estimate total cells to optimize worker count
+  width_m <- xmax - xmin
+  total_cells_est <- (width_m / cellsize_m) * total_rows
+
+  # Heuristic: Limit active workers for small grids to avoid overhead
+  # < 50k cells: max 4 workers
+  # < 500k cells: max 16 workers
+  effective_workers <- num_daemons
+  if (total_cells_est < 50000) {
+    effective_workers <- min(num_daemons, 4)
+  } else if (total_cells_est < 500000) {
+    effective_workers <- min(num_daemons, 16)
+  }
+
   tile_multiplier <- getOption("gridmaker.tile_multiplier", default = 1)
   user_set_multiplier <- !is.null(getOption("gridmaker.tile_multiplier"))
-  desired_tiles <- as.integer(round(num_daemons * tile_multiplier))
+
+  base_workers <- if (user_set_multiplier) num_daemons else effective_workers
+  desired_tiles <- as.integer(round(base_workers * tile_multiplier))
 
   # Calculate rows per chunk needed to achieve desired parallelism
+  # Ensure desired_tiles is at least 1 to avoid division by zero
+  desired_tiles <- max(1, desired_tiles)
   desired_rows_per_chunk <- ceiling(total_rows / desired_tiles)
 
   # Use the MINIMUM of memory-constrained and parallelism-optimal values

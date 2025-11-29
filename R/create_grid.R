@@ -62,8 +62,9 @@
 #'   }
 #'   For parallelism, you must configure a backend *before* calling this
 #'   function, for example: `mirai::daemons(4)` or `future::plan("multisession")`.
-#'   Note that more workers is not always faster; for typical grid sizes, 4-16
 #'   workers often provide the best trade-off between speed and overhead.
+#'   The function automatically limits the number of active workers for small grids
+#'   to minimize overhead, unless `options(gridmaker.tile_multiplier)` is explicitly set.
 #' @param quiet logical value. If ‘TRUE’, all progress messages and progress bars are suppressed. Defaults to ‘FALSE’.
 #' @param max_memory_gb A numeric value. Maximum memory in gigabytes to use for grid creation. Default is NULL, in which case there is an automatic limit of available system memory. The available memory detection may fail on certain HPC (High Performance Computing) systems where jobs are allocated a fixed amount of memory that is less than the total system memory of the allocated node.
 #' @param ... Additional arguments passed to specific backend handlers. For

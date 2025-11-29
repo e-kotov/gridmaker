@@ -44,29 +44,60 @@ run_parallel_mirai <- function(grid_extent, cellsize_m, crs, dot_args) {
   xmax <- ceiling(as.numeric(full_bbox["xmax"]) / cellsize_m) * cellsize_m
   ymax <- ceiling(as.numeric(full_bbox["ymax"]) / cellsize_m) * cellsize_m
 
+  # Estimate total cells to optimize worker count
+  width_m <- xmax - xmin
+  height_m <- ymax - ymin
+  total_cells_est <- (width_m / cellsize_m) * (height_m / cellsize_m)
+
   num_daemons <- mirai::status()$connections
-  # Note: For in-memory operations, tile_multiplier = 2 can help balance load
-  # For disk writing operations, tile_multiplier = 1 is typically better
-  # We also scale down the multiplier for very high core counts to avoid excessive overhead
-  default_multiplier <- if (num_daemons > 16) 1 else 2
+
+  # Heuristic: Limit active workers for small grids to avoid overhead
+  # < 50k cells: max 4 workers
+  # < 500k cells: max 16 workers
+  effective_workers <- num_daemons
+  if (total_cells_est < 50000) {
+    effective_workers <- min(num_daemons, 4)
+  } else if (total_cells_est < 500000) {
+    effective_workers <- min(num_daemons, 16)
+  }
+
+  # Default multiplier is now 1 based on benchmarks
+  default_multiplier <- 1
   tile_multiplier <- getOption(
     "gridmaker.tile_multiplier",
     default = default_multiplier
   )
-  num_tiles <- if (num_daemons > 0) {
-    as.integer(round(num_daemons * tile_multiplier))
+
+  # Calculate num_tiles using effective_workers
+  # If user explicitly set multiplier, we use all daemons (assuming they know what they are doing)
+  # Otherwise we use the effective worker count to limit overhead
+  user_set_multiplier <- !is.null(getOption("gridmaker.tile_multiplier"))
+
+  base_workers <- if (user_set_multiplier) num_daemons else effective_workers
+
+  num_tiles <- if (base_workers > 0) {
+    as.integer(round(base_workers * tile_multiplier))
   } else {
     2
   }
 
   if (!quiet) {
-    message(paste(
+    msg <- paste(
       "Processing",
       num_tiles,
       "tiles using",
       num_daemons,
-      "mirai daemons..."
-    ))
+      "mirai daemons"
+    )
+    if (effective_workers < num_daemons && !user_set_multiplier) {
+      msg <- paste0(
+        msg,
+        " (limited to ",
+        effective_workers,
+        " active to reduce overhead)"
+      )
+    }
+    message(paste0(msg, "..."))
   }
 
   # Calculate total rows and divide them among tiles
@@ -104,7 +135,8 @@ run_parallel_mirai <- function(grid_extent, cellsize_m, crs, dot_args) {
     create_grid_internal = create_grid_internal
   )
 
-  grid_chunks <- purrr::map(tile_bboxes, parallel_worker, .progress = !quiet)
+  grid_chunks_promises <- mirai::mirai_map(tile_bboxes, parallel_worker)
+  grid_chunks <- grid_chunks_promises[]
 
   # --- 4. COMBINE (No de-duplication needed) ---
   if (!quiet) {

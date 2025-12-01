@@ -52,16 +52,22 @@ run_parallel_mirai <- function(grid_extent, cellsize_m, crs, dot_args) {
   num_daemons <- mirai::status()$connections
 
   # Heuristic: Limit active workers for small grids to avoid overhead
-  # < 50k cells: max 4 workers
-  # < 500k cells: max 16 workers
+  # Based on multi-resolution benchmarks (50m-1000m cell sizes):
+  # < 50k cells: max 4 workers (parallel overhead ~50% of runtime)
+  # < 500k cells: max 8 workers (optimal for most scenarios)
+  # < 2M cells: max 16 workers
+  # >= 2M cells: use all workers, but warn if >32
   effective_workers <- num_daemons
   if (total_cells_est < 50000) {
     effective_workers <- min(num_daemons, 4)
   } else if (total_cells_est < 500000) {
+    effective_workers <- min(num_daemons, 8)
+  } else if (total_cells_est < 2000000) {
     effective_workers <- min(num_daemons, 16)
   }
 
   # Default multiplier is now 1 based on benchmarks
+  # tile_mult=1 consistently performs best; tile_mult=2 hurts performance
   default_multiplier <- 1
   tile_multiplier <- getOption(
     "gridmaker.tile_multiplier",
@@ -79,6 +85,26 @@ run_parallel_mirai <- function(grid_extent, cellsize_m, crs, dot_args) {
     as.integer(round(base_workers * tile_multiplier))
   } else {
     2
+  }
+
+  # Warning for suboptimal configurations based on benchmark data
+  if (!quiet) {
+    if (num_daemons > 32) {
+      message(
+        "Note: You have ",
+        num_daemons,
+        " workers configured. Benchmarks show that >32 workers ",
+        "often decrease performance due to overhead. Consider using 8-16 workers."
+      )
+    }
+
+    if (user_set_multiplier && tile_multiplier > 1) {
+      message(
+        "Note: You set gridmaker.tile_multiplier = ",
+        tile_multiplier,
+        ". Benchmarks show tile_multiplier = 1 performs best in most cases."
+      )
+    }
   }
 
   if (!quiet) {

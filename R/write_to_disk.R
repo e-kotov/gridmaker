@@ -99,12 +99,17 @@ async_stream_to_disk_with_mirai <- function(
   total_cells_est <- (width_m / cellsize_m) * total_rows
 
   # Heuristic: Limit active workers for small grids to avoid overhead
-  # < 50k cells: max 4 workers
-  # < 500k cells: max 16 workers
+  # Based on multi-resolution benchmarks (50m-1000m cell sizes):
+  # < 50k cells: max 4 workers (parallel overhead ~50% of runtime)
+  # < 500k cells: max 8 workers (optimal for most scenarios)
+  # < 2M cells: max 16 workers
+  # >= 2M cells: use all workers, but warn if >32
   effective_workers <- num_daemons
   if (total_cells_est < 50000) {
     effective_workers <- min(num_daemons, 4)
   } else if (total_cells_est < 500000) {
+    effective_workers <- min(num_daemons, 8)
+  } else if (total_cells_est < 2000000) {
     effective_workers <- min(num_daemons, 16)
   }
 
@@ -165,29 +170,38 @@ async_stream_to_disk_with_mirai <- function(
     } else {
       message(paste(
         "  Info: Chunk size optimized for",
-        num_daemons,
+        effective_workers,
         "workers (tile_multiplier =",
         tile_multiplier,
         "-> ~",
-        round(num_tiles / num_daemons, 1),
+        round(num_tiles / max(effective_workers, 1), 1),
         "chunks per worker)."
       ))
     }
 
-    # Warning if user set a non-optimal multiplier
+    # Warning for suboptimal configurations based on benchmark data
     if (user_set_multiplier && tile_multiplier > 1) {
       message(paste(
         "  Note: You set gridmaker.tile_multiplier =",
         tile_multiplier,
-        ". For disk writing, tile_multiplier = 1 often performs best."
+        ". For disk writing, tile_multiplier = 1 consistently performs best."
       ))
     }
 
     # Hint for high worker counts
     if (num_daemons > 32) {
       message(paste(
-        "  Tip: Using > 32 workers may not improve performance due to overhead.",
-        "Consider reducing workers to 8-16."
+        "  Note: Using >32 workers (",
+        num_daemons,
+        "configured) often decreases performance due to overhead.",
+        "Benchmarks show 8-16 workers optimal for disk operations."
+      ))
+    } else if (num_daemons > 16 && total_cells_est < 500000) {
+      message(paste(
+        "  Tip: For grids with <500k cells, 8 workers typically provide",
+        "optimal performance. You have",
+        num_daemons,
+        "configured."
       ))
     }
   }

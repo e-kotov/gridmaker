@@ -9,7 +9,6 @@ derive_grid(
   point_type = c("llc", "centroid"),
   output_type = c("sf_polygons", "sf_points", "dataframe"),
   include_llc = TRUE,
-  parallel = FALSE,
   quiet = FALSE
 )
 }
@@ -30,30 +29,12 @@ grid cell centroid coordinates (\code{X_centroid}, \code{Y_centroid}).}
 lower-left corner coordinates (\code{X_LLC}, \code{Y_LLC}) of each cell are included
 in the output.}
 
-\item{parallel}{Controls parallel execution. Options are:
-\itemize{
-\item \strong{\code{'auto'} (default):} Automatically detects and uses a configured
-\code{mirai} or \code{future} backend if one is available. If both are set, it
-prefers the one with more available workers and issues a warning. If
-neither is configured, it runs sequentially.
-\item \strong{\code{TRUE}:} Forces the function to attempt parallel execution. It
-will raise an error if a valid parallel backend (with >1 worker) is
-not configured.
-\item \strong{\code{FALSE}:} Forces the function to run in single-threaded
-sequential mode.
-}
-For parallelism, you must configure a backend \emph{before} calling this
-function, for example: \code{mirai::daemons(4)} or \code{future::plan("multisession")}.
-workers often provide the best trade-off between speed and overhead.
-The function automatically limits the number of active workers for small grids
-to minimize overhead, unless \code{options(gridmaker.tile_multiplier)} is explicitly set.}
-
-\item{quiet}{logical value. If ‘TRUE’, all progress messages and progress bars are suppressed. Defaults to ‘FALSE’.}
+\item{quiet}{Logical value. If \code{TRUE}, all progress messages are suppressed.
+Defaults to \code{FALSE}.}
 }
 \value{
-If \code{dsn} is \code{NULL} (the default), an \code{sf} object or \code{data.frame}
-representing the grid. If \code{dsn} is specified, the function writes the grid
-to a file and returns \code{invisible(dsn)}.
+An \code{sf} object or \code{data.frame} representing the grid derived from
+the INSPIRE IDs.
 }
 \description{
 {

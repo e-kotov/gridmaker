@@ -9,8 +9,18 @@
 #' @param point_type A character string, used only when `output_type = "sf_points"`.
 #'   Determines the location of the points: `"centroid"` for the center
 #'   of the cell, or `"llc"` (default) for the lower-left corner.
+#' @param output_type The class of the output object: `"sf_polygons"` (default) creates
+#'   a spatial object with polygon geometries, `"sf_points"` creates an `sf`
+#'   object with point geometries, and `"dataframe"` creates a data frame with
+#'   grid cell centroid coordinates (`X_centroid`, `Y_centroid`).
+#' @param include_llc A logical value. If `TRUE` (default), columns for the
+#'   lower-left corner coordinates (`X_LLC`, `Y_LLC`) of each cell are included
+#'   in the output.
+#' @param quiet Logical value. If `TRUE`, all progress messages are suppressed.
+#'   Defaults to `FALSE`.
 #'
-#' @inherit create_grid
+#' @return An `sf` object or `data.frame` representing the grid derived from
+#'   the INSPIRE IDs.
 #'
 #' @export
 #'
@@ -26,17 +36,12 @@
 #' grid <- derive_grid(inspire)
 #' plot(grid$geometry)
 derive_grid <- function(
-    ids,
-    point_type = c("llc", "centroid"),
-    output_type = c("sf_polygons", "sf_points", "dataframe"),
-    include_llc = TRUE,
-    parallel = FALSE,
-    quiet = FALSE
+  ids,
+  point_type = c("llc", "centroid"),
+  output_type = c("sf_polygons", "sf_points", "dataframe"),
+  include_llc = TRUE,
+  quiet = FALSE
 ) {
-  if (!isFALSE(parallel)) {
-    warning("Parallel processing is not yet supported for `derive_grid()`.")
-  }
-
   if (!is.logical(quiet) || length(quiet) != 1) {
     stop(
       "'quiet' must be a single logical value (TRUE or FALSE).",

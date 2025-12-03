@@ -61,7 +61,12 @@
 #'       sequential mode.
 #'   }
 #'   For parallelism, you must configure a backend *before* calling this
-#'   function, for example: `mirai::daemons(4)` or `future::plan("multisession")`.
+#'   function, for example: `mirai::daemons(8)` or `future::plan("multisession", workers = 8)`.
+#'   **Performance tip:** Benchmarks show 8 workers provide optimal performance for most
+#'   grid sizes. Using >32 workers typically decreases performance due to overhead.
+#'   The function automatically limits active workers for small grids to minimize overhead:
+#'   <50k cells use max 4 workers, <500k cells use max 8 workers, <2M cells use max 16 workers.
+#'   This automatic limiting can be overridden by setting `options(gridmaker.tile_multiplier)`.
 #' @param quiet logical value. If ‘TRUE’, all progress messages and progress bars are suppressed. Defaults to ‘FALSE’.
 #' @param max_memory_gb A numeric value. Maximum memory in gigabytes to use for grid creation. Default is NULL, in which case there is an automatic limit of available system memory. The available memory detection may fail on certain HPC (High Performance Computing) systems where jobs are allocated a fixed amount of memory that is less than the total system memory of the allocated node.
 #' @param ... Additional arguments passed to specific backend handlers. For

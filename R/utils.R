@@ -249,31 +249,53 @@ regex_match <- function(text, pattern, i = NULL, ...) {
   }
   limit_bytes <- limit_gb * (1024^3)
 
-  # --- 2. Estimate memory usage per cell ---
-  # Create a tiny extent guaranteed to produce just one cell
+  # --- 2. Estimate memory usage per cell (Marginal Cost) ---
+  # We use the same slope-based method as .estimate_grid_memory_gb
+  # to avoid overestimating due to fixed sf overhead.
+
   grid_crs <- if (!is.null(crs)) sf::st_crs(crs) else sf::st_crs(grid_extent)
-  one_cell_extent <- sf::st_bbox(
-    c(xmin = 0, ymin = 0, xmax = cellsize_m, ymax = cellsize_m),
+
+  # Define sample sizes
+  n1 <- 10
+  n2 <- 20
+
+  # Create sample 1
+  sample_extent_1 <- sf::st_bbox(
+    c(xmin = 0, ymin = 0, xmax = n1 * cellsize_m, ymax = cellsize_m),
     crs = grid_crs
   )
-
-  # Generate that single, representative cell
-  one_cell_grid <- create_grid_internal(
-    grid_extent = one_cell_extent,
+  sample_grid_1 <- create_grid_internal(
+    grid_extent = sample_extent_1,
     cellsize_m = cellsize_m,
     output_type = dot_args$output_type %||% "sf_polygons",
     id_format = dot_args$id_format %||% "both",
     include_llc = dot_args$include_llc %||% TRUE,
     point_type = dot_args$point_type %||% "centroid"
   )
+  size1 <- as.numeric(utils::object.size(sample_grid_1))
 
-  # Get its size in bytes
-  size_per_cell_bytes <- as.numeric(utils::object.size(one_cell_grid))
+  # Create sample 2
+  sample_extent_2 <- sf::st_bbox(
+    c(xmin = 0, ymin = 0, xmax = n2 * cellsize_m, ymax = cellsize_m),
+    crs = grid_crs
+  )
+  sample_grid_2 <- create_grid_internal(
+    grid_extent = sample_extent_2,
+    cellsize_m = cellsize_m,
+    output_type = dot_args$output_type %||% "sf_polygons",
+    id_format = dot_args$id_format %||% "both",
+    include_llc = dot_args$include_llc %||% TRUE,
+    point_type = dot_args$point_type %||% "centroid"
+  )
+  size2 <- as.numeric(utils::object.size(sample_grid_2))
 
-  if (size_per_cell_bytes == 0) {
-    # Avoid division by zero; return a reasonably large number of rows.
-    # This might happen if the object is empty/null.
-    return(500000)
+  # Calculate marginal bytes per cell
+  bytes_per_cell <- (size2 - size1) / (n2 - n1 + 1e-9)
+
+  # If the slope is non-positive (unlikely but possible with weird overheads),
+  # fallback to average size of the larger sample
+  if (bytes_per_cell <= 0) {
+    bytes_per_cell <- size2 / n2
   }
 
   # --- 3. Calculate grid dimensions ---
@@ -283,26 +305,31 @@ regex_match <- function(text, pattern, i = NULL, ...) {
   n_cols <- ceiling((xmax - xmin) / cellsize_m)
 
   if (n_cols == 0) {
-    return(1) # Grid has no width, so 1 row per chunk is fine.
+    return(1) # Grid has no width
   }
 
   # --- 4. Determine rows per chunk ---
   # Calculate how many cells can fit in the memory limit
-  max_cells_in_memory <- floor(limit_bytes / size_per_cell_bytes)
+  # We add a safety buffer (e.g. 80% of limit) to account for overhead
+  max_cells_in_memory <- floor((limit_bytes * 0.8) / bytes_per_cell)
 
   # Calculate how many rows that corresponds to
   rows_per_chunk <- floor(max_cells_in_memory / n_cols)
 
+  # Check if user provided an explicit override via ... (dot_args)
+  # Note: The calling functions pass '...' as 'dot_args'
+  if (!is.null(dot_args$max_cells_per_chunk)) {
+    user_rows <- floor(dot_args$max_cells_per_chunk / n_cols)
+    if (user_rows > 0) {
+      rows_per_chunk <- min(rows_per_chunk, user_rows)
+    }
+  }
+
   # Ensure at least one row is processed at a time
   if (rows_per_chunk == 0) {
-    warning(
-      "The memory limit of ",
-      round(limit_gb, 2),
-      " GB is very low for the grid's width. ",
-      "Processing one row at a time, which may be slow.",
-      call. = FALSE
-    )
-    return(1)
+    # If even one row is too big, we have to do 1 row.
+    # But we should warn if it's extremely tight.
+    rows_per_chunk <- 1
   }
 
   return(rows_per_chunk)

@@ -42,7 +42,12 @@ run_parallel_future <- function(grid_extent, cellsize_m, crs, dot_args) {
   ymax <- ceiling(as.numeric(full_bbox["ymax"]) / cellsize_m) * cellsize_m
 
   num_workers <- future::nbrOfWorkers()
-  tile_multiplier <- getOption("gridmaker.tile_multiplier", default = 2)
+  # Scale down multiplier for high core counts to avoid overhead
+  default_multiplier <- if (num_workers > 16) 1 else 2
+  tile_multiplier <- getOption(
+    "gridmaker.tile_multiplier",
+    default = default_multiplier
+  )
   num_tiles <- as.integer(round(num_workers * tile_multiplier))
 
   if (!quiet) {

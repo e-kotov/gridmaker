@@ -162,7 +162,12 @@ not configured.</p></li>
 <li><p><strong><code>FALSE</code>:</strong> Forces the function to run in single-threaded
 sequential mode.</p></li>
 </ul><p>For parallelism, you must configure a backend <em>before</em> calling this
-function, for example: <code>mirai::daemons(4)</code> or <code>future::plan("multisession")</code>.</p></dd>
+function, for example: <code>mirai::daemons(8)</code> or <code>future::plan("multisession", workers = 8)</code>.
+<strong>Performance tip:</strong> Benchmarks show 8 workers provide optimal performance for most
+grid sizes. Using &gt;32 workers typically decreases performance due to overhead.
+The function automatically limits active workers for small grids to minimize overhead:
+&lt;50k cells use max 4 workers, &lt;500k cells use max 8 workers, &lt;2M cells use max 16 workers.
+This automatic limiting can be overridden by setting <code>options(gridmaker.tile_multiplier)</code>.</p></dd>
 
 
 <dt id="arg-quiet">quiet<a class="anchor" aria-label="anchor" href="#arg-quiet"></a></dt>

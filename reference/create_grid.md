@@ -112,8 +112,15 @@ create_grid(
     sequential mode.
 
   For parallelism, you must configure a backend *before* calling this
-  function, for example: `mirai::daemons(4)` or
-  `future::plan("multisession")`.
+  function, for example: `mirai::daemons(8)` or
+  `future::plan("multisession", workers = 8)`. **Performance tip:**
+  Benchmarks show 8 workers provide optimal performance for most grid
+  sizes. Using \>32 workers typically decreases performance due to
+  overhead. The function automatically limits active workers for small
+  grids to minimize overhead: \<50k cells use max 4 workers, \<500k
+  cells use max 8 workers, \<2M cells use max 16 workers. This automatic
+  limiting can be overridden by setting
+  `options(gridmaker.tile_multiplier)`.
 
 - quiet:
 

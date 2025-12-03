@@ -59,7 +59,6 @@ extent, see <code><a href="create_grid.html">create_grid</a></code>.</p>
 <span>  point_type <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"llc"</span>, <span class="st">"centroid"</span><span class="op">)</span>,</span>
 <span>  output_type <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"sf_polygons"</span>, <span class="st">"sf_points"</span>, <span class="st">"dataframe"</span><span class="op">)</span>,</span>
 <span>  include_llc <span class="op">=</span> <span class="cn">TRUE</span>,</span>
-<span>  parallel <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  quiet <span class="op">=</span> <span class="cn">FALSE</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
@@ -92,29 +91,15 @@ lower-left corner coordinates (<code>X_LLC</code>, <code>Y_LLC</code>) of each c
 in the output.</p></dd>
 
 
-<dt id="arg-parallel">parallel<a class="anchor" aria-label="anchor" href="#arg-parallel"></a></dt>
-<dd><p>Controls parallel execution. Options are:</p><ul><li><p><strong><code>'auto'</code> (default):</strong> Automatically detects and uses a configured
-<code>mirai</code> or <code>future</code> backend if one is available. If both are set, it
-prefers the one with more available workers and issues a warning. If
-neither is configured, it runs sequentially.</p></li>
-<li><p><strong><code>TRUE</code>:</strong> Forces the function to attempt parallel execution. It
-will raise an error if a valid parallel backend (with &gt;1 worker) is
-not configured.</p></li>
-<li><p><strong><code>FALSE</code>:</strong> Forces the function to run in single-threaded
-sequential mode.</p></li>
-</ul><p>For parallelism, you must configure a backend <em>before</em> calling this
-function, for example: <code>mirai::daemons(4)</code> or <code>future::plan("multisession")</code>.</p></dd>
-
-
 <dt id="arg-quiet">quiet<a class="anchor" aria-label="anchor" href="#arg-quiet"></a></dt>
-<dd><p>logical value. If ‘TRUE’, all progress messages and progress bars are suppressed. Defaults to ‘FALSE’.</p></dd>
+<dd><p>Logical value. If <code>TRUE</code>, all progress messages are suppressed.
+Defaults to <code>FALSE</code>.</p></dd>
 
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
-    <p>If <code>dsn</code> is <code>NULL</code> (the default), an <code>sf</code> object or <code>data.frame</code>
-representing the grid. If <code>dsn</code> is specified, the function writes the grid
-to a file and returns <code>invisible(dsn)</code>.</p>
+    <p>An <code>sf</code> object or <code>data.frame</code> representing the grid derived from
+the INSPIRE IDs.</p>
     </div>
 
     <div class="section level2">

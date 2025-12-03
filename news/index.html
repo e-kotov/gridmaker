@@ -44,6 +44,13 @@
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.1.0" id="gridmaker-010">gridmaker 0.1.0<a class="anchor" aria-label="anchor" href="#gridmaker-010"></a></h2>
 <ul><li>Initial version with basic grid generation functionality.</li>
+<li>
+<strong>Performance optimizations based on multi-resolution benchmarks (50m-1000m cell sizes):</strong>
+<ul><li>Refined adaptive worker scaling: &lt;50k cells use max 4 workers, &lt;500k cells use max 8 workers, &lt;2M cells use max 16 workers. This minimizes parallelization overhead which can reduce performance by up to 50% on small grids.</li>
+<li>Benchmarks show 8 workers provide optimal performance for most grid sizes (50m-500m cells).</li>
+<li>Default <code>tile_multiplier</code> set to 1, as benchmarks show <code>tile_mult=2</code> consistently reduces performance (e.g., 50m cells: 1.97x speedup with mult=1 vs 1.47x with mult=2).</li>
+<li>Added user-facing warnings when &gt;32 workers are configured (performance typically decreases due to overhead) or when <code>tile_multiplier &gt; 1</code> is set.</li>
+</ul></li>
 </ul></div>
   </main></div>
 

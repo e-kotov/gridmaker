@@ -13,7 +13,6 @@ derive_grid(
   point_type = c("llc", "centroid"),
   output_type = c("sf_polygons", "sf_points", "dataframe"),
   include_llc = TRUE,
-  parallel = FALSE,
   quiet = FALSE
 )
 ```
@@ -44,36 +43,15 @@ derive_grid(
   corner coordinates (`X_LLC`, `Y_LLC`) of each cell are included in the
   output.
 
-- parallel:
-
-  Controls parallel execution. Options are:
-
-  - **`'auto'` (default):** Automatically detects and uses a configured
-    `mirai` or `future` backend if one is available. If both are set, it
-    prefers the one with more available workers and issues a warning. If
-    neither is configured, it runs sequentially.
-
-  - **`TRUE`:** Forces the function to attempt parallel execution. It
-    will raise an error if a valid parallel backend (with \>1 worker) is
-    not configured.
-
-  - **`FALSE`:** Forces the function to run in single-threaded
-    sequential mode.
-
-  For parallelism, you must configure a backend *before* calling this
-  function, for example: `mirai::daemons(4)` or
-  `future::plan("multisession")`.
-
 - quiet:
 
-  logical value. If ‘TRUE’, all progress messages and progress bars are
-  suppressed. Defaults to ‘FALSE’.
+  Logical value. If `TRUE`, all progress messages are suppressed.
+  Defaults to `FALSE`.
 
 ## Value
 
-If `dsn` is `NULL` (the default), an `sf` object or `data.frame`
-representing the grid. If `dsn` is specified, the function writes the
-grid to a file and returns `invisible(dsn)`.
+An `sf` object or `data.frame` representing the grid derived from the
+INSPIRE IDs.
 
 ## Examples
 

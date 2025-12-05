@@ -416,3 +416,63 @@ test_that("Memory warning is triggered with insufficient (fake) RAM", {
   # Ensure the option is unset and doesn't interfere with other tests
   expect_null(getOption("gridmaker.fake_ram"))
 })
+
+test_that("create_grid respects axis_order argument for Short IDs", {
+  # Use a simple bounding box for testing
+  # 10km grid
+  # LLC at 0,0
+  simple_extent <- sf::st_bbox(c(xmin = 0, ymin = 0, xmax = 20000, ymax = 10000), crs = 3035)
+  cellsize <- 10000
+
+  # 1. Test Default (NE)
+  grid_ne <- create_grid(
+    simple_extent,
+    cellsize_m = cellsize,
+    id_format = "short",
+    axis_order = "NE",
+    quiet = TRUE
+  )
+
+  # Expect format: 10kmN0E0 (Northing then Easting)
+  # Check the first ID (LLC 0,0)
+  expected_ne <- "10kmN0E0"
+  expect_true(expected_ne %in% grid_ne$GRD_ID)
+
+  # 2. Test EN Order
+  grid_en <- create_grid(
+    simple_extent,
+    cellsize_m = cellsize,
+    id_format = "short",
+    axis_order = "EN",
+    quiet = TRUE
+  )
+
+  # Expect format: 10kmE0N0 (Easting then Northing)
+  expected_en <- "10kmE0N0"
+  expect_true(expected_en %in% grid_en$GRD_ID)
+
+  # 3. Test that Long IDs are NOT affected (Must remain N...E for standard compliance)
+  grid_both_en <- create_grid(
+    simple_extent,
+    cellsize_m = cellsize,
+    id_format = "both",
+    axis_order = "EN",
+    quiet = TRUE
+  )
+
+  # Short ID should be EN
+  expect_true("10kmE0N0" %in% grid_both_en$GRD_ID_SHORT)
+
+  # Long ID should still be NE (CRS...RES...N...E...)
+  # 0,0 is usually N0E0
+  long_id <- grid_both_en$GRD_ID_LONG[grid_both_en$GRD_ID_SHORT == "10kmE0N0"]
+  expect_true(grepl("N0E0", long_id))
+  expect_false(grepl("E0N0$", long_id)) # Should not end in E...N...
+})
+
+test_that("create_grid throws error for invalid axis_order", {
+  expect_error(
+    create_grid(nc, CELLSIZE, axis_order = "XY"),
+    regexp = "'arg' should be one of"
+  )
+})

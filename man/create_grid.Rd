@@ -13,6 +13,7 @@ create_grid(
   use_convex_hull = FALSE,
   buffer_m = 0,
   id_format = "both",
+  axis_order = "NE",
   include_llc = TRUE,
   point_type = "centroid",
   parallel = "auto",
@@ -57,6 +58,14 @@ clipping. Defaults to \code{0} (no buffer).}
 
 \item{id_format}{A character string specifying which grid cell IDs to generate.
 Options are \code{"both"} (default), \code{"long"}, \code{"short"}, or \code{"none"}.}
+
+\item{axis_order}{A character string specifying the coordinate order for the
+output Short INSPIRE IDs. This parameter is \strong{only used when \code{id_format} is
+\code{"short"} or \code{"both"}}. It can be one of:
+\itemize{
+\item \code{"NE"} (the default) to produce the format \verb{\{cellsize\}N\{y\}E\{x\}}.
+\item \code{"EN"} to produce the format \verb{\{cellsize\}E\{x\}N\{y\}} (e.g. this format is used in \href{https://www.dst.dk/en/TilSalg/produkter/geodata/kvadratnet}{Danish national grid}).
+}}
 
 \item{include_llc}{A logical value. If \code{TRUE} (default), columns for the
 lower-left corner coordinates (\code{X_LLC}, \code{Y_LLC}) of each cell are included

@@ -242,3 +242,55 @@ test_that("spatraster works with larger grid from nc data", {
     as.character(TARGET_CRS)
   )
 })
+
+test_that("create_grid with spatraster supports 'use_convex_hull' and 'buffer_m'", {
+  skip_if_not_installed("terra")
+
+  # 1. Create a non-convex shape (L-shape)
+  # A 2000x2000 box with the top-right 1000x1000 quadrant missing
+  p1 <- rbind(c(0, 0), c(2000, 0), c(2000, 1000), c(1000, 1000), c(1000, 2000), c(0, 2000), c(0, 0))
+  poly <- sf::st_polygon(list(p1))
+  poly_sfc <- sf::st_sfc(poly, crs = 3035)
+
+  # 2. Baseline: Standard clipping
+  # Grid cell size 500. Total area 2000x2000 = 16 cells.
+  # The L-shape occupies 3 quadrants (12 cells).
+  r_base <- create_grid(
+    grid_extent = poly_sfc,
+    cellsize_m = 500,
+    output_type = "spatraster",
+    clip_to_input = TRUE,
+    quiet = TRUE
+  )
+  # Count non-NA cells
+  count_base <- sum(!is.na(terra::values(r_base)))
+
+  # 3. Test Convex Hull
+  # The convex hull of the L-shape is the full 2000x2000 square.
+  # Should have more cells than baseline (filling the missing quadrant).
+  r_hull <- create_grid(
+    grid_extent = poly_sfc,
+    cellsize_m = 500,
+    output_type = "spatraster",
+    clip_to_input = TRUE,
+    use_convex_hull = TRUE,
+    quiet = TRUE
+  )
+  count_hull <- sum(!is.na(terra::values(r_hull)))
+
+  expect_gt(count_hull, count_base)
+
+  # 4. Test Buffer
+  # Buffer the L-shape. Should result in more cells than baseline.
+  r_buff <- create_grid(
+    grid_extent = poly_sfc,
+    cellsize_m = 500,
+    output_type = "spatraster",
+    clip_to_input = TRUE,
+    buffer_m = 200,
+    quiet = TRUE
+  )
+  count_buff <- sum(!is.na(terra::values(r_buff)))
+
+  expect_gt(count_buff, count_base)
+})

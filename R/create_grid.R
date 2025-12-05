@@ -84,7 +84,9 @@
 #' @param max_memory_gb A numeric value. Maximum memory in gigabytes to use for grid creation. Default is NULL, in which case there is an automatic limit of available system memory. The available memory detection may fail on certain HPC (High Performance Computing) systems where jobs are allocated a fixed amount of memory that is less than the total system memory of the allocated node.
 #' @param ... Additional arguments passed to specific backend handlers. For
 #'   streaming backends (`mirai` or sequential), this can include
-#'   `max_cells_per_chunk` to control memory usage.
+#'   `max_cells_per_chunk` to control memory usage. When `output_type = "spatraster"`
+#'   and `dsn` is provided, these arguments are passed to `terra::writeRaster()`
+#'   (e.g., for specifying compression options).
 #'
 #' @return If `dsn` is `NULL` (the default), an `sf` object or `data.frame`
 #'   representing the grid. If `dsn` is specified, the function writes the grid

@@ -75,6 +75,7 @@ source (<code>dsn</code>) invisibly.</p>
 <span>  use_convex_hull <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  buffer_m <span class="op">=</span> <span class="fl">0</span>,</span>
 <span>  id_format <span class="op">=</span> <span class="st">"both"</span>,</span>
+<span>  axis_order <span class="op">=</span> <span class="st">"NE"</span>,</span>
 <span>  include_llc <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  point_type <span class="op">=</span> <span class="st">"centroid"</span>,</span>
 <span>  parallel <span class="op">=</span> <span class="st">"auto"</span>,</span>
@@ -138,6 +139,14 @@ clipping. Defaults to <code>0</code> (no buffer).</p></dd>
 <dt id="arg-id-format">id_format<a class="anchor" aria-label="anchor" href="#arg-id-format"></a></dt>
 <dd><p>A character string specifying which grid cell IDs to generate.
 Options are <code>"both"</code> (default), <code>"long"</code>, <code>"short"</code>, or <code>"none"</code>.</p></dd>
+
+
+<dt id="arg-axis-order">axis_order<a class="anchor" aria-label="anchor" href="#arg-axis-order"></a></dt>
+<dd><p>A character string specifying the coordinate order for the
+output Short INSPIRE IDs. This parameter is <strong>only used when <code>id_format</code> is
+<code>"short"</code> or <code>"both"</code></strong>. It can be one of:</p><ul><li><p><code>"NE"</code> (the default) to produce the format <code>{cellsize}N{y}E{x}</code>.</p></li>
+<li><p><code>"EN"</code> to produce the format <code>{cellsize}E{x}N{y}</code> (e.g. this format is used in <a href="https://www.dst.dk/en/TilSalg/produkter/geodata/kvadratnet" class="external-link">Danish national grid</a>).</p></li>
+</ul></dd>
 
 
 <dt id="arg-include-llc">include_llc<a class="anchor" aria-label="anchor" href="#arg-include-llc"></a></dt>

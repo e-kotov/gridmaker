@@ -59,8 +59,12 @@ create_grid(
 
   The class of the output object: `"sf_polygons"` (default) creates a
   spatial object with polygon geometries, `"sf_points"` creates an `sf`
-  object with point geometries, and `"dataframe"` creates a data frame
-  with grid cell centroid coordinates (`X_centroid`, `Y_centroid`).
+  object with point geometries, `"dataframe"` creates a data frame with
+  grid cell centroid coordinates (`X_centroid`, `Y_centroid`), and
+  `"spatraster"` creates a
+  [`terra::SpatRaster`](https://rspatial.github.io/terra/reference/SpatRaster-class.html)
+  object with grid cell IDs stored as factor levels (Raster Attribute
+  Table).
 
 - clip_to_input:
 
@@ -133,7 +137,9 @@ create_grid(
   grids to minimize overhead: \<50k cells use max 4 workers, \<500k
   cells use max 8 workers, \<2M cells use max 16 workers. This automatic
   limiting can be overridden by setting
-  `options(gridmaker.tile_multiplier)`.
+  `options(gridmaker.tile_multiplier)`. **Note:** Parallel processing is
+  not supported when `output_type = "spatraster"`. Raster output will
+  always run sequentially.
 
 - quiet:
 
@@ -142,11 +148,14 @@ create_grid(
 
 - dsn:
 
-  The destination for the output grid, passed directly to
+  The destination for the output grid. For sf objects, this is passed to
   [`sf::st_write`](https://r-spatial.github.io/sf/reference/st_write.html).
-  This can be a file path (e.g., `"path/to/grid.gpkg"`) or a database
-  connection string. If `dsn` is provided, the grid is written to the
-  specified location instead of being returned as an object.
+  For `spatraster` output, this uses
+  [`terra::writeRaster`](https://rspatial.github.io/terra/reference/writeRaster.html).
+  This can be a file path (e.g., `"path/to/grid.gpkg"` for vector data
+  or `"path/to/grid.tif"` for raster data) or a database connection
+  string. If `dsn` is provided, the grid is written to the specified
+  location instead of being returned as an object.
 
 - layer:
 

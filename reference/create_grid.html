@@ -114,8 +114,10 @@ with an error.</p></dd>
 <dt id="arg-output-type">output_type<a class="anchor" aria-label="anchor" href="#arg-output-type"></a></dt>
 <dd><p>The class of the output object: <code>"sf_polygons"</code> (default) creates
 a spatial object with polygon geometries, <code>"sf_points"</code> creates an <code>sf</code>
-object with point geometries, and <code>"dataframe"</code> creates a data frame with
-grid cell centroid coordinates (<code>X_centroid</code>, <code>Y_centroid</code>).</p></dd>
+object with point geometries, <code>"dataframe"</code> creates a data frame with
+grid cell centroid coordinates (<code>X_centroid</code>, <code>Y_centroid</code>), and
+<code>"spatraster"</code> creates a <code><a href="https://rspatial.github.io/terra/reference/SpatRaster-class.html" class="external-link">terra::SpatRaster</a></code> object with grid cell IDs
+stored as factor levels (Raster Attribute Table).</p></dd>
 
 
 <dt id="arg-clip-to-input">clip_to_input<a class="anchor" aria-label="anchor" href="#arg-clip-to-input"></a></dt>
@@ -176,7 +178,9 @@ function, for example: <code>mirai::daemons(8)</code> or <code>future::plan("mul
 grid sizes. Using &gt;32 workers typically decreases performance due to overhead.
 The function automatically limits active workers for small grids to minimize overhead:
 &lt;50k cells use max 4 workers, &lt;500k cells use max 8 workers, &lt;2M cells use max 16 workers.
-This automatic limiting can be overridden by setting <code>options(gridmaker.tile_multiplier)</code>.</p></dd>
+This automatic limiting can be overridden by setting <code>options(gridmaker.tile_multiplier)</code>.
+<strong>Note:</strong> Parallel processing is not supported when <code>output_type = "spatraster"</code>.
+Raster output will always run sequentially.</p></dd>
 
 
 <dt id="arg-quiet">quiet<a class="anchor" aria-label="anchor" href="#arg-quiet"></a></dt>
@@ -184,10 +188,12 @@ This automatic limiting can be overridden by setting <code>options(gridmaker.til
 
 
 <dt id="arg-dsn">dsn<a class="anchor" aria-label="anchor" href="#arg-dsn"></a></dt>
-<dd><p>The destination for the output grid, passed directly to
-<code><a href="https://r-spatial.github.io/sf/reference/st_write.html" class="external-link">sf::st_write</a></code>. This can be a file path (e.g., <code>"path/to/grid.gpkg"</code>)
-or a database connection string. If <code>dsn</code> is provided, the grid is
-written to the specified location instead of being returned as an object.</p></dd>
+<dd><p>The destination for the output grid. For sf objects, this is passed to
+<code><a href="https://r-spatial.github.io/sf/reference/st_write.html" class="external-link">sf::st_write</a></code>. For <code>spatraster</code> output, this uses <code><a href="https://rspatial.github.io/terra/reference/writeRaster.html" class="external-link">terra::writeRaster</a></code>.
+This can be a file path (e.g., <code>"path/to/grid.gpkg"</code> for vector data or
+<code>"path/to/grid.tif"</code> for raster data) or a database connection string.
+If <code>dsn</code> is provided, the grid is written to the specified location
+instead of being returned as an object.</p></dd>
 
 
 <dt id="arg-layer">layer<a class="anchor" aria-label="anchor" href="#arg-layer"></a></dt>

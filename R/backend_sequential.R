@@ -5,14 +5,15 @@ create_grid_internal <- function(
   grid_extent,
   cellsize_m,
   crs = NULL,
-  output_type = c("sf_polygons", "sf_points", "dataframe"),
+  output_type = c("sf_polygons", "sf_points", "dataframe", "spatraster"),
   clip_to_input = FALSE,
   use_convex_hull = FALSE,
   buffer_m = 0,
   id_format = c("both", "long", "short", "none"),
   axis_order = c("NE", "EN"),
   include_llc = TRUE,
-  point_type = c("centroid", "llc")
+  point_type = c("centroid", "llc"),
+  ...
 ) {
   # --- 1. PRE-CHECKS AND HELPERS ---
   output_type <- match.arg(output_type)
@@ -157,21 +158,7 @@ create_grid_internal <- function(
     ymax <- ymin + cellsize_m
   }
 
-  # --- 5. GENERATE GRID POINTS ---
-  x_coords <- seq.int(from = xmin, to = xmax - 1, by = cellsize_m)
-  y_coords <- seq.int(from = ymin, to = ymax - 1, by = cellsize_m)
-  if (length(x_coords) == 0 || length(y_coords) == 0) {
-    return(
-      if (output_type %in% c("sf_polygons", "sf_points")) {
-        sf::st_sf(geometry = sf::st_sfc(crs = grid_crs))
-      } else {
-        data.frame()
-      }
-    )
-  }
-  grid_df <- expand.grid(X_LLC = x_coords, Y_LLC = y_coords)
-
-  # --- 6. PREPARE CLIPPING TARGET ---
+  # --- 5. PREPARE CLIPPING TARGET (needed for both raster and vector) ---
   clipping_target <- NULL
   if (clip_to_input) {
     if (!is.null(input_sf)) {
@@ -192,7 +179,104 @@ create_grid_internal <- function(
     }
   }
 
-  # --- 7. HANDLE OUTPUT TYPE ---
+  # --- 6. RASTER OUTPUT ---
+  if (output_type == "spatraster") {
+    # 1. Create Template Raster
+    r <- terra::rast(
+      xmin = xmin,
+      xmax = xmax,
+      ymin = ymin,
+      ymax = ymax,
+      resolution = cellsize_m,
+      crs = if (!is.na(grid_crs)) grid_crs$wkt else NA
+    )
+
+    # 2. Assign Values (Sequential Integers)
+    # We init with 1..N so we can attach attributes (levels) later
+    terra::values(r) <- seq_len(terra::ncell(r))
+
+    # 3. Generate IDs and Assign as Levels (Factor Raster)
+    if (id_format != "none") {
+      # xyFromCell returns centroids
+      coords <- terra::xyFromCell(r, seq_len(terra::ncell(r)))
+
+      # Calculate LLC for make_ids
+      x_llc <- coords[, 1] - (cellsize_m / 2)
+      y_llc <- coords[, 2] - (cellsize_m / 2)
+
+      # Generate ID strings (using existing helper)
+      ids_list <- make_ids(
+        x_llc,
+        y_llc,
+        cellsize_m,
+        axis_order = axis_order,
+        epsg = grid_crs$epsg %||% 3035
+      )
+
+      # Determine which ID format to use for the label
+      # Rasters typically hold one label per cell
+      final_ids <- if (id_format == "short") {
+        ids_list$short
+      } else if (id_format == "long") {
+        ids_list$long
+      } else if (id_format == "both") {
+        # For "both", we use short as the primary label and include long in RAT
+        ids_list$short
+      }
+
+      # Create Attribute Table (RAT)
+      if (id_format == "both") {
+        levels_df <- data.frame(
+          id = seq_len(terra::ncell(r)),
+          GRD_ID_SHORT = ids_list$short,
+          GRD_ID_LONG = ids_list$long,
+          stringsAsFactors = FALSE
+        )
+      } else {
+        levels_df <- data.frame(
+          id = seq_len(terra::ncell(r)),
+          GRD_ID = final_ids,
+          stringsAsFactors = FALSE
+        )
+      }
+
+      # Assign to raster
+      names(r) <- "grid_id"
+      levels(r) <- levels_df
+    } else {
+      names(r) <- "cell_index"
+    }
+
+    # 4. Clipping
+    if (clip_to_input && !is.null(clipping_target)) {
+      # Convert sf clipping_target to SpatVector for terra
+      v_target <- terra::vect(clipping_target)
+
+      # Mask sets values outside geometry to NA
+      r <- terra::mask(r, v_target)
+
+      # Note: We do not run terra::trim() automatically to preserve the
+      # grid alignment requested by the user, but this results in NA cells.
+    }
+
+    return(r)
+  }
+
+  # --- 7. GENERATE GRID POINTS ---
+  x_coords <- seq.int(from = xmin, to = xmax - 1, by = cellsize_m)
+  y_coords <- seq.int(from = ymin, to = ymax - 1, by = cellsize_m)
+  if (length(x_coords) == 0 || length(y_coords) == 0) {
+    return(
+      if (output_type %in% c("sf_polygons", "sf_points")) {
+        sf::st_sf(geometry = sf::st_sfc(crs = grid_crs))
+      } else {
+        data.frame()
+      }
+    )
+  }
+  grid_df <- expand.grid(X_LLC = x_coords, Y_LLC = y_coords)
+
+  # --- 8. HANDLE OUTPUT TYPE ---
   out_obj <- as_grid(
     coords = grid_df,
     cellsize = cellsize_m,
@@ -202,7 +286,7 @@ create_grid_internal <- function(
     clipping_target = clipping_target
   )
 
-  # --- 8. ADD ID & CLEAN UP COLUMNS ---
+  # --- 9. ADD ID & CLEAN UP COLUMNS ---
   if (nrow(out_obj) > 0 && id_format != "none") {
     ids <- make_ids(
       out_obj$X_LLC,

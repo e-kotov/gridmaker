@@ -127,6 +127,7 @@ regex_match <- function(text, pattern, i = NULL, ...) {
     cellsize_m = cellsize_m,
     output_type = output_type,
     id_format = id_format,
+    axis_order = "NE",
     include_llc = include_llc,
     point_type = point_type
   )
@@ -142,6 +143,7 @@ regex_match <- function(text, pattern, i = NULL, ...) {
     cellsize_m = cellsize_m,
     output_type = output_type,
     id_format = id_format,
+    axis_order = "NE",
     include_llc = include_llc,
     point_type = point_type
   )
@@ -269,6 +271,7 @@ regex_match <- function(text, pattern, i = NULL, ...) {
     cellsize_m = cellsize_m,
     output_type = dot_args$output_type %||% "sf_polygons",
     id_format = dot_args$id_format %||% "both",
+    axis_order = dot_args$axis_order %||% "NE",
     include_llc = dot_args$include_llc %||% TRUE,
     point_type = dot_args$point_type %||% "centroid"
   )
@@ -284,6 +287,7 @@ regex_match <- function(text, pattern, i = NULL, ...) {
     cellsize_m = cellsize_m,
     output_type = dot_args$output_type %||% "sf_polygons",
     id_format = dot_args$id_format %||% "both",
+    axis_order = dot_args$axis_order %||% "NE",
     include_llc = dot_args$include_llc %||% TRUE,
     point_type = dot_args$point_type %||% "centroid"
   )

@@ -35,6 +35,13 @@
 #'   clipping. Defaults to `0` (no buffer).
 #' @param id_format A character string specifying which grid cell IDs to generate.
 #'   Options are `"both"` (default), `"long"`, `"short"`, or `"none"`.
+#' @param axis_order A character string specifying the coordinate order for the
+#'   output Short INSPIRE IDs. This parameter is **only used when `id_format` is
+#'   `"short"` or `"both"`**. It can be one of:
+#'   \itemize{
+#'     \item `"NE"` (the default) to produce the format `{cellsize}N{y}E{x}`.
+#'     \item `"EN"` to produce the format `{cellsize}E{x}N{y}` (e.g. this format is used in [Danish national grid](https://www.dst.dk/en/TilSalg/produkter/geodata/kvadratnet)).
+#'   }
 #' @param include_llc A logical value. If `TRUE` (default), columns for the
 #'   lower-left corner coordinates (`X_LLC`, `Y_LLC`) of each cell are included
 #'   in the output.
@@ -108,6 +115,7 @@ create_grid <- function(
   use_convex_hull = FALSE,
   buffer_m = 0,
   id_format = "both",
+  axis_order = "NE",
   include_llc = TRUE,
   point_type = "centroid",
   parallel = "auto",
@@ -176,6 +184,7 @@ create_grid <- function(
     use_convex_hull = use_convex_hull,
     buffer_m = buffer_m,
     id_format = id_format,
+    axis_order = axis_order,
     include_llc = include_llc,
     point_type = point_type,
     ...

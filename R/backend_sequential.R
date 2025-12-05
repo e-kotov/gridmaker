@@ -10,12 +10,14 @@ create_grid_internal <- function(
   use_convex_hull = FALSE,
   buffer_m = 0,
   id_format = c("both", "long", "short", "none"),
+  axis_order = c("NE", "EN"),
   include_llc = TRUE,
   point_type = c("centroid", "llc")
 ) {
   # --- 1. PRE-CHECKS AND HELPERS ---
   output_type <- match.arg(output_type)
   id_format <- match.arg(id_format)
+  axis_order <- match.arg(axis_order)
   point_type <- match.arg(point_type)
 
   if (!requireNamespace("sf", quietly = TRUE)) {
@@ -40,12 +42,21 @@ create_grid_internal <- function(
     }
     n
   }
-  make_ids <- function(x_llc, y_llc, cs, epsg = 3035) {
+  make_ids <- function(x_llc, y_llc, cs, axis_order, epsg = 3035) {
     nzeros <- tz_count(cs)
     div <- as.integer(10^nzeros)
     size_lbl <- if (cs >= 1000) paste0(cs / 1000, "km") else paste0(cs, "m")
+
+    # Long IDs are strictly N...E according to INSPIRE spec, so we don't change this.
     id_long <- sprintf("CRS%sRES%smN%.0fE%.0f", epsg, cs, y_llc, x_llc)
-    id_short <- sprintf("%sN%.0fE%.0f", size_lbl, y_llc / div, x_llc / div)
+
+    # Short IDs support swapping order
+    id_short <- if (axis_order == "NE") {
+      sprintf("%sN%.0fE%.0f", size_lbl, y_llc / div, x_llc / div)
+    } else {
+      sprintf("%sE%.0fN%.0f", size_lbl, x_llc / div, y_llc / div)
+    }
+
     list(long = id_long, short = id_short)
   }
 
@@ -197,6 +208,7 @@ create_grid_internal <- function(
       out_obj$X_LLC,
       out_obj$Y_LLC,
       cellsize_m,
+      axis_order = axis_order,
       epsg = grid_crs$epsg %||% 3035
     )
     if (id_format == "long") {

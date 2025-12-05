@@ -22,8 +22,10 @@
 #'   with an error.
 #' @param output_type The class of the output object: `"sf_polygons"` (default) creates
 #'   a spatial object with polygon geometries, `"sf_points"` creates an `sf`
-#'   object with point geometries, and `"dataframe"` creates a data frame with
-#'   grid cell centroid coordinates (`X_centroid`, `Y_centroid`).
+#'   object with point geometries, `"dataframe"` creates a data frame with
+#'   grid cell centroid coordinates (`X_centroid`, `Y_centroid`), and
+#'   `"spatraster"` creates a `terra::SpatRaster` object with grid cell IDs
+#'   stored as factor levels (Raster Attribute Table).
 #' @param clip_to_input A logical value. If `TRUE`, the grid is filtered to
 #'   include only cells that intersect the `grid_extent`. This does not cut
 #'   cell geometries.
@@ -47,10 +49,12 @@
 #'   in the output.
 #' @param point_type A character string, used only when `output_type = "sf_points"`.
 #'   Determines the location of the points: `"centroid"` (default) for the center of the cell, or `"llc"` for the lower-left corner.
-#' @param dsn The destination for the output grid, passed directly to
-#'   `sf::st_write`. This can be a file path (e.g., `"path/to/grid.gpkg"`)
-#'   or a database connection string. If `dsn` is provided, the grid is
-#'   written to the specified location instead of being returned as an object.
+#' @param dsn The destination for the output grid. For sf objects, this is passed to
+#'   `sf::st_write`. For `spatraster` output, this uses `terra::writeRaster`.
+#'   This can be a file path (e.g., `"path/to/grid.gpkg"` for vector data or
+#'   `"path/to/grid.tif"` for raster data) or a database connection string.
+#'   If `dsn` is provided, the grid is written to the specified location
+#'   instead of being returned as an object.
 #' @param layer The name of the grid layer, passed directly to `sf::st_write`.
 #'   Its interpretation depends on the destination driver. For a GeoPackage
 #'   file, this will be the layer name. If `dsn` is a file path and `layer` is
@@ -74,11 +78,15 @@
 #'   The function automatically limits active workers for small grids to minimize overhead:
 #'   <50k cells use max 4 workers, <500k cells use max 8 workers, <2M cells use max 16 workers.
 #'   This automatic limiting can be overridden by setting `options(gridmaker.tile_multiplier)`.
+#'   **Note:** Parallel processing is not supported when `output_type = "spatraster"`.
+#'   Raster output will always run sequentially.
 #' @param quiet logical value. If ‘TRUE’, all progress messages and progress bars are suppressed. Defaults to ‘FALSE’.
 #' @param max_memory_gb A numeric value. Maximum memory in gigabytes to use for grid creation. Default is NULL, in which case there is an automatic limit of available system memory. The available memory detection may fail on certain HPC (High Performance Computing) systems where jobs are allocated a fixed amount of memory that is less than the total system memory of the allocated node.
 #' @param ... Additional arguments passed to specific backend handlers. For
 #'   streaming backends (`mirai` or sequential), this can include
-#'   `max_cells_per_chunk` to control memory usage.
+#'   `max_cells_per_chunk` to control memory usage. When `output_type = "spatraster"`
+#'   and `dsn` is provided, these arguments are passed to `terra::writeRaster()`
+#'   (e.g., for specifying compression options).
 #'
 #' @return If `dsn` is `NULL` (the default), an `sf` object or `data.frame`
 #'   representing the grid. If `dsn` is specified, the function writes the grid
@@ -226,7 +234,37 @@ create_grid <- function(
     )
   }
 
-  # --- 3. DISPATCHER LOGIC ---
+  # --- 3. RASTER PATH (SEQUENTIAL ONLY) ---
+  if (output_type == "spatraster") {
+    if (!requireNamespace("terra", quietly = TRUE)) {
+      stop("Package 'terra' is required for 'spatraster' output.", call. = FALSE)
+    }
+
+    if (isTRUE(parallel) || (is.character(parallel) && parallel == "auto")) {
+      if (!quiet) message("Note: 'spatraster' output does not support parallel processing. Running sequentially.")
+    }
+
+    # Collect arguments
+    all_args <- c(
+      list(grid_extent = grid_extent, cellsize_m = cellsize_m, crs = crs),
+      backend_args
+    )
+
+    # Generate in-memory
+    r <- do.call(create_grid_internal, all_args)
+
+    # Write to disk if requested
+    if (!is.null(dsn)) {
+      if (!quiet) message("Writing raster to ", dsn)
+      # Pass ellipsis (...) to writeRaster for options like compression
+      terra::writeRaster(r, filename = dsn, overwrite = TRUE, ...)
+      return(invisible(dsn))
+    }
+
+    return(r)
+  }
+
+  # --- 4. DISPATCHER LOGIC ---
 
   # --- A. WRITING TO DISK ---
   if (!is.null(dsn)) {

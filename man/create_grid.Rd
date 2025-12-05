@@ -41,8 +41,10 @@ with an error.}
 
 \item{output_type}{The class of the output object: \code{"sf_polygons"} (default) creates
 a spatial object with polygon geometries, \code{"sf_points"} creates an \code{sf}
-object with point geometries, and \code{"dataframe"} creates a data frame with
-grid cell centroid coordinates (\code{X_centroid}, \code{Y_centroid}).}
+object with point geometries, \code{"dataframe"} creates a data frame with
+grid cell centroid coordinates (\code{X_centroid}, \code{Y_centroid}), and
+\code{"spatraster"} creates a \code{terra::SpatRaster} object with grid cell IDs
+stored as factor levels (Raster Attribute Table).}
 
 \item{clip_to_input}{A logical value. If \code{TRUE}, the grid is filtered to
 include only cells that intersect the \code{grid_extent}. This does not cut
@@ -92,14 +94,18 @@ function, for example: \code{mirai::daemons(8)} or \code{future::plan("multisess
 grid sizes. Using >32 workers typically decreases performance due to overhead.
 The function automatically limits active workers for small grids to minimize overhead:
 <50k cells use max 4 workers, <500k cells use max 8 workers, <2M cells use max 16 workers.
-This automatic limiting can be overridden by setting \code{options(gridmaker.tile_multiplier)}.}
+This automatic limiting can be overridden by setting \code{options(gridmaker.tile_multiplier)}.
+\strong{Note:} Parallel processing is not supported when \code{output_type = "spatraster"}.
+Raster output will always run sequentially.}
 
 \item{quiet}{logical value. If ‘TRUE’, all progress messages and progress bars are suppressed. Defaults to ‘FALSE’.}
 
-\item{dsn}{The destination for the output grid, passed directly to
-\code{sf::st_write}. This can be a file path (e.g., \code{"path/to/grid.gpkg"})
-or a database connection string. If \code{dsn} is provided, the grid is
-written to the specified location instead of being returned as an object.}
+\item{dsn}{The destination for the output grid. For sf objects, this is passed to
+\code{sf::st_write}. For \code{spatraster} output, this uses \code{terra::writeRaster}.
+This can be a file path (e.g., \code{"path/to/grid.gpkg"} for vector data or
+\code{"path/to/grid.tif"} for raster data) or a database connection string.
+If \code{dsn} is provided, the grid is written to the specified location
+instead of being returned as an object.}
 
 \item{layer}{The name of the grid layer, passed directly to \code{sf::st_write}.
 Its interpretation depends on the destination driver. For a GeoPackage

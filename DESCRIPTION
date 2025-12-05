@@ -17,12 +17,13 @@ License: MIT + file LICENSE
 URL: https://github.com/e-kotov/gridmaker,
     https://www.ekotov.pro/gridmaker
 BugReports: https://github.com/e-kotov/gridmaker/issues
-Imports: 
+Imports:
     later,
     promises,
     ps,
     sf,
-    sfheaders
+    sfheaders,
+    terra
 Suggests: 
     carrier,
     furrr,

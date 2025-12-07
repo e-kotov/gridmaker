@@ -145,6 +145,8 @@ extent, see <code>inspire_grid_from_extent</code>.</p>
 <span>  output_type <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"sf_polygons"</span>, <span class="st">"sf_points"</span>, <span class="st">"dataframe"</span><span class="op">)</span>,</span>
 <span>  include_llc <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  quiet <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  dsn <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  layer <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  <span class="va">...</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
@@ -271,12 +273,12 @@ not specified, it defaults to the file's base name.</p></dd>
 
 
 <dt id="arg--">...<a class="anchor" aria-label="anchor" href="#arg--"></a></dt>
-<dd><p>Additional arguments passed to the specific method. When <code>x</code> is
-a spatial extent, these arguments are passed to the extent-based backend handlers.
-For streaming backends (<code>mirai</code> or sequential), this can include
-<code>max_cells_per_chunk</code> to control memory usage. When <code>output_type = "spatraster"</code>
-and <code>dsn</code> is provided, these arguments are passed to <code><a href="https://rspatial.github.io/terra/reference/writeRaster.html" class="external-link">terra::writeRaster()</a></code>
-(e.g., for specifying compression options).</p></dd>
+<dd><p>Additional arguments passed to the specific method.</p><ul><li><p>For extent-based generation, these are passed to the backend handlers.</p></li>
+<li><p>When writing to text files (e.g., .csv, .tsv) via <code>dsn</code>, these arguments are passed to <code><a href="https://readr.tidyverse.org/reference/write_delim.html" class="external-link">write_delim</a></code> (e.g., <code>na = "NA"</code>, <code>quote = "all"</code>).</p></li>
+<li><p>When writing to spatial files via <code>dsn</code>, these are passed to <code><a href="https://r-spatial.github.io/sf/reference/st_write.html" class="external-link">st_write</a></code>.</p></li>
+<li><p>For <code>output_type = "spatraster"</code> writing, these are passed to <code><a href="https://rspatial.github.io/terra/reference/writeRaster.html" class="external-link">writeRaster</a></code>.</p></li>
+<li><p>For streaming backends (<code>mirai</code> or sequential), this can include <code>max_cells_per_chunk</code> to control memory usage.</p></li>
+</ul></dd>
 
 </dl></div>
     <div class="section level2">

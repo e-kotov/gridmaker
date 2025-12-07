@@ -85,6 +85,8 @@ inspire_grid_from_ids(
   output_type = c("sf_polygons", "sf_points", "dataframe"),
   include_llc = TRUE,
   quiet = FALSE,
+  dsn = NULL,
+  layer = NULL,
   ...
 )
 ```
@@ -240,14 +242,24 @@ inspire_grid_from_ids(
 
 - ...:
 
-  Additional arguments passed to the specific method. When `x` is a
-  spatial extent, these arguments are passed to the extent-based backend
-  handlers. For streaming backends (`mirai` or sequential), this can
-  include `max_cells_per_chunk` to control memory usage. When
-  `output_type = "spatraster"` and `dsn` is provided, these arguments
-  are passed to
-  [`terra::writeRaster()`](https://rspatial.github.io/terra/reference/writeRaster.html)
-  (e.g., for specifying compression options).
+  Additional arguments passed to the specific method.
+
+  - For extent-based generation, these are passed to the backend
+    handlers.
+
+  - When writing to text files (e.g., .csv, .tsv) via `dsn`, these
+    arguments are passed to
+    [`write_delim`](https://readr.tidyverse.org/reference/write_delim.html)
+    (e.g., `na = "NA"`, `quote = "all"`).
+
+  - When writing to spatial files via `dsn`, these are passed to
+    [`st_write`](https://r-spatial.github.io/sf/reference/st_write.html).
+
+  - For `output_type = "spatraster"` writing, these are passed to
+    [`writeRaster`](https://rspatial.github.io/terra/reference/writeRaster.html).
+
+  - For streaming backends (`mirai` or sequential), this can include
+    `max_cells_per_chunk` to control memory usage.
 
 ## Value
 

@@ -4,7 +4,7 @@
 
 # gridmaker Create INSPIRE-compliant grids with IDs <a href="https://www.ekotov.pro/gridmaker/"><img src="man/figures/logo.png" align="right" width="200" alt="gridmaker website" /></a>
 
-badges: start
+<!-- badges: start -->
 
 [![Project Status:
 Active](https://www.repostatus.org/badges/latest/active.svg)](https://www.repostatus.org/#active)
@@ -73,8 +73,8 @@ cellsize_m <- 10000 # 10 km
 nc <- st_transform(nc_raw, target_crs)
 
 # Create a grid covering the data
-nc_grid <- create_grid(
-  grid_extent = nc,
+nc_grid <- inspire_grid(
+  x = nc,
   cellsize_m = 5000,
   output_type = "sf_polygons",
   clip_to_input = TRUE

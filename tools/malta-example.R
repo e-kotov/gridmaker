@@ -14,7 +14,7 @@ boundary <- gisco_get_countries(
 )
 
 # 2. --- Create the Grid ---
-grid <- create_grid(
+grid <- inspire_grid(
   grid_extent = boundary,
   cellsize_m = 1000,
   clip_to_input = TRUE

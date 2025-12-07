@@ -29,7 +29,7 @@ malta_boundary <- gisco_get_countries(
   resolution = "01"
 )
 
-malta_grid <- create_grid(
+malta_grid <- inspire_grid(
   grid_extent = malta_boundary,
   cellsize_m = 5000,
   clip_to_input = TRUE

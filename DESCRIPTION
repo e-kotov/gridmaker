@@ -21,7 +21,6 @@ Imports:
     later,
     promises,
     ps,
-    readr,
     sf,
     sfheaders,
     terra
@@ -34,6 +33,7 @@ Suggests:
     mirai,
     purrr,
     quarto,
+    readr,
     rmarkdown,
     testthat (>= 3.0.0),
     withr

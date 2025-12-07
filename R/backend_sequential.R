@@ -13,6 +13,7 @@ inspire_grid_from_extent_internal <- function(
   axis_order = c("NE", "EN"),
   include_llc = TRUE,
   point_type = c("centroid", "llc"),
+  return_raw_coordinates = FALSE,
   ...
 ) {
   # --- 1. PRE-CHECKS AND HELPERS ---
@@ -181,6 +182,7 @@ inspire_grid_from_extent_internal <- function(
 
   # --- 6. RASTER OUTPUT ---
   if (output_type == "spatraster") {
+    return_raw_coordinates <- FALSE
     # 1. Create Template Raster
     r <- terra::rast(
       xmin = xmin,
@@ -275,6 +277,40 @@ inspire_grid_from_extent_internal <- function(
     )
   }
   grid_df <- expand.grid(X_LLC = x_coords, Y_LLC = y_coords)
+
+  # --- 7.5 LIGHTWEIGHT RETURN OPTIMIZATION ---
+  if (return_raw_coordinates) {
+    # Handle clipping internally by generating temporary geometries
+    if (clip_to_input && !is.null(clipping_target)) {
+      if (nrow(grid_df) > 0) {
+        temp_grid <- as_inspire_grid_polygons(grid_df, cellsize_m, grid_crs)
+        intersects_indices <- sf::st_intersects(temp_grid, clipping_target)
+        grid_df <- grid_df[lengths(intersects_indices) > 0, , drop = FALSE]
+      }
+    }
+
+    # Generate IDs and add to dataframe
+    if (nrow(grid_df) > 0 && id_format != "none") {
+      ids <- make_ids(
+        grid_df$X_LLC,
+        grid_df$Y_LLC,
+        cellsize_m,
+        axis_order = axis_order,
+        epsg = grid_crs$epsg %||% 3035
+      )
+      if (id_format == "long") {
+        grid_df$GRD_ID <- ids$long
+      } else if (id_format == "short") {
+        grid_df$GRD_ID <- ids$short
+      } else if (id_format == "both") {
+        grid_df$GRD_ID_LONG <- ids$long
+        grid_df$GRD_ID_SHORT <- ids$short
+      }
+    }
+
+    # Return raw dataframe immediately
+    return(grid_df)
+  }
 
   # --- 8. HANDLE OUTPUT TYPE ---
   out_obj <- as_inspire_grid(

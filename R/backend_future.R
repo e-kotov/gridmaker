@@ -84,21 +84,42 @@ run_parallel_future <- function(grid_extent, cellsize_m, crs, dot_args) {
     .f = ~ {
       args_for_tile <- c(list(grid_extent = .x), all_args)
       args_for_tile$clip_to_input <- FALSE
+      args_for_tile$return_raw_coordinates <- TRUE
       chunk <- do.call(inspire_grid_from_extent_internal, args_for_tile)
-      if (nrow(chunk) > 0 && !is.null(clipping_target)) {
-        intersects_indices <- sf::st_intersects(chunk, clipping_target)
-        chunk <- chunk[lengths(intersects_indices) > 0, ]
-      }
       if (nrow(chunk) == 0) NULL else chunk
     },
     .progress = !quiet,
     .options = furrr::furrr_options(seed = TRUE, packages = "gridmaker")
   )
 
-  # --- 4. COMBINE (No de-duplication needed) ---
+  # --- 4. COMBINE AND HYDRATE GEOMETRY ---
   if (!quiet) {
     message("Combining results...")
   }
-  final_grid <- do.call(rbind, purrr::compact(grid_chunks))
+
+  # Combine raw dataframes from workers
+  combined_df <- do.call(rbind, purrr::compact(grid_chunks))
+
+  # Handle empty results
+  if (is.null(combined_df) || nrow(combined_df) == 0) {
+    output_type <- all_args$output_type %||% "sf_polygons"
+    return(
+      if (output_type %in% c("sf_polygons", "sf_points")) {
+        sf::st_sf(geometry = sf::st_sfc(crs = grid_crs))
+      } else {
+        data.frame()
+      }
+    )
+  }
+
+  # Reconstruct geometry in main process
+  final_grid <- as_inspire_grid(
+    coords = combined_df,
+    cellsize = all_args$cellsize_m,
+    crs = grid_crs,
+    output_type = all_args$output_type %||% "sf_polygons",
+    point_type = all_args$point_type %||% "centroid"
+  )
+
   return(final_grid)
 }

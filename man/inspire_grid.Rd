@@ -70,6 +70,8 @@ inspire_grid_from_ids(
   output_type = c("sf_polygons", "sf_points", "dataframe"),
   include_llc = TRUE,
   quiet = FALSE,
+  dsn = NULL,
+  layer = NULL,
   ...
 )
 }

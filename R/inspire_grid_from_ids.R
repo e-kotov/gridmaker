@@ -30,6 +30,8 @@ inspire_grid_from_ids <- function(
   output_type = c("sf_polygons", "sf_points", "dataframe"),
   include_llc = TRUE,
   quiet = FALSE,
+  dsn = NULL,
+  layer = NULL,
   ...
 ) {
   if (!is.logical(quiet) || length(quiet) != 1) {
@@ -39,6 +41,13 @@ inspire_grid_from_ids <- function(
     )
   }
 
-  backend_args <- list(point_type = point_type, output_type = output_type)
+  backend_args <- list(
+    point_type = point_type,
+    output_type = output_type,
+    include_llc = include_llc,
+    dsn = dsn,
+    layer = layer,
+    quiet = quiet
+  )
   do.call(inspire_grid_from_ids_internal, c(list(ids = ids), backend_args))
 }

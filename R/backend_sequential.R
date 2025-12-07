@@ -286,7 +286,7 @@ inspire_grid_from_extent_internal <- function(
     clipping_target = clipping_target
   )
 
-  # --- 9. ADD ID & CLEAN UP COLUMNS ---
+  # --- 9. ADD ID ---
   if (nrow(out_obj) > 0 && id_format != "none") {
     ids <- make_ids(
       out_obj$X_LLC,
@@ -305,29 +305,13 @@ inspire_grid_from_extent_internal <- function(
     }
   }
 
-  if (!include_llc && !"geometry" %in% names(out_obj)) {
-    out_obj$X_LLC <- NULL
-    out_obj$Y_LLC <- NULL
-  } else if (!include_llc && "geometry" %in% names(out_obj)) {
-    if (!(output_type == "sf_points" && point_type == "llc")) {
-      out_obj$X_LLC <- NULL
-      out_obj$Y_LLC <- NULL
-    }
-  }
-
-  if (output_type == "dataframe") {
-    first_cols <- c("X_centroid", "Y_centroid")
-    other_cols <- setdiff(names(out_obj), first_cols)
-    out_obj <- out_obj[, c(first_cols, other_cols)]
-  }
-
-  if (inherits(out_obj, "sf")) {
-    geom_col_name <- attr(out_obj, "sf_column")
-    if (!is.null(geom_col_name) && geom_col_name %in% names(out_obj)) {
-      other_cols <- setdiff(names(out_obj), geom_col_name)
-      out_obj <- out_obj[, c(other_cols, geom_col_name)]
-    }
-  }
+  # --- 10. CLEAN UP COLUMNS & REORDER (USING HELPER) ---
+  out_obj <- clean_and_order_grid(
+    out_obj,
+    output_type = output_type,
+    point_type = point_type,
+    include_llc = include_llc
+  )
 
   return(out_obj)
 }

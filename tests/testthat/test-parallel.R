@@ -1,4 +1,4 @@
-# This file contains tests for the parallel execution logic of create_grid().
+# This file contains tests for the parallel execution logic of inspire_grid_from_extent().
 
 test_that("Parallel execution matches sequential result", {
   # These tests are long-running and require optional packages.
@@ -8,7 +8,7 @@ test_that("Parallel execution matches sequential result", {
 
   # --- 1. Generate the golden reference grid using the sequential method ---
   message("Generating sequential reference grid...")
-  grid_seq <- create_grid(
+  grid_seq <- inspire_grid_from_extent(
     grid_extent = nc,
     cellsize_m = CELLSIZE,
     crs = TARGET_CRS,
@@ -29,7 +29,7 @@ test_that("Parallel execution matches sequential result", {
   # on.exit(future::plan(old_plan), add = TRUE) # should cleanup manually, as otehrwise the next test with mirai will give a warning
   future::plan("multisession", workers = 2)
 
-  grid_fut <- create_grid(
+  grid_fut <- inspire_grid_from_extent(
     grid_extent = nc,
     cellsize_m = CELLSIZE,
     crs = TARGET_CRS,
@@ -52,7 +52,7 @@ test_that("Parallel execution matches sequential result", {
   tryCatch(
     {
       mirai::daemons(2)
-      grid_mirai <- create_grid(
+      grid_mirai <- inspire_grid_from_extent(
         grid_extent = nc,
         cellsize_m = CELLSIZE,
         crs = TARGET_CRS,
@@ -81,7 +81,7 @@ test_that("Backend detection logic with parallel = 'auto' works", {
 
   # Scenario 1: No backend configured, should run sequentially
   expect_message(
-    create_grid(nc, CELLSIZE, parallel = "auto"),
+    inspire_grid_from_extent(nc, CELLSIZE, parallel = "auto"),
     "No parallel backend detected. Running in sequential mode."
   )
 
@@ -91,7 +91,7 @@ test_that("Backend detection logic with parallel = 'auto' works", {
   future::plan("multisession", workers = 2)
 
   expect_message(
-    create_grid(nc, CELLSIZE, parallel = "auto"),
+    inspire_grid_from_extent(nc, CELLSIZE, parallel = "auto"),
     "`future` backend detected. Running in parallel."
   )
   future::plan(old_plan) # Clean up immediately
@@ -101,7 +101,7 @@ test_that("Backend detection logic with parallel = 'auto' works", {
     {
       mirai::daemons(2)
       expect_message(
-        create_grid(nc, CELLSIZE, parallel = "auto"),
+        inspire_grid_from_extent(nc, CELLSIZE, parallel = "auto"),
         "`mirai` backend detected. Running in parallel."
       )
     },

@@ -122,7 +122,7 @@ regex_match <- function(text, pattern, i = NULL, ...) {
     c(xmin = 0, ymin = 0, xmax = n1 * cellsize_m, ymax = cellsize_m),
     crs = grid_crs
   )
-  sample_grid_1 <- create_grid_internal(
+  sample_grid_1 <- inspire_grid_from_extent_internal(
     grid_extent = sample_extent_1,
     cellsize_m = cellsize_m,
     output_type = output_type,
@@ -138,7 +138,7 @@ regex_match <- function(text, pattern, i = NULL, ...) {
     c(xmin = 0, ymin = 0, xmax = n2 * cellsize_m, ymax = cellsize_m),
     crs = grid_crs
   )
-  sample_grid_2 <- create_grid_internal(
+  sample_grid_2 <- inspire_grid_from_extent_internal(
     grid_extent = sample_extent_2,
     cellsize_m = cellsize_m,
     output_type = output_type,
@@ -266,7 +266,7 @@ regex_match <- function(text, pattern, i = NULL, ...) {
     c(xmin = 0, ymin = 0, xmax = n1 * cellsize_m, ymax = cellsize_m),
     crs = grid_crs
   )
-  sample_grid_1 <- create_grid_internal(
+  sample_grid_1 <- inspire_grid_from_extent_internal(
     grid_extent = sample_extent_1,
     cellsize_m = cellsize_m,
     output_type = dot_args$output_type %||% "sf_polygons",
@@ -282,7 +282,7 @@ regex_match <- function(text, pattern, i = NULL, ...) {
     c(xmin = 0, ymin = 0, xmax = n2 * cellsize_m, ymax = cellsize_m),
     crs = grid_crs
   )
-  sample_grid_2 <- create_grid_internal(
+  sample_grid_2 <- inspire_grid_from_extent_internal(
     grid_extent = sample_extent_2,
     cellsize_m = cellsize_m,
     output_type = dot_args$output_type %||% "sf_polygons",

@@ -38,46 +38,46 @@
 #' @param sample If \code{res} is \code{NULL}, specifies the number of points
 #'   to guess a resolution from. Defaults to 2000 to keep performance high.
 #'   Increase this value if you are uncertain about the quality of your data.
-#' @inheritParams create_grid
+#' @inheritParams inspire_grid_from_extent
 #'
-#' @returns \code{inspire_generate} returns a character vector containing
+#' @returns \code{inspire_id_from_coords} returns a character vector containing
 #'   the INSPIRE identifiers.
 #'
-#'   \code{inspire_extract} returns a dataframe or
+#'   \code{inspire_id_to_coords} returns a dataframe or
 #'   \code{\link[sf:st_sf]{sf}} dataframe (if \code{as_sf = TRUE}) containing
 #'   the points extracted from the INSPIRE identifiers and information about
 #'   the CRS and cell sizes. Note that the returned coordinates are always
 #'   the centers of the grid cells as opposed to the lower-left corners.
 #' @export
 #'
-#' @name inspire
+#' @name inspire_id_coords
 #'
 #' @examples
 #' # Generate IDs from a dataframe
 #' coords <- data.frame(x = c(4334100, 4334200), y = 2684000)
-#' gen <- inspire_generate(coords, llc = TRUE, cellsize_m = 100)
-#' ext <- inspire_extract(gen)[c("x", "y")]
-#' # Note: inspire_extract gives cell centers, so this won't be identical if llc=TRUE
+#' gen <- inspire_id_from_coords(coords, llc = TRUE, cellsize_m = 100)
+#' ext <- inspire_id_to_coords(gen)[c("x", "y")]
+#' # Note: inspire_id_to_coords gives cell centers, so this won't be identical if llc=TRUE
 #'
 #' # Generate long format IDs
-#' inspire_generate(coords, llc = TRUE, cellsize_m = 100)
+#' inspire_id_from_coords(coords, llc = TRUE, cellsize_m = 100)
 #'
 #' # Generate short format IDs with default "NE" axis order
-#' inspire_generate(coords, llc = TRUE, cellsize_m = 1000, short = TRUE)
+#' inspire_id_from_coords(coords, llc = TRUE, cellsize_m = 1000, short = TRUE)
 #'
 #' # Generate short format IDs with "EN" axis order
-#' inspire_generate(coords, llc = TRUE, cellsize_m = 1000, short = TRUE, axis_order = "EN")
+#' inspire_id_from_coords(coords, llc = TRUE, cellsize_m = 1000, short = TRUE, axis_order = "EN")
 #'
 #' # Extract coordinates from short ID strings
-#' inspire_extract("100mN34000E44000", crs = 3035)
+#' inspire_id_to_coords("100mN34000E44000", crs = 3035)
 #'
 #' # Generate IDs from an sf dataframe
 #' if (requireNamespace("sf", quietly = TRUE)) {
 #'   coords_df <- data.frame(x = c(4334100, 4334200), y = 2684000)
 #'   coords_sf <- sf::st_as_sf(coords_df, coords = c("x", "y"), crs = 3035)
-#'   inspire_generate(coords_sf, cellsize_m = 1000)
+#'   inspire_id_from_coords(coords_sf, cellsize_m = 1000)
 #' }
-inspire_generate <- function(
+inspire_id_from_coords <- function(
   coords,
   cellsize_m = NULL,
   short = FALSE,

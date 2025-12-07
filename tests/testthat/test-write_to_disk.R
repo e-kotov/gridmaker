@@ -1,4 +1,4 @@
-test_that("create_grid streams correctly to disk with mirai backend", {
+test_that("inspire_grid_from_extent streams correctly to disk with mirai backend", {
   # 1. SKIP CONDITIONS ----
   # This test is multi-core and requires a specific backend.
   # It should not run on CRAN or in environments without mirai.
@@ -32,7 +32,7 @@ test_that("create_grid streams correctly to disk with mirai backend", {
   # 3. GENERATE REFERENCE GRID (IN-MEMORY) ----
   # This is the "ground truth" that we will compare against.
   # It is run sequentially to ensure deterministic output.
-  grid_in_memory <- do.call(create_grid, c(common_args, list(parallel = FALSE)))
+  grid_in_memory <- do.call(inspire_grid_from_extent, c(common_args, list(parallel = FALSE)))
 
   # 4. RUN STREAMING GRID CREATION (ON-DISK) ----
   # Set up a 2-core mirai backend for the test
@@ -40,9 +40,9 @@ test_that("create_grid streams correctly to disk with mirai backend", {
   # In some CI environments, setting daemons might fail. Skip if so.
   skip_if(mirai::status()$connections < 2, "Could not set up 2 mirai daemons")
 
-  # Call create_grid with `dsn` to trigger the streaming behavior
+  # Call inspire_grid_from_extent with `dsn` to trigger the streaming behavior
   do.call(
-    create_grid,
+    inspire_grid_from_extent,
     c(
       common_args,
       list(
@@ -89,7 +89,7 @@ test_that("create_grid streams correctly to disk with mirai backend", {
   )
 })
 
-test_that("create_grid handles `layer` argument correctly for disk output", {
+test_that("inspire_grid_from_extent handles `layer` argument correctly for disk output", {
   skip_if_not_installed("sf")
 
   temp_dir <- tempfile("grid_test_")
@@ -102,7 +102,7 @@ test_that("create_grid handles `layer` argument correctly for disk output", {
   dsn_default <- file.path(temp_dir, "default.gpkg")
 
   expect_message(
-    create_grid(
+    inspire_grid_from_extent(
       grid_extent = simple_extent,
       cellsize_m = 10,
       dsn = dsn_default,
@@ -120,7 +120,7 @@ test_that("create_grid handles `layer` argument correctly for disk output", {
   custom_layer <- "my_grid"
 
   # Using quiet = TRUE to avoid other messages and focus the test
-  create_grid(
+  inspire_grid_from_extent(
     grid_extent = simple_extent,
     cellsize_m = 10,
     dsn = dsn_specified,
@@ -132,16 +132,16 @@ test_that("create_grid handles `layer` argument correctly for disk output", {
   expect_equal(sf::st_layers(dsn_specified)$name, custom_layer)
 })
 
-test_that("create_grid returns dsn invisibly when writing to disk", {
+test_that("inspire_grid_from_extent returns dsn invisibly when writing to disk", {
   skip_if_not_installed("sf")
 
   temp_dsn <- tempfile(fileext = ".gpkg")
   withr::defer(unlink(temp_dsn, force = TRUE))
 
   # Use expect_silent to capture the return value without printing it
-  # The result of create_grid should be the dsn path
+  # The result of inspire_grid_from_extent should be the dsn path
   returned_dsn <- expect_silent(
-    create_grid(
+    inspire_grid_from_extent(
       grid_extent = c(0, 0, 100, 100),
       cellsize_m = 10,
       crs = 3035,

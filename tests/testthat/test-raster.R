@@ -1,4 +1,4 @@
-test_that("create_grid generates SpatRaster correctly", {
+test_that("inspire_grid_from_extent generates SpatRaster correctly", {
   skip_if_not_installed("terra")
 
   # Setup simple extent (4 cells: 2x2)
@@ -6,7 +6,7 @@ test_that("create_grid generates SpatRaster correctly", {
   bbox <- sf::st_bbox(c(xmin = 0, ymin = 0, xmax = 2000, ymax = 2000), crs = 3035)
 
   # 1. Test In-Memory Generation
-  r <- create_grid(
+  r <- inspire_grid_from_extent(
     grid_extent = bbox,
     cellsize_m = 1000,
     output_type = "spatraster",
@@ -25,13 +25,13 @@ test_that("create_grid generates SpatRaster correctly", {
   expect_true("1kmN0E0" %in% cats$GRD_ID)
 })
 
-test_that("create_grid generates SpatRaster with different id_format options", {
+test_that("inspire_grid_from_extent generates SpatRaster with different id_format options", {
   skip_if_not_installed("terra")
 
   bbox <- sf::st_bbox(c(xmin = 0, ymin = 0, xmax = 2000, ymax = 2000), crs = 3035)
 
   # Test "short" format
-  r_short <- create_grid(
+  r_short <- inspire_grid_from_extent(
     grid_extent = bbox,
     cellsize_m = 1000,
     output_type = "spatraster",
@@ -43,7 +43,7 @@ test_that("create_grid generates SpatRaster with different id_format options", {
   expect_true("1kmN0E0" %in% cats_short$GRD_ID)
 
   # Test "long" format
-  r_long <- create_grid(
+  r_long <- inspire_grid_from_extent(
     grid_extent = bbox,
     cellsize_m = 1000,
     output_type = "spatraster",
@@ -55,7 +55,7 @@ test_that("create_grid generates SpatRaster with different id_format options", {
   expect_true(any(grepl("CRS3035RES1000mN0E0", cats_long$GRD_ID)))
 
   # Test "both" format
-  r_both <- create_grid(
+  r_both <- inspire_grid_from_extent(
     grid_extent = bbox,
     cellsize_m = 1000,
     output_type = "spatraster",
@@ -69,7 +69,7 @@ test_that("create_grid generates SpatRaster with different id_format options", {
   expect_true(any(grepl("CRS3035RES1000mN0E0", cats_both$GRD_ID_LONG)))
 
   # Test "none" format
-  r_none <- create_grid(
+  r_none <- inspire_grid_from_extent(
     grid_extent = bbox,
     cellsize_m = 1000,
     output_type = "spatraster",
@@ -79,7 +79,7 @@ test_that("create_grid generates SpatRaster with different id_format options", {
   expect_equal(names(r_none), "cell_index")
 })
 
-test_that("create_grid with spatraster handles clipping correctly", {
+test_that("inspire_grid_from_extent with spatraster handles clipping correctly", {
   skip_if_not_installed("terra")
 
   # Define a bbox covering 4 cells (2x2 grid)
@@ -91,7 +91,7 @@ test_that("create_grid with spatraster handles clipping correctly", {
   )
 
   # Generate raster without clipping first
-  r_full <- create_grid(
+  r_full <- inspire_grid_from_extent(
     grid_extent = bbox,  # Use full bbox
     cellsize_m = 1000,
     output_type = "spatraster",
@@ -103,7 +103,7 @@ test_that("create_grid with spatraster handles clipping correctly", {
   expect_equal(terra::ncell(r_full), 4)
 
   # Now test clipping by providing a polygon with clip_to_input=TRUE
-  r_clipped2 <- create_grid(
+  r_clipped2 <- inspire_grid_from_extent(
     grid_extent = poly,  # Polygon that's only half the height
     cellsize_m = 1000,
     output_type = "spatraster",
@@ -116,7 +116,7 @@ test_that("create_grid with spatraster handles clipping correctly", {
   expect_equal(terra::ncell(r_clipped2), 2)
 })
 
-test_that("create_grid writes Raster to disk", {
+test_that("inspire_grid_from_extent writes Raster to disk", {
   skip_if_not_installed("terra")
 
   tmp_tif <- tempfile(fileext = ".tif")
@@ -124,7 +124,7 @@ test_that("create_grid writes Raster to disk", {
 
   bbox <- sf::st_bbox(c(xmin = 0, ymin = 0, xmax = 2000, ymax = 2000), crs = 3035)
 
-  res <- create_grid(
+  res <- inspire_grid_from_extent(
     grid_extent = bbox,
     cellsize_m = 1000,
     output_type = "spatraster",
@@ -148,7 +148,7 @@ test_that("spatraster output respects axis_order for short IDs", {
   bbox <- sf::st_bbox(c(xmin = 0, ymin = 0, xmax = 2000, ymax = 2000), crs = 3035)
 
   # Test NE order (default)
-  r_ne <- create_grid(
+  r_ne <- inspire_grid_from_extent(
     grid_extent = bbox,
     cellsize_m = 1000,
     output_type = "spatraster",
@@ -160,7 +160,7 @@ test_that("spatraster output respects axis_order for short IDs", {
   expect_true("1kmN0E0" %in% cats_ne$GRD_ID)
 
   # Test EN order
-  r_en <- create_grid(
+  r_en <- inspire_grid_from_extent(
     grid_extent = bbox,
     cellsize_m = 1000,
     output_type = "spatraster",
@@ -179,7 +179,7 @@ test_that("spatraster output suppresses parallel processing warning", {
 
   # With quiet = TRUE, no message should be shown
   expect_silent(
-    create_grid(
+    inspire_grid_from_extent(
       grid_extent = bbox,
       cellsize_m = 1000,
       output_type = "spatraster",
@@ -190,7 +190,7 @@ test_that("spatraster output suppresses parallel processing warning", {
 
   # With quiet = FALSE, should show message about sequential processing
   expect_message(
-    create_grid(
+    inspire_grid_from_extent(
       grid_extent = bbox,
       cellsize_m = 1000,
       output_type = "spatraster",
@@ -206,7 +206,7 @@ test_that("spatraster output has correct CRS", {
 
   bbox <- sf::st_bbox(c(xmin = 0, ymin = 0, xmax = 2000, ymax = 2000), crs = 3035)
 
-  r <- create_grid(
+  r <- inspire_grid_from_extent(
     grid_extent = bbox,
     cellsize_m = 1000,
     output_type = "spatraster",
@@ -222,7 +222,7 @@ test_that("spatraster works with larger grid from nc data", {
   skip_if_not_installed("terra")
 
   # Use the test nc data
-  r <- create_grid(
+  r <- inspire_grid_from_extent(
     grid_extent = nc,
     cellsize_m = CELLSIZE,
     crs = TARGET_CRS,
@@ -243,7 +243,7 @@ test_that("spatraster works with larger grid from nc data", {
   )
 })
 
-test_that("create_grid with spatraster supports 'use_convex_hull' and 'buffer_m'", {
+test_that("inspire_grid_from_extent with spatraster supports 'use_convex_hull' and 'buffer_m'", {
   skip_if_not_installed("terra")
 
   # 1. Create a non-convex shape (L-shape)
@@ -255,7 +255,7 @@ test_that("create_grid with spatraster supports 'use_convex_hull' and 'buffer_m'
   # 2. Baseline: Standard clipping
   # Grid cell size 500. Total area 2000x2000 = 16 cells.
   # The L-shape occupies 3 quadrants (12 cells).
-  r_base <- create_grid(
+  r_base <- inspire_grid_from_extent(
     grid_extent = poly_sfc,
     cellsize_m = 500,
     output_type = "spatraster",
@@ -268,7 +268,7 @@ test_that("create_grid with spatraster supports 'use_convex_hull' and 'buffer_m'
   # 3. Test Convex Hull
   # The convex hull of the L-shape is the full 2000x2000 square.
   # Should have more cells than baseline (filling the missing quadrant).
-  r_hull <- create_grid(
+  r_hull <- inspire_grid_from_extent(
     grid_extent = poly_sfc,
     cellsize_m = 500,
     output_type = "spatraster",
@@ -282,7 +282,7 @@ test_that("create_grid with spatraster supports 'use_convex_hull' and 'buffer_m'
 
   # 4. Test Buffer
   # Buffer the L-shape. Should result in more cells than baseline.
-  r_buff <- create_grid(
+  r_buff <- inspire_grid_from_extent(
     grid_extent = poly_sfc,
     cellsize_m = 500,
     output_type = "spatraster",

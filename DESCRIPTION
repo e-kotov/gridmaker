@@ -1,12 +1,12 @@
 Package: gridmaker
-Title: Create INSPIRE-compliant grids with IDs
+Title: Create INSPIRE-Compliant Grids with IDs
 Version: 0.1.0
 Authors@R: c(
     person("Egor", "Kotov", , "kotov.egor@gmail.com", role = c("aut", "cre", "cph"),
            comment = c(ORCID = "0000-0001-6690-5345")),
     person("Jonas", "Lieth", , "jslth@outlook.com", role = "ctb",
            comment = c(ORCID = "0000-0002-3451-3176"))
-           )
+  )
 Description: Creates GISCO compatible and INSPIRE-compliant grids with IDs
     that look like 'CRS3035RES1000mN3497000E4448000' or '1kmN3497E4447'.
     Input can be 'sf', 'sfc' objects or bounding boxes. Output can be 'sf'
@@ -15,7 +15,7 @@ Description: Creates GISCO compatible and INSPIRE-compliant grids with IDs
     aligned to rounded coordinates as per INSPIRE requirements.
 License: MIT + file LICENSE
 URL: https://github.com/e-kotov/gridmaker,
-    https://www.ekotov.pro/gridmaker
+    https://www.ekotov.pro/gridmaker/
 BugReports: https://github.com/e-kotov/gridmaker/issues
 Imports:
     later,

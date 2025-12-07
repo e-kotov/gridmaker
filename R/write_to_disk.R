@@ -2,7 +2,7 @@
 #' @note This is the memory-efficient streaming implementation for the mirai backend.
 #' @keywords internal
 #' @noRd
-async_stream_to_disk_with_mirai <- function(
+stream_grid_mirai <- function(
   grid_extent,
   cellsize_m,
   crs,
@@ -239,7 +239,7 @@ async_stream_to_disk_with_mirai <- function(
       .f = function(.x) {
         args_for_tile <- c(list(grid_extent = .x), backend_args)
         args_for_tile$clip_to_input <- FALSE
-        chunk <- do.call(create_grid_internal, args_for_tile)
+        chunk <- do.call(inspire_grid_from_extent_internal, args_for_tile)
         if (nrow(chunk) > 0 && !is.null(clipping_target)) {
           intersects_indices <- sf::st_intersects(chunk, clipping_target)
           chunk <- chunk[lengths(intersects_indices) > 0, ]
@@ -248,6 +248,11 @@ async_stream_to_disk_with_mirai <- function(
       },
       backend_args = backend_args,
       clipping_target = clipping_target,
+      inspire_grid_from_extent_internal = inspire_grid_from_extent_internal,
+      as_inspire_grid = as_inspire_grid,
+      as_inspire_grid_polygons = as_inspire_grid_polygons,
+      as_inspire_grid_points = as_inspire_grid_points,
+      as_inspire_grid_coordinates = as_inspire_grid_coordinates,
       .promise = function(chunk) {
         writer_promise_chain <<- promises::then(
           writer_promise_chain,
@@ -348,7 +353,7 @@ async_stream_to_disk_with_mirai <- function(
 #'   parallel backend.
 #' @keywords internal
 #' @noRd
-stream_to_disk_sequential <- function(
+stream_grid_sequential <- function(
   grid_extent,
   cellsize_m,
   crs,
@@ -479,7 +484,7 @@ stream_to_disk_sequential <- function(
     # A. Generate one chunk
     args_for_tile <- c(list(grid_extent = tile_bbox), backend_args)
     args_for_tile$clip_to_input <- FALSE
-    chunk <- do.call(create_grid_internal, args_for_tile)
+    chunk <- do.call(inspire_grid_from_extent_internal, args_for_tile)
 
     # B. Clip if necessary
     if (nrow(chunk) > 0 && !is.null(clipping_target)) {

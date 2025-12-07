@@ -89,12 +89,14 @@
 #'   Raster output will always run sequentially. (Used only when \code{x} is an extent.)
 #' @param quiet Logical value. If `TRUE`, all progress messages and progress bars are suppressed. Defaults to `FALSE`.
 #' @param max_memory_gb A numeric value. Maximum memory in gigabytes to use for grid creation. Default is NULL, in which case there is an automatic limit of available system memory. The available memory detection may fail on certain HPC (High Performance Computing) systems where jobs are allocated a fixed amount of memory that is less than the total system memory of the allocated node. (Used only when \code{x} is an extent.)
-#' @param ... Additional arguments passed to the specific method. When \code{x} is
-#'   a spatial extent, these arguments are passed to the extent-based backend handlers.
-#'   For streaming backends (`mirai` or sequential), this can include
-#'   `max_cells_per_chunk` to control memory usage. When `output_type = "spatraster"`
-#'   and \code{dsn} is provided, these arguments are passed to `terra::writeRaster()`
-#'   (e.g., for specifying compression options).
+#' @param ... Additional arguments passed to the specific method.
+#'   \itemize{
+#'     \item For extent-based generation, these are passed to the backend handlers.
+#'     \item When writing to text files (e.g., .csv, .tsv) via \code{dsn}, these arguments are passed to \code{\link[readr]{write_delim}} (e.g., \code{na = "NA"}, \code{quote = "all"}).
+#'     \item When writing to spatial files via \code{dsn}, these are passed to \code{\link[sf]{st_write}}.
+#'     \item For \code{output_type = "spatraster"} writing, these are passed to \code{\link[terra]{writeRaster}}.
+#'     \item For streaming backends (`mirai` or sequential), this can include \code{max_cells_per_chunk} to control memory usage.
+#'   }
 #'
 #' @details
 #' The `...` parameter allows you to pass the parameters listed above (like `cellsize_m`,
@@ -336,6 +338,9 @@ inspire_grid_from_extent <- function(
 
   # --- A. WRITING TO DISK ---
   if (!is.null(dsn)) {
+    # Validate extension vs output_type
+    validate_disk_compatibility(output_type, dsn)
+
     # Use the highly efficient mirai stream if available
     if (use_mirai) {
       if (!quiet) {

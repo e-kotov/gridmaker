@@ -156,3 +156,135 @@ test_that("inspire_grid_from_extent returns dsn invisibly when writing to disk",
   # Also check that the file was actually created
   expect_true(file.exists(temp_dsn))
 })
+
+test_that("validate_disk_compatibility throws correct errors", {
+  # Error: Dataframe -> GPKG
+  expect_error(
+    validate_disk_compatibility("dataframe", "test.gpkg"),
+    "Output type 'dataframe' cannot be written to file extension '.gpkg'"
+  )
+
+  # Success: Dataframe -> CSV
+  skip_if_not_installed("readr")
+  expect_true(validate_disk_compatibility("dataframe", "test.csv"))
+
+  # Success: SF -> GPKG
+  expect_true(validate_disk_compatibility("sf_polygons", "test.gpkg"))
+})
+
+test_that("inspire_grid_from_ids writes dataframe to CSV correctly (with chunking)", {
+  skip_if_not_installed("readr")
+  skip_if_not_installed("sf")
+
+  ids <- c(
+    "CRS3035RES1000mN3500000E4400000",
+    "CRS3035RES1000mN3501000E4400000"
+  )
+
+  tmp_csv <- tempfile(fileext = ".csv")
+  on.exit(unlink(tmp_csv), add = TRUE)
+
+  # Write dataframe to CSV
+  inspire_grid_from_ids(
+    ids,
+    output_type = "dataframe",
+    dsn = tmp_csv,
+    quiet = TRUE
+  )
+
+  expect_true(file.exists(tmp_csv))
+
+  # Check content
+  df_in <- readr::read_csv(tmp_csv, show_col_types = FALSE)
+  expect_equal(nrow(df_in), 2)
+  expect_true("id" %in% names(df_in))
+  expect_equal(df_in$id, ids)
+})
+
+test_that("inspire_grid_from_extent streams to CSV (dropping geometry)", {
+  skip_if_not_installed("sf")
+  skip_if_not_installed("readr")
+
+  # Setup: Create a grid that will definitely be chunked (small RAM limit sim or just standard stream)
+  # We use standard stream_grid_sequential via inspire_grid_from_extent by not setting parallel
+
+  simple_extent <- sf::st_bbox(c(xmin = 0, ymin = 0, xmax = 20000, ymax = 20000), crs = 3035)
+  tmp_csv <- tempfile(fileext = ".csv")
+  on.exit(unlink(tmp_csv), add = TRUE)
+
+  # Even if we request sf_polygons, writing to CSV should drop geom and succeed
+  inspire_grid_from_extent(
+    grid_extent = simple_extent,
+    cellsize_m = 10000,
+    output_type = "sf_polygons",
+    dsn = tmp_csv,
+    parallel = FALSE,
+    quiet = TRUE
+  )
+
+  expect_true(file.exists(tmp_csv))
+
+  df_in <- readr::read_csv(tmp_csv, show_col_types = FALSE)
+  # 20km extent / 10km cells = 2x2 = 4 cells
+  expect_equal(nrow(df_in), 4)
+  # Should NOT have geometry column (WKT) unless explicitly converted,
+  # st_drop_geometry removes it.
+  expect_false("geometry" %in% names(df_in))
+})
+
+test_that("CSV appending correctly handles headers", {
+  skip_if_not_installed("readr")
+
+  tmp_csv <- tempfile(fileext = ".csv")
+  on.exit(unlink(tmp_csv), add = TRUE)
+
+  # Create two chunks manually
+  df1 <- data.frame(a = 1, b = 2)
+  df2 <- data.frame(a = 3, b = 4)
+
+  # Write first chunk (new file)
+  write_grid_chunk(df1, tmp_csv, layer = NULL, append = FALSE, quiet = TRUE)
+
+  # Write second chunk (append)
+  write_grid_chunk(df2, tmp_csv, layer = NULL, append = TRUE, quiet = TRUE)
+
+  # Read back
+  res <- readr::read_csv(tmp_csv, show_col_types = FALSE)
+
+  # Should have 2 rows
+  expect_equal(nrow(res), 2)
+  # Should not have 'a' appearing as a value in the second row (which happens if header is repeated)
+  expect_equal(res$a, c(1, 3))
+})
+
+test_that("CSV writing respects extra arguments (e.g. na string)", {
+  skip_if_not_installed("readr")
+
+  tmp_csv <- tempfile(fileext = ".csv")
+  on.exit(unlink(tmp_csv), add = TRUE)
+
+  chunk <- data.frame(a = c(1, NA), b = c("x", "y"))
+
+  # Write with custom NA string
+  write_grid_chunk(chunk, tmp_csv, layer = NULL, append = FALSE, quiet = TRUE, na = "MISSING")
+
+  # Read back raw text to verify "MISSING" is there
+  lines <- readLines(tmp_csv)
+  expect_true(any(grepl("MISSING", lines)))
+
+  # Check standard NA
+  chunk2 <- data.frame(a = c(NA), b = c(NA))
+  tmp_csv2 <- tempfile(fileext = ".csv")
+  on.exit(unlink(tmp_csv2), add = TRUE)
+  write_grid_chunk(chunk2, tmp_csv2, layer = NULL, append = FALSE, quiet = TRUE) # Default NA is usually "" or "NA" depending on readr version
+
+  # Verify pass-through of 'quote' arg
+  tmp_csv3 <- tempfile(fileext = ".csv")
+  on.exit(unlink(tmp_csv3), add = TRUE)
+  write_grid_chunk(chunk, tmp_csv3, layer = NULL, append = FALSE, quiet = TRUE, quote = "all")
+  lines3 <- readLines(tmp_csv3)
+  # Look for quoted character values like "x" (quote = "all" quotes character columns)
+  expect_true(any(grepl('"x"', lines3)))
+  # Also check that column names are quoted
+  expect_true(any(grepl('"a"', lines3)))
+})

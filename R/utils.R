@@ -338,3 +338,89 @@ regex_match <- function(text, pattern, i = NULL, ...) {
 
   return(rows_per_chunk)
 }
+
+#' Validate if output_type and DSN extension are compatible
+#' @keywords internal
+#' @noRd
+validate_disk_compatibility <- function(output_type, dsn) {
+  if (is.null(dsn)) return(TRUE)
+
+  ext <- tolower(tools::file_ext(dsn))
+  is_text <- ext %in% c("csv", "tsv", "txt")
+  is_spatial_output <- output_type %in% c("sf_polygons", "sf_points")
+  is_dataframe <- output_type == "dataframe"
+
+  # 1. Prevent Dataframe -> Spatial Format (e.g. gpkg, shp)
+  # We assume anything NOT text is spatial/binary if it's not supported by readr
+  if (is_dataframe && !is_text) {
+    stop(
+      sprintf(
+        "Output type 'dataframe' cannot be written to file extension '.%s'.\n  Please use '.csv', '.tsv', or '.txt' for dataframes, or change output_type to 'sf_polygons'/'sf_points'.",
+        ext
+      ),
+      call. = FALSE
+    )
+  }
+
+  # 2. Check for readr availability if text output is requested
+  if (is_text) {
+    if (!requireNamespace("readr", quietly = TRUE)) {
+      stop("Package 'readr' is required to write to .csv/.tsv/.txt files. Please install it.", call. = FALSE)
+    }
+  }
+
+  return(TRUE)
+}
+
+#' Internal helper to write a grid chunk to disk (sf or flat file)
+#' @keywords internal
+#' @noRd
+write_grid_chunk <- function(chunk, dsn, layer, append, quiet, ...) {
+  ext <- tolower(tools::file_ext(dsn))
+
+  # --- Text/Delimited Output (readr) ---
+  if (ext %in% c("csv", "tsv", "txt")) {
+
+    # Drop geometry if it exists (e.g. user asked for sf_polygons but wrote to .csv)
+    if (inherits(chunk, "sf")) {
+      chunk <- sf::st_drop_geometry(chunk)
+    }
+
+    # Determine delimiter
+    delim <- if (ext == "csv") "," else "\t"
+
+    # Prepare arguments for readr::write_delim
+    # readr::write_delim does not accept '...', so we must filter args manually.
+    # Allowed arguments based on readr 2.x
+    dots <- list(...)
+    readr_args <- c("na", "quote", "escape", "eol", "num_threads", "progress")
+    valid_dots <- dots[names(dots) %in% readr_args]
+
+    # Construct call
+    call_args <- c(
+      list(
+        x = chunk,
+        file = dsn,
+        delim = delim,
+        append = append,
+        col_names = !append, # Write headers only if NOT appending
+        progress = FALSE
+      ),
+      valid_dots
+    )
+
+    do.call(readr::write_delim, call_args)
+
+  } else {
+    # --- Spatial Output (sf) ---
+    # sf::st_write accepts '...' for driver specific options
+    sf::st_write(
+      chunk,
+      dsn = dsn,
+      layer = layer,
+      append = append,
+      quiet = TRUE,
+      ...
+    )
+  }
+}

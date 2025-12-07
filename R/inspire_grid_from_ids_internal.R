@@ -5,7 +5,8 @@ inspire_grid_from_ids_internal <- function(
   include_llc = TRUE,
   quiet = FALSE,
   dsn = NULL,
-  layer = NULL
+  layer = NULL,
+  ...
 ) {
   output_type <- match.arg(output_type)
   point_type <- match.arg(point_type)
@@ -75,6 +76,9 @@ inspire_grid_from_ids_internal <- function(
   }
 
   # --- 2. Write to Disk (Streaming/Chunking) ---
+  # 1. Validate extension vs output_type
+  validate_disk_compatibility(output_type, dsn)
+
   if (is.null(layer)) {
     layer <- tools::file_path_sans_ext(basename(dsn))
     if (!quiet) message("`layer` not specified, defaulting to '", layer, "'.")
@@ -120,12 +124,13 @@ inspire_grid_from_ids_internal <- function(
       include_llc = include_llc
     )
 
-    sf::st_write(
-      chunk_obj,
+    write_grid_chunk(
+      chunk = chunk_obj,
       dsn = dsn,
       layer = layer,
       append = (i > 1),
-      quiet = TRUE
+      quiet = TRUE,
+      ...
     )
   }
 

@@ -106,7 +106,7 @@
 <span><span class="va">nc</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://r-spatial.github.io/sf/reference/st_transform.html" class="external-link">st_transform</a></span><span class="op">(</span><span class="va">nc_raw</span>, <span class="va">target_crs</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Create a grid covering the data</span></span>
-<span><span class="va">nc_grid</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/create_grid.html">create_grid</a></span><span class="op">(</span></span>
+<span><span class="va">nc_grid</span> <span class="op">&lt;-</span> <span class="fu">create_grid</span><span class="op">(</span></span>
 <span>  grid_extent <span class="op">=</span> <span class="va">nc</span>,</span>
 <span>  cellsize_m <span class="op">=</span> <span class="fl">5000</span>,</span>
 <span>  output_type <span class="op">=</span> <span class="st">"sf_polygons"</span>,</span>

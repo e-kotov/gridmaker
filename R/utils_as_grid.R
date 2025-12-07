@@ -127,3 +127,57 @@ as_inspire_grid_coordinates <- function(coords, cellsize) {
   coords$Y_centroid <- coords$Y_LLC + (cellsize / 2)
   coords
 }
+
+#' Helper to clean up LLC columns and reorder based on output type
+#' @noRd
+clean_and_order_grid <- function(
+  grid_obj,
+  output_type,
+  point_type,
+  include_llc
+) {
+  # 1. Handle LLC removal
+  # Logic: Keep LLC if requested OR if they define the point geometry
+  has_geom <- inherits(grid_obj, "sf") || "geometry" %in% names(grid_obj)
+
+  if (!include_llc) {
+    if (!has_geom) {
+      grid_obj$X_LLC <- NULL
+      grid_obj$Y_LLC <- NULL
+    } else {
+      # If it is spatial, only keep if they represent the point geometry
+      # (i.e. if point_type is 'llc')
+      if (!(output_type == "sf_points" && point_type == "llc")) {
+        grid_obj$X_LLC <- NULL
+        grid_obj$Y_LLC <- NULL
+      }
+    }
+  }
+
+  # 2. Reorder for Dataframe
+  if (output_type == "dataframe") {
+    # We prefer IDs and Centroids at the beginning
+    prio_cols <- c(
+      "id",
+      "GRD_ID",
+      "GRD_ID_LONG",
+      "GRD_ID_SHORT",
+      "X_centroid",
+      "Y_centroid"
+    )
+    existing_prio <- intersect(prio_cols, names(grid_obj))
+    other_cols <- setdiff(names(grid_obj), existing_prio)
+    grid_obj <- grid_obj[, c(existing_prio, other_cols)]
+  }
+
+  # 3. Reorder for SF (ensure geometry is last)
+  if (inherits(grid_obj, "sf")) {
+    geom_col_name <- attr(grid_obj, "sf_column")
+    if (!is.null(geom_col_name) && geom_col_name %in% names(grid_obj)) {
+      other_cols <- setdiff(names(grid_obj), geom_col_name)
+      grid_obj <- grid_obj[, c(other_cols, geom_col_name)]
+    }
+  }
+
+  grid_obj
+}

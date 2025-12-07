@@ -296,13 +296,20 @@ stream_grid_mirai <- function(
                 cat(progress_string)
               }
 
-              sf::st_write(
-                chunk,
-                dsn = dsn,
-                layer = layer,
-                append = !is_first_chunk,
-                quiet = TRUE
+              # Construct arguments for write_grid_chunk using do.call to merge dots
+              write_args <- c(
+                list(
+                  chunk = chunk,
+                  dsn = dsn,
+                  layer = layer,
+                  append = !is_first_chunk,
+                  quiet = TRUE
+                ),
+                dot_args # Pass all additional args provided by user
               )
+
+              do.call(write_grid_chunk, write_args)
+
               if (is_first_chunk) is_first_chunk <<- FALSE
             }
           }
@@ -494,13 +501,19 @@ stream_grid_sequential <- function(
 
     # C. Write to disk
     if (nrow(chunk) > 0) {
-      sf::st_write(
-        chunk,
-        dsn = dsn,
-        layer = layer,
-        append = !is_first_chunk,
-        quiet = TRUE
+      write_args <- c(
+        list(
+          chunk = chunk,
+          dsn = dsn,
+          layer = layer,
+          append = !is_first_chunk,
+          quiet = TRUE
+        ),
+        dot_args
       )
+
+      do.call(write_grid_chunk, write_args)
+
       if (is_first_chunk) is_first_chunk <- FALSE
     }
 

@@ -70,6 +70,8 @@ inspire_grid_from_ids(
   output_type = c("sf_polygons", "sf_points", "dataframe"),
   include_llc = TRUE,
   quiet = FALSE,
+  dsn = NULL,
+  layer = NULL,
   ...
 )
 }
@@ -166,12 +168,14 @@ not specified, it defaults to the file's base name.}
 
 \item{max_memory_gb}{A numeric value. Maximum memory in gigabytes to use for grid creation. Default is NULL, in which case there is an automatic limit of available system memory. The available memory detection may fail on certain HPC (High Performance Computing) systems where jobs are allocated a fixed amount of memory that is less than the total system memory of the allocated node. (Used only when \code{x} is an extent.)}
 
-\item{...}{Additional arguments passed to the specific method. When \code{x} is
-a spatial extent, these arguments are passed to the extent-based backend handlers.
-For streaming backends (\code{mirai} or sequential), this can include
-\code{max_cells_per_chunk} to control memory usage. When \code{output_type = "spatraster"}
-and \code{dsn} is provided, these arguments are passed to \code{terra::writeRaster()}
-(e.g., for specifying compression options).}
+\item{...}{Additional arguments passed to the specific method.
+\itemize{
+\item For extent-based generation, these are passed to the backend handlers.
+\item When writing to text files (e.g., .csv, .tsv) via \code{dsn}, these arguments are passed to \code{\link[readr]{write_delim}} (e.g., \code{na = "NA"}, \code{quote = "all"}).
+\item When writing to spatial files via \code{dsn}, these are passed to \code{\link[sf]{st_write}}.
+\item For \code{output_type = "spatraster"} writing, these are passed to \code{\link[terra]{writeRaster}}.
+\item For streaming backends (\code{mirai} or sequential), this can include \code{max_cells_per_chunk} to control memory usage.
+}}
 }
 \value{
 If \code{dsn} is \code{NULL} (the default), an \code{sf} object, \code{data.frame},

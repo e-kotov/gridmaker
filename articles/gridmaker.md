@@ -71,8 +71,8 @@ lux_boundary_3035 <- st_transform(lux_boundary, 3035)
 Now we can create a 1km grid covering Luxembourg:
 
 ``` r
-lux_grid_1km <- create_grid(
-  grid_extent = lux_boundary_3035,
+lux_grid_1km <- inspire_grid(
+  x = lux_boundary_3035,
   cellsize_m = 1000,
   output_type = "sf_polygons",
   clip_to_input = TRUE

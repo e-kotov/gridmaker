@@ -135,8 +135,8 @@ install.packages("gridmaker")
 <p>Now we can create a 1km grid covering Luxembourg:</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb7"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">lux_grid_1km</span> <span class="op">&lt;-</span> <span class="fu">create_grid</span><span class="op">(</span></span>
-<span>  grid_extent <span class="op">=</span> <span class="va">lux_boundary_3035</span>,</span>
+<code class="sourceCode R"><span><span class="va">lux_grid_1km</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/inspire_grid.html">inspire_grid</a></span><span class="op">(</span></span>
+<span>  x <span class="op">=</span> <span class="va">lux_boundary_3035</span>,</span>
 <span>  cellsize_m <span class="op">=</span> <span class="fl">1000</span>,</span>
 <span>  output_type <span class="op">=</span> <span class="st">"sf_polygons"</span>,</span>
 <span>  clip_to_input <span class="op">=</span> <span class="cn">TRUE</span></span>

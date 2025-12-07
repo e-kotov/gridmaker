@@ -1,21 +1,5 @@
 # gridmaker Create INSPIRE-compliant grids with IDs
 
-badges: start
-
-[![Project Status:
-Active](https://www.repostatus.org/badges/latest/active.svg)](https://www.repostatus.org/#active)
-[![Lifecycle:
-stable](https://img.shields.io/badge/lifecycle-stable-brightgreen.svg)](https://lifecycle.r-lib.org/articles/stages.html#stable)
-[![CRAN
-status](https://www.r-pkg.org/badges/version/gridmaker)](https://CRAN.R-project.org/package=gridmaker)
-[![gridmaker status
-badge](https://e-kotov.r-universe.dev/gridmaker/badges/version)](https://e-kotov.r-universe.dev/gridmaker)
-[![R-CMD-check](https://github.com/e-kotov/gridmaker/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/e-kotov/gridmaker/actions/workflows/R-CMD-check.yaml)
-[![R-CMD-check](https://github.com/e-kotov/gridmaker/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/e-kotov/gridmaker/actions/workflows/R-CMD-check.yaml)
-[![pkgcheck](https://github.com/e-kotov/gridmaker/workflows/pkgcheck/badge.svg)](https://github.com/e-kotov/gridmaker/actions?query=workflow%3Apkgcheck)
-[![Codecov test
-coverage](https://codecov.io/gh/e-kotov/gridmaker/graph/badge.svg)](https://app.codecov.io/gh/e-kotov/gridmaker)
-
 Creates GISCO compatible and INSPIRE-compliant grids with IDs that look
 like ‘CRS3035RES1000mN3497000E4448000’ or ‘1kmN3497E4447’. Input can be
 `sf`, `sfc` objects or bounding boxes. Output can be `sf` polygons, `sf`
@@ -70,8 +54,8 @@ cellsize_m <- 10000 # 10 km
 nc <- st_transform(nc_raw, target_crs)
 
 # Create a grid covering the data
-nc_grid <- create_grid(
-  grid_extent = nc,
+nc_grid <- inspire_grid(
+  x = nc,
   cellsize_m = 5000,
   output_type = "sf_polygons",
   clip_to_input = TRUE

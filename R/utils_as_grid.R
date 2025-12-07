@@ -1,4 +1,4 @@
-as_grid <- function(
+as_inspire_grid <- function(
   coords,
   cellsize,
   crs,
@@ -36,24 +36,24 @@ as_grid <- function(
 
   out_obj <- switch(
     output_type,
-    sf_polygons = as_grid_polygons(
+    sf_polygons = as_inspire_grid_polygons(
       coords,
       cellsize = cellsize,
       crs = crs
     ),
-    sf_points = as_grid_points(
+    sf_points = as_inspire_grid_points(
       coords,
       cellsize = cellsize,
       crs = crs,
       point_type = point_type
     ),
-    dataframe = as_grid_coordinates(coords, cellsize = cellsize)
+    dataframe = as_inspire_grid_coordinates(coords, cellsize = cellsize)
   )
 
   out_obj
 }
 
-as_grid_polygons <- function(coords, cellsize, crs) {
+as_inspire_grid_polygons <- function(coords, cellsize, crs) {
   n_polygons <- nrow(coords)
 
   if (n_polygons == 0) {
@@ -97,7 +97,7 @@ as_grid_polygons <- function(coords, cellsize, crs) {
   grid_sf
 }
 
-as_grid_points <- function(
+as_inspire_grid_points <- function(
   coords,
   cellsize,
   crs,
@@ -122,7 +122,7 @@ as_grid_points <- function(
   cbind(out_obj, coords)
 }
 
-as_grid_coordinates <- function(coords, cellsize) {
+as_inspire_grid_coordinates <- function(coords, cellsize) {
   coords$X_centroid <- coords$X_LLC + (cellsize / 2)
   coords$Y_centroid <- coords$Y_LLC + (cellsize / 2)
   coords

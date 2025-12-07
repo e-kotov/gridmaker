@@ -3,7 +3,7 @@ test_that("Vector and Raster outputs are consistent (Spatial Match)", {
   skip_if_not_installed("sf")
 
   # 1. Generate Vector Grid (Points)
-  vec <- create_grid(
+  vec <- inspire_grid_from_extent(
     grid_extent = nc,
     cellsize_m = CELLSIZE,
     crs = TARGET_CRS,
@@ -13,7 +13,7 @@ test_that("Vector and Raster outputs are consistent (Spatial Match)", {
   )
 
   # 2. Generate Raster Grid
-  rst <- create_grid(
+  rst <- inspire_grid_from_extent(
     grid_extent = nc,
     cellsize_m = CELLSIZE,
     crs = TARGET_CRS,
@@ -50,7 +50,7 @@ test_that("Raster Output supports 'both' ID format in RAT", {
     crs = 3035
   )
 
-  r <- create_grid(
+  r <- inspire_grid_from_extent(
     grid_extent = bbox,
     cellsize_m = 1000,
     output_type = "spatraster",

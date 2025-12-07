@@ -32,23 +32,23 @@
 #' # --- Long to Short ---
 #'
 #' # Convert long to short with default "NE" order
-#' inspire_convert(long_ids)
+#' inspire_id_format(long_ids)
 #'
 #' # Convert long to short with specified "EN" order
-#' inspire_convert(long_ids, axis_order = "EN")
+#' inspire_id_format(long_ids, axis_order = "EN")
 #'
 #' # --- Short to Long ---
 #'
 #' # Convert short ("NE" format) to long with default CRS (3035)
-#' inspire_convert(short_ids_ne)
+#' inspire_id_format(short_ids_ne)
 #'
 #' # The function also correctly parses the "EN" format
-#' inspire_convert(short_ids_en)
+#' inspire_id_format(short_ids_en)
 #'
 #' # Override the CRS when converting short to long
-#' inspire_convert(short_ids_ne, crs = 3857)
+#' inspire_id_format(short_ids_ne, crs = 3857)
 #'
-inspire_convert <- function(ids, crs = 3035, axis_order = "NE") {
+inspire_id_format <- function(ids, crs = 3035, axis_order = "NE") {
   # 1. Handle empty or invalid input
   if (length(ids) == 0) {
     return(character(0))

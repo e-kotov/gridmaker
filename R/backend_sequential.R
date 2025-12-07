@@ -1,7 +1,7 @@
 # This is the internal, non-exported workhorse function for creating a grid.
 # It is called either directly for sequential processing or by the parallel
 # handlers for each tile.
-create_grid_internal <- function(
+inspire_grid_from_extent_internal <- function(
   grid_extent,
   cellsize_m,
   crs = NULL,
@@ -277,7 +277,7 @@ create_grid_internal <- function(
   grid_df <- expand.grid(X_LLC = x_coords, Y_LLC = y_coords)
 
   # --- 8. HANDLE OUTPUT TYPE ---
-  out_obj <- as_grid(
+  out_obj <- as_inspire_grid(
     coords = grid_df,
     cellsize = cellsize_m,
     crs = grid_crs,

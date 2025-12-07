@@ -84,7 +84,7 @@ run_parallel_future <- function(grid_extent, cellsize_m, crs, dot_args) {
     .f = ~ {
       args_for_tile <- c(list(grid_extent = .x), all_args)
       args_for_tile$clip_to_input <- FALSE
-      chunk <- do.call(create_grid_internal, args_for_tile)
+      chunk <- do.call(inspire_grid_from_extent_internal, args_for_tile)
       if (nrow(chunk) > 0 && !is.null(clipping_target)) {
         intersects_indices <- sf::st_intersects(chunk, clipping_target)
         chunk <- chunk[lengths(intersects_indices) > 0, ]

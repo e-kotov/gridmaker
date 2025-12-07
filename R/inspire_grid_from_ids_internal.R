@@ -1,4 +1,4 @@
-derive_grid_internal <- function(
+inspire_grid_from_ids_internal <- function(
   ids,
   point_type = c("llc", "centroid"),
   output_type = c("sf_polygons", "sf_points", "dataframe"),
@@ -21,7 +21,7 @@ derive_grid_internal <- function(
     )
   }
 
-  grid_df <- inspire_extract(ids, as_sf = FALSE)
+  grid_df <- inspire_id_to_coords(ids, as_sf = FALSE)
   names(grid_df) <- c("crs", "cellsize", "Y_LLC", "X_LLC")
 
   if (length(unique(grid_df$crs)) > 1) {
@@ -46,7 +46,7 @@ derive_grid_internal <- function(
     )
   }
 
-  out_obj <- as_grid(
+  out_obj <- as_inspire_grid(
     grid_df,
     cellsize = grid_df$cellsize[[1]],
     crs = grid_crs,

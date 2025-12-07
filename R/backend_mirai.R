@@ -149,7 +149,7 @@ run_parallel_mirai <- function(grid_extent, cellsize_m, crs, dot_args) {
     function(tile_bbox) {
       args_for_tile <- c(list(grid_extent = tile_bbox), all_args)
       args_for_tile$clip_to_input <- FALSE
-      chunk <- do.call(create_grid_internal, args_for_tile)
+      chunk <- do.call(inspire_grid_from_extent_internal, args_for_tile)
       if (nrow(chunk) > 0 && !is.null(clipping_target)) {
         intersects_indices <- sf::st_intersects(chunk, clipping_target)
         chunk <- chunk[lengths(intersects_indices) > 0, ]
@@ -158,7 +158,11 @@ run_parallel_mirai <- function(grid_extent, cellsize_m, crs, dot_args) {
     },
     all_args = all_args,
     clipping_target = clipping_target,
-    create_grid_internal = create_grid_internal
+    inspire_grid_from_extent_internal = inspire_grid_from_extent_internal,
+    as_inspire_grid = as_inspire_grid,
+    as_inspire_grid_polygons = as_inspire_grid_polygons,
+    as_inspire_grid_points = as_inspire_grid_points,
+    as_inspire_grid_coordinates = as_inspire_grid_coordinates
   )
 
   grid_chunks_promises <- mirai::mirai_map(tile_bboxes, parallel_worker)

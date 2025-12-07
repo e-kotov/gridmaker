@@ -1,4 +1,4 @@
-#' @name inspire
+#' @rdname inspire_id_coords
 #' @param inspire A vector of INSPIRE IDs. Can be either legacy or non-legacy.
 #' @param as_sf Whether to return an object of class \code{sfc} or a dataframe.
 #' @param crs An optional numeric EPSG code or `sf::st_crs` object. If provided,
@@ -8,7 +8,7 @@
 #'   the function will default to EPSG:3035 (with a warning) for both
 #'   `sf` and `data.frame` outputs.
 #' @export
-inspire_extract <- function(inspire, as_sf = FALSE, crs = NULL) {
+inspire_id_to_coords <- function(inspire, as_sf = FALSE, crs = NULL) {
   # 1. Validate all inputs first
   validate_inspire_input(inspire)
 
@@ -55,7 +55,7 @@ inspire_extract <- function(inspire, as_sf = FALSE, crs = NULL) {
 
 # --- Helper Functions (Internal, not exported) ---
 
-#' Validate the input vector for inspire_extract
+#' Validate the input vector for inspire_id_to_coords
 #' @noRd
 validate_inspire_input <- function(inspire) {
   if (length(inspire) == 0) {

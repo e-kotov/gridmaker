@@ -1,10 +1,10 @@
-# --- Tests for inspire_extract ---
+# --- Tests for inspire_id_to_coords ---
 
-test_that("inspire_extract works with long format IDs", {
+test_that("inspire_id_to_coords works with long format IDs", {
   long_id <- "CRS3035RES1000mN3497000E4447000"
 
   # Default output (dataframe)
-  parsed_df <- inspire_extract(long_id)
+  parsed_df <- inspire_id_to_coords(long_id)
   expect_s3_class(parsed_df, "data.frame")
   expect_equal(names(parsed_df), c("crs", "cellsize", "y", "x"))
   expect_equal(parsed_df$crs, 3035)
@@ -13,7 +13,7 @@ test_that("inspire_extract works with long format IDs", {
   expect_equal(parsed_df$x, 4447000)
 
   # sf output
-  parsed_sf <- inspire_extract(long_id, as_sf = TRUE)
+  parsed_sf <- inspire_id_to_coords(long_id, as_sf = TRUE)
   expect_s3_class(parsed_sf, "sf")
   expect_equal(sf::st_crs(parsed_sf), sf::st_crs(3035))
   coords <- sf::st_coordinates(parsed_sf)
@@ -21,16 +21,16 @@ test_that("inspire_extract works with long format IDs", {
   expect_equal(as.numeric(coords[1, "Y"]), 3497000)
 })
 
-test_that("inspire_extract works with short format IDs", {
+test_that("inspire_id_to_coords works with short format IDs", {
   short_id <- "10kmN349E444"
 
   expect_warning(
-    parsed_df <- inspire_extract(short_id),
+    parsed_df <- inspire_id_to_coords(short_id),
     "CRS not specified for short-form IDs"
   )
 
   # Default output (dataframe)
-  parsed_df <- inspire_extract(short_id, crs = 3035)
+  parsed_df <- inspire_id_to_coords(short_id, crs = 3035)
   expect_s3_class(parsed_df, "data.frame")
   expect_equal(names(parsed_df), c("crs", "cellsize", "y", "x"))
   expect_equal(parsed_df$cellsize, 10000) # Check m conversion
@@ -38,7 +38,7 @@ test_that("inspire_extract works with short format IDs", {
   expect_equal(parsed_df$x, 444)
 
   # sf output
-  parsed_sf <- inspire_extract(short_id, as_sf = TRUE, crs = 3035)
+  parsed_sf <- inspire_id_to_coords(short_id, as_sf = TRUE, crs = 3035)
   expect_s3_class(parsed_sf, "sf")
   # Short format IDs default to CRS 3035
   expect_equal(sf::st_crs(parsed_sf), sf::st_crs(3035))
@@ -47,7 +47,7 @@ test_that("inspire_extract works with short format IDs", {
   expect_equal(as.numeric(coords[1, "Y"]), 349)
 })
 
-test_that("inspire_extract handles vectorization and mixed-format issues", {
+test_that("inspire_id_to_coords handles vectorization and mixed-format issues", {
   ids_vec <- c(
     "CRS3035RES1000mN3497000E4447000",
     "1kmE4478N3618", # legacy short format
@@ -55,7 +55,7 @@ test_that("inspire_extract handles vectorization and mixed-format issues", {
   )
 
   expect_warning(
-    parsed_vec <- inspire_extract(ids_vec),
+    parsed_vec <- inspire_id_to_coords(ids_vec),
     regexp = "contains a mix of long"
   )
   expect_equal(nrow(parsed_vec), 3)
@@ -66,14 +66,14 @@ test_that("inspire_extract handles vectorization and mixed-format issues", {
   expect_equal(parsed_vec$x[3], 4478)
 })
 
-test_that("inspire_extract handles edge cases: malformed, NA, and empty inputs", {
+test_that("inspire_id_to_coords handles edge cases: malformed, NA, and empty inputs", {
   # Vector with a good ID, a malformed one, and an NA
   ids_have_na <- c(
     "1kmN100E200", # Valid
     NA_character_ # NA
   )
   expect_error(
-    inspire_extract(ids_have_na),
+    inspire_id_to_coords(ids_have_na),
     "Input 'inspire' contains NA values"
   )
 
@@ -83,18 +83,18 @@ test_that("inspire_extract handles edge cases: malformed, NA, and empty inputs",
   )
 
   expect_error(
-    inspire_extract(ids_have_malformed),
+    inspire_id_to_coords(ids_have_malformed),
     "One or more INSPIRE IDs had a malformed format"
   )
 
   # fail on Empty input vector
   expect_error(
-    inspire_extract(character(0)),
+    inspire_id_to_coords(character(0)),
     "Input 'inspire' cannot be an empty vector"
   )
 })
 
-test_that("inspire_extract warns on multiple CRSs", {
+test_that("inspire_id_to_coords warns on multiple CRSs", {
   # This only applies to long-form IDs where CRS is parsed
   mixed_crs_ids <- c(
     "CRS3035RES1mN1E1",
@@ -103,7 +103,7 @@ test_that("inspire_extract warns on multiple CRSs", {
 
   # Should warn when creating an sf object from mixed CRSs
   expect_error(
-    parsed_sf <- inspire_extract(mixed_crs_ids, as_sf = TRUE),
+    parsed_sf <- inspire_id_to_coords(mixed_crs_ids, as_sf = TRUE),
     "INSPIRE identifiers contain more than one CRS"
   )
 })

@@ -1,31 +1,31 @@
 test_that("Function handles various input 'grid_extent' types", {
   # 1. sf object
-  grid_sf <- create_grid(nc, CELLSIZE, crs = TARGET_CRS)
+  grid_sf <- inspire_grid_from_extent(nc, CELLSIZE, crs = TARGET_CRS)
   expect_s3_class(grid_sf, "sf")
   expect_gt(nrow(grid_sf), 0)
 
   # 2. sfc object
-  grid_sfc <- create_grid(st_geometry(nc), CELLSIZE, crs = TARGET_CRS)
+  grid_sfc <- inspire_grid_from_extent(st_geometry(nc), CELLSIZE, crs = TARGET_CRS)
   expect_equal(nrow(grid_sf), nrow(grid_sfc))
 
   # 3. bbox object
-  grid_bbox <- create_grid(st_bbox(nc), CELLSIZE, crs = TARGET_CRS)
+  grid_bbox <- inspire_grid_from_extent(st_bbox(nc), CELLSIZE, crs = TARGET_CRS)
   expect_equal(nrow(grid_sf), nrow(grid_bbox))
 
   # 4. Numeric vector
   nc_bbox_num <- as.numeric(st_bbox(nc))
-  grid_num <- create_grid(nc_bbox_num, CELLSIZE, crs = TARGET_CRS)
+  grid_num <- inspire_grid_from_extent(nc_bbox_num, CELLSIZE, crs = TARGET_CRS)
   expect_equal(nrow(grid_sf), nrow(grid_num))
 
   # 5. Matrix
   nc_bbox_mat <- matrix(nc_bbox_num, nrow = 2)
-  grid_mat <- create_grid(nc_bbox_mat, CELLSIZE, crs = TARGET_CRS)
+  grid_mat <- inspire_grid_from_extent(nc_bbox_mat, CELLSIZE, crs = TARGET_CRS)
   expect_equal(nrow(grid_sf), nrow(grid_mat))
 })
 
 test_that("Function handles different 'output_type' options", {
   # Polygons (default)
-  grid_poly <- create_grid(
+  grid_poly <- inspire_grid_from_extent(
     nc,
     CELLSIZE,
     crs = TARGET_CRS,
@@ -35,7 +35,7 @@ test_that("Function handles different 'output_type' options", {
   expect_true(any(class(st_geometry(grid_poly)) == "sfc_POLYGON"))
 
   # Points
-  grid_pts <- create_grid(
+  grid_pts <- inspire_grid_from_extent(
     nc,
     CELLSIZE,
     crs = TARGET_CRS,
@@ -45,7 +45,7 @@ test_that("Function handles different 'output_type' options", {
   expect_true(any(class(st_geometry(grid_pts)) == "sfc_POINT"))
 
   # Data frame
-  grid_df <- create_grid(
+  grid_df <- inspire_grid_from_extent(
     nc,
     CELLSIZE,
     crs = TARGET_CRS,
@@ -61,7 +61,7 @@ test_that("Function handles different 'output_type' options", {
 
 test_that("Clipping logic works as expected", {
   # Baseline (no clipping)
-  grid_full <- create_grid(
+  grid_full <- inspire_grid_from_extent(
     nc,
     CELLSIZE,
     crs = TARGET_CRS,
@@ -69,7 +69,7 @@ test_that("Clipping logic works as expected", {
   )
 
   # Standard clipping
-  grid_clipped <- create_grid(
+  grid_clipped <- inspire_grid_from_extent(
     nc,
     CELLSIZE,
     crs = TARGET_CRS,
@@ -78,7 +78,7 @@ test_that("Clipping logic works as expected", {
   expect_lt(nrow(grid_clipped), nrow(grid_full))
 
   # Convex hull clipping
-  grid_chull <- create_grid(
+  grid_chull <- inspire_grid_from_extent(
     nc,
     CELLSIZE,
     crs = TARGET_CRS,
@@ -90,7 +90,7 @@ test_that("Clipping logic works as expected", {
   expect_gte(nrow(grid_chull), nrow(grid_clipped))
 
   # Clipping with buffer
-  grid_buffered <- create_grid(
+  grid_buffered <- inspire_grid_from_extent(
     nc,
     CELLSIZE,
     crs = TARGET_CRS,
@@ -114,7 +114,7 @@ test_that("Generated IDs are correct", {
   expected_short <- sprintf("%skmN10E10", cs / 1000)
 
   # Test "both"
-  grid_both <- create_grid(
+  grid_both <- inspire_grid_from_extent(
     simple_extent,
     cs,
     crs = TARGET_CRS,
@@ -124,7 +124,7 @@ test_that("Generated IDs are correct", {
   expect_equal(grid_both$GRD_ID_SHORT, expected_short)
 
   # Test "long"
-  grid_long <- create_grid(
+  grid_long <- inspire_grid_from_extent(
     simple_extent,
     cs,
     crs = TARGET_CRS,
@@ -134,7 +134,7 @@ test_that("Generated IDs are correct", {
   expect_false("GRD_ID_SHORT" %in% names(grid_long))
 
   # Test "short"
-  grid_short <- create_grid(
+  grid_short <- inspire_grid_from_extent(
     simple_extent,
     cs,
     crs = TARGET_CRS,
@@ -144,7 +144,7 @@ test_that("Generated IDs are correct", {
   expect_false("GRD_ID_LONG" %in% names(grid_short))
 
   # Test "none"
-  grid_none <- create_grid(
+  grid_none <- inspire_grid_from_extent(
     simple_extent,
     cs,
     crs = TARGET_CRS,
@@ -155,7 +155,7 @@ test_that("Generated IDs are correct", {
 
 test_that("Other arguments function correctly", {
   # Test include_llc = FALSE
-  grid_no_llc <- create_grid(
+  grid_no_llc <- inspire_grid_from_extent(
     nc,
     CELLSIZE,
     crs = TARGET_CRS,
@@ -165,7 +165,7 @@ test_that("Other arguments function correctly", {
   expect_false("Y_LLC" %in% names(grid_no_llc))
 
   # Test point_type = "llc"
-  grid_pts_llc <- create_grid(
+  grid_pts_llc <- inspire_grid_from_extent(
     nc,
     CELLSIZE,
     crs = TARGET_CRS,
@@ -182,36 +182,36 @@ test_that("Other arguments function correctly", {
 test_that("Function handles errors and edge cases", {
   # Invalid cell size
   expect_error(
-    create_grid(nc, 0, crs = TARGET_CRS),
+    inspire_grid_from_extent(nc, 0, crs = TARGET_CRS),
     "cellsize_m must be a positive integer"
   )
   expect_error(
-    create_grid(nc, -100, crs = TARGET_CRS),
+    inspire_grid_from_extent(nc, -100, crs = TARGET_CRS),
     "cellsize_m must be a positive integer"
   )
 
   # Invalid CRS (geographic)
   expect_error(
-    create_grid(nc, CELLSIZE, crs = 4326),
+    inspire_grid_from_extent(nc, CELLSIZE, crs = 4326),
     "must be a projected system"
   )
 
   # Empty input geometry
   empty_sf <- nc[0, ]
   expect_error(
-    create_grid(empty_sf, CELLSIZE, crs = TARGET_CRS),
+    inspire_grid_from_extent(empty_sf, CELLSIZE, crs = TARGET_CRS),
     "Input geometry is empty"
   )
 
   # Check that a tiny geometry still produces a grid
   point_geom <- st_sfc(st_point(c(15e5, 15e5)), crs = TARGET_CRS)
-  grid_from_point <- create_grid(point_geom, CELLSIZE, crs = TARGET_CRS)
+  grid_from_point <- inspire_grid_from_extent(point_geom, CELLSIZE, crs = TARGET_CRS)
   expect_equal(nrow(grid_from_point), 1)
 })
 
 test_that("Geometry column is always last in sf output", {
   # For sf_polygons
-  grid_poly <- create_grid(
+  grid_poly <- inspire_grid_from_extent(
     nc,
     CELLSIZE,
     crs = TARGET_CRS,
@@ -222,7 +222,7 @@ test_that("Geometry column is always last in sf output", {
   expect_equal(tail(col_names_poly, 1), geom_col_poly)
 
   # For sf_points
-  grid_pts <- create_grid(
+  grid_pts <- inspire_grid_from_extent(
     nc,
     CELLSIZE,
     crs = TARGET_CRS,
@@ -235,30 +235,30 @@ test_that("Geometry column is always last in sf output", {
 
 test_that("CRS is handled in various formats", {
   # EPSG code as integer
-  grid_int <- create_grid(nc, CELLSIZE, crs = 3035)
+  grid_int <- inspire_grid_from_extent(nc, CELLSIZE, crs = 3035)
   expect_s3_class(grid_int, "sf")
   expect_true(sf::st_crs(grid_int) == sf::st_crs(3035))
 
   # EPSG code as numeric
-  grid_num <- create_grid(nc, CELLSIZE, crs = 3035)
+  grid_num <- inspire_grid_from_extent(nc, CELLSIZE, crs = 3035)
   expect_s3_class(grid_num, "sf")
   expect_true(sf::st_crs(grid_num) == sf::st_crs(3035))
 
   # "epsg:<code>" string
-  grid_epsg_str <- create_grid(nc, CELLSIZE, crs = "epsg:3035")
+  grid_epsg_str <- inspire_grid_from_extent(nc, CELLSIZE, crs = "epsg:3035")
   expect_s3_class(grid_epsg_str, "sf")
   expect_true(sf::st_crs(grid_epsg_str) == sf::st_crs(3035))
 
   # sf_crs object
   crs_obj <- sf::st_crs(3035)
-  grid_obj <- create_grid(nc, CELLSIZE, crs = crs_obj)
+  grid_obj <- inspire_grid_from_extent(nc, CELLSIZE, crs = crs_obj)
   expect_s3_class(grid_obj, "sf")
   expect_true(sf::st_crs(grid_obj) == sf::st_crs(3035))
 
   # Invalid: "<code>" string - this should fail as it's ambiguous
   # The error comes from sf::st_crs()
   expect_error(
-    create_grid(nc, CELLSIZE, crs = "3035")
+    inspire_grid_from_extent(nc, CELLSIZE, crs = "3035")
   )
 })
 
@@ -266,7 +266,7 @@ test_that("`quiet` parameter correctly suppresses messages", {
   # Test 1: quiet = TRUE should not produce any messages or progress bars.
   # We wrap the function call in expect_silent() to verify this.
   expect_silent(
-    grid_silent <- create_grid(
+    grid_silent <- inspire_grid_from_extent(
       grid_extent = nc,
       cellsize_m = CELLSIZE,
       parallel = FALSE, # Force sequential mode to test its message suppression
@@ -281,7 +281,7 @@ test_that("`quiet` parameter correctly suppresses messages", {
   # Test 2: quiet = FALSE (explicitly set) should produce a message.
   # We check for the specific message produced when running in sequential mode.
   expect_message(
-    grid_verbose <- create_grid(
+    grid_verbose <- inspire_grid_from_extent(
       grid_extent = nc,
       cellsize_m = CELLSIZE,
       parallel = FALSE, # Force sequential mode to get a predictable message
@@ -298,7 +298,7 @@ test_that("`quiet` parameter correctly suppresses messages", {
   # The default is FALSE, so it should produce the fallback message
   # when no parallel backend is configured.
   expect_message(
-    create_grid(
+    inspire_grid_from_extent(
       grid_extent = nc,
       cellsize_m = CELLSIZE,
       parallel = "auto" # Allow auto-detection to fall back to sequential
@@ -310,7 +310,7 @@ test_that("`quiet` parameter correctly suppresses messages", {
 test_that("dataframe, sf_points and sf_polygons outputs are consistent", {
   # Generate both types of grids with the same parameters, ensuring IDs are created
   # for reliable row-wise comparison.
-  grid_poly <- create_grid(
+  grid_poly <- inspire_grid_from_extent(
     nc,
     CELLSIZE,
     crs = TARGET_CRS,
@@ -319,7 +319,7 @@ test_that("dataframe, sf_points and sf_polygons outputs are consistent", {
     output_type = "sf_polygons"
   )
 
-  grid_pts <- create_grid(
+  grid_pts <- inspire_grid_from_extent(
     nc,
     CELLSIZE,
     crs = TARGET_CRS,
@@ -328,7 +328,7 @@ test_that("dataframe, sf_points and sf_polygons outputs are consistent", {
     output_type = "sf_points"
   )
 
-  grid_df <- create_grid(
+  grid_df <- inspire_grid_from_extent(
     nc,
     CELLSIZE,
     crs = TARGET_CRS,
@@ -368,17 +368,17 @@ test_that("dataframe, sf_points and sf_polygons outputs are consistent", {
 
 test_that("GRD_IDs are unique", {
   # Standard case
-  grid_sf <- create_grid(nc, CELLSIZE, crs = TARGET_CRS, id_format = "long")
+  grid_sf <- inspire_grid_from_extent(nc, CELLSIZE, crs = TARGET_CRS, id_format = "long")
   expect_true("GRD_ID" %in% names(grid_sf))
   expect_false(any(duplicated(grid_sf$GRD_ID)))
 
   # Short IDs
-  grid_short <- create_grid(nc, CELLSIZE, crs = TARGET_CRS, id_format = "short")
+  grid_short <- inspire_grid_from_extent(nc, CELLSIZE, crs = TARGET_CRS, id_format = "short")
   expect_true("GRD_ID" %in% names(grid_short))
   expect_false(any(duplicated(grid_short$GRD_ID)))
 
   # Both IDs
-  grid_both <- create_grid(nc, CELLSIZE, crs = TARGET_CRS, id_format = "both")
+  grid_both <- inspire_grid_from_extent(nc, CELLSIZE, crs = TARGET_CRS, id_format = "both")
   expect_true("GRD_ID_LONG" %in% names(grid_both))
   expect_true("GRD_ID_SHORT" %in% names(grid_both))
   expect_false(any(duplicated(grid_both$GRD_ID_LONG)))
@@ -394,7 +394,7 @@ test_that("Memory warning is triggered with insufficient (fake) RAM", {
     # .get_ram_gb("avail")
     {
       expect_warning(
-        create_grid(nc, CELLSIZE, crs = TARGET_CRS),
+        inspire_grid_from_extent(nc, CELLSIZE, crs = TARGET_CRS),
         regexp = "Estimated grid size is.*which may exceed your available system memory"
       )
     }
@@ -408,7 +408,7 @@ test_that("Memory warning is triggered with insufficient (fake) RAM", {
       # and we want to be robust. expect_silent checks for warnings, messages,
       # and other output.
       expect_silent(
-        create_grid(nc, CELLSIZE, crs = TARGET_CRS, quiet = TRUE)
+        inspire_grid_from_extent(nc, CELLSIZE, crs = TARGET_CRS, quiet = TRUE)
       )
     }
   )
@@ -417,7 +417,7 @@ test_that("Memory warning is triggered with insufficient (fake) RAM", {
   expect_null(getOption("gridmaker.fake_ram"))
 })
 
-test_that("create_grid respects axis_order argument for Short IDs", {
+test_that("inspire_grid_from_extent respects axis_order argument for Short IDs", {
   # Use a simple bounding box for testing
   # 10km grid
   # LLC at 0,0
@@ -425,7 +425,7 @@ test_that("create_grid respects axis_order argument for Short IDs", {
   cellsize <- 10000
 
   # 1. Test Default (NE)
-  grid_ne <- create_grid(
+  grid_ne <- inspire_grid_from_extent(
     simple_extent,
     cellsize_m = cellsize,
     id_format = "short",
@@ -439,7 +439,7 @@ test_that("create_grid respects axis_order argument for Short IDs", {
   expect_true(expected_ne %in% grid_ne$GRD_ID)
 
   # 2. Test EN Order
-  grid_en <- create_grid(
+  grid_en <- inspire_grid_from_extent(
     simple_extent,
     cellsize_m = cellsize,
     id_format = "short",
@@ -452,7 +452,7 @@ test_that("create_grid respects axis_order argument for Short IDs", {
   expect_true(expected_en %in% grid_en$GRD_ID)
 
   # 3. Test that Long IDs are NOT affected (Must remain N...E for standard compliance)
-  grid_both_en <- create_grid(
+  grid_both_en <- inspire_grid_from_extent(
     simple_extent,
     cellsize_m = cellsize,
     id_format = "both",
@@ -470,9 +470,96 @@ test_that("create_grid respects axis_order argument for Short IDs", {
   expect_false(grepl("E0N0$", long_id)) # Should not end in E...N...
 })
 
-test_that("create_grid throws error for invalid axis_order", {
+test_that("inspire_grid_from_extent throws error for invalid axis_order", {
   expect_error(
-    create_grid(nc, CELLSIZE, axis_order = "XY"),
+    inspire_grid_from_extent(nc, CELLSIZE, axis_order = "XY"),
     regexp = "'arg' should be one of"
   )
+})
+
+test_that("S3 dispatch works correctly for inspire_grid()", {
+  # Test 1: inspire_grid() with sf object should call inspire_grid_from_extent
+  grid_s3_sf <- inspire_grid(nc, cellsize_m = CELLSIZE, crs = TARGET_CRS, quiet = TRUE)
+  grid_direct_sf <- inspire_grid_from_extent(nc, cellsize_m = CELLSIZE, crs = TARGET_CRS, quiet = TRUE)
+  
+  expect_s3_class(grid_s3_sf, "sf")
+  expect_equal(nrow(grid_s3_sf), nrow(grid_direct_sf))
+  expect_equal(names(grid_s3_sf), names(grid_direct_sf))
+  
+  # Test 2: inspire_grid() with sfc object
+  grid_s3_sfc <- inspire_grid(st_geometry(nc), cellsize_m = CELLSIZE, crs = TARGET_CRS, quiet = TRUE)
+  grid_direct_sfc <- inspire_grid_from_extent(st_geometry(nc), cellsize_m = CELLSIZE, crs = TARGET_CRS, quiet = TRUE)
+  
+  expect_equal(nrow(grid_s3_sfc), nrow(grid_direct_sfc))
+  
+  # Test 3: inspire_grid() with bbox object
+  grid_s3_bbox <- inspire_grid(st_bbox(nc), cellsize_m = CELLSIZE, crs = TARGET_CRS, quiet = TRUE)
+  grid_direct_bbox <- inspire_grid_from_extent(st_bbox(nc), cellsize_m = CELLSIZE, crs = TARGET_CRS, quiet = TRUE)
+  
+  expect_equal(nrow(grid_s3_bbox), nrow(grid_direct_bbox))
+  
+  # Test 4: inspire_grid() with numeric vector
+  nc_bbox_num <- as.numeric(st_bbox(nc))
+  grid_s3_num <- inspire_grid(nc_bbox_num, cellsize_m = CELLSIZE, crs = TARGET_CRS, quiet = TRUE)
+  grid_direct_num <- inspire_grid_from_extent(nc_bbox_num, cellsize_m = CELLSIZE, crs = TARGET_CRS, quiet = TRUE)
+  
+  expect_equal(nrow(grid_s3_num), nrow(grid_direct_num))
+  
+  # Test 5: inspire_grid() with matrix
+  nc_bbox_mat <- matrix(nc_bbox_num, nrow = 2)
+  grid_s3_mat <- inspire_grid(nc_bbox_mat, cellsize_m = CELLSIZE, crs = TARGET_CRS, quiet = TRUE)
+  grid_direct_mat <- inspire_grid_from_extent(nc_bbox_mat, cellsize_m = CELLSIZE, crs = TARGET_CRS, quiet = TRUE)
+  
+  expect_equal(nrow(grid_s3_mat), nrow(grid_direct_mat))
+  
+  # Test 6: inspire_grid() with character vector (INSPIRE IDs)
+  inspire_ids <- c(
+    "CRS3035RES100000mN2600000E4300000",
+    "CRS3035RES100000mN2600000E4400000",
+    "CRS3035RES100000mN2700000E4100000"
+  )
+  
+  grid_s3_ids <- inspire_grid(inspire_ids, quiet = TRUE)
+  grid_direct_ids <- inspire_grid_from_ids(inspire_ids, quiet = TRUE)
+  
+  expect_s3_class(grid_s3_ids, "sf")
+  expect_equal(nrow(grid_s3_ids), nrow(grid_direct_ids))
+  expect_equal(nrow(grid_s3_ids), 3)
+  expect_equal(grid_s3_ids$id, grid_direct_ids$id)
+})
+
+test_that("S3 dispatch preserves all arguments", {
+  # Test that arguments are correctly passed through S3 dispatch
+  grid_s3 <- inspire_grid(
+    nc, 
+    cellsize_m = CELLSIZE, 
+    crs = TARGET_CRS,
+    output_type = "sf_points",
+    clip_to_input = TRUE,
+    id_format = "short",
+    axis_order = "EN",
+    include_llc = FALSE,
+    quiet = TRUE
+  )
+  
+  grid_direct <- inspire_grid_from_extent(
+    grid_extent = nc,
+    cellsize_m = CELLSIZE,
+    crs = TARGET_CRS,
+    output_type = "sf_points",
+    clip_to_input = TRUE,
+    id_format = "short",
+    axis_order = "EN",
+    include_llc = FALSE,
+    quiet = TRUE
+  )
+  
+  # Should produce identical results
+  expect_equal(nrow(grid_s3), nrow(grid_direct))
+  expect_equal(names(grid_s3), names(grid_direct))
+  expect_false("X_LLC" %in% names(grid_s3))
+  expect_true(any(class(st_geometry(grid_s3)) == "sfc_POINT"))
+  
+  # Check that axis_order was respected
+  expect_true(all(grepl("E.*N", grid_s3$GRD_ID)))
 })

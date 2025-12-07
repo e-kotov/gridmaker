@@ -1,11 +1,11 @@
-test_that("derive_grid_internal produces correct output types", {
+test_that("inspire_grid_from_ids_internal produces correct output types", {
   ids <- c(
     "CRS3035RES1000mN3500000E4400000",
     "CRS3035RES1000mN3501000E4400000"
   )
 
   # Test sf_polygons output
-  grid_poly <- derive_grid_internal(ids, output_type = "sf_polygons")
+  grid_poly <- inspire_grid_from_ids_internal(ids, output_type = "sf_polygons")
   expect_s3_class(grid_poly, "sf")
   expect_true(inherits(st_geometry(grid_poly), "sfc_POLYGON"))
   expect_equal(nrow(grid_poly), 2)
@@ -13,7 +13,7 @@ test_that("derive_grid_internal produces correct output types", {
   expect_equal(st_crs(grid_poly), st_crs(3035))
 
   # Test sf_points output
-  grid_pts <- derive_grid_internal(ids, output_type = "sf_points")
+  grid_pts <- inspire_grid_from_ids_internal(ids, output_type = "sf_points")
   expect_s3_class(grid_pts, "sf")
   expect_true(inherits(st_geometry(grid_pts), "sfc_POINT"))
   expect_equal(nrow(grid_pts), 2)
@@ -21,7 +21,7 @@ test_that("derive_grid_internal produces correct output types", {
   expect_equal(st_crs(grid_pts), st_crs(3035))
 
   # Test dataframe output
-  grid_df <- derive_grid_internal(ids, output_type = "dataframe")
+  grid_df <- inspire_grid_from_ids_internal(ids, output_type = "dataframe")
   expect_s3_class(grid_df, "data.frame")
   expect_equal(nrow(grid_df), 2)
   expect_true("id" %in% names(grid_df))
@@ -30,14 +30,14 @@ test_that("derive_grid_internal produces correct output types", {
   ))
 })
 
-test_that("derive_grid_internal point_type logic is correct", {
+test_that("inspire_grid_from_ids_internal point_type logic is correct", {
   id <- "CRS3035RES1000mN3500000E4400000"
   cellsize <- 1000
   x_llc <- 4400000
   y_llc <- 3500000
 
   # Test llc points
-  grid_llc <- derive_grid_internal(
+  grid_llc <- inspire_grid_from_ids_internal(
     id,
     output_type = "sf_points",
     point_type = "llc"
@@ -47,7 +47,7 @@ test_that("derive_grid_internal point_type logic is correct", {
   expect_equal(as.numeric(coords_llc[1, "Y"]), y_llc)
 
   # Test centroid points
-  grid_centroid <- derive_grid_internal(
+  grid_centroid <- inspire_grid_from_ids_internal(
     id,
     output_type = "sf_points",
     point_type = "centroid"
@@ -57,11 +57,11 @@ test_that("derive_grid_internal point_type logic is correct", {
   expect_equal(as.numeric(coords_centroid[1, "Y"]), y_llc + cellsize / 2)
 })
 
-test_that("derive_grid_internal handles short format IDs", {
-  # The underlying inspire_extract is tested thoroughly, this is an integration check
+test_that("inspire_grid_from_ids_internal handles short format IDs", {
+  # The underlying inspire_id_to_coords is tested thoroughly, this is an integration check
   short_ids <- c("10kmN350E440", "10kmN351E440")
   expect_warning(
-    grid_short <- derive_grid_internal(short_ids, output_type = "sf_polygons"),
+    grid_short <- inspire_grid_from_ids_internal(short_ids, output_type = "sf_polygons"),
     regexp = "CRS not specified for short-form IDs"
   )
   expect_s3_class(grid_short, "sf")
@@ -70,14 +70,14 @@ test_that("derive_grid_internal handles short format IDs", {
 })
 
 
-test_that("derive_grid_internal throws errors for invalid ID sets", {
+test_that("inspire_grid_from_ids_internal throws errors for invalid ID sets", {
   # 1. Mixed CRSs
   mixed_crs_ids <- c(
     "CRS3035RES1000mN3500000E4400000",
     "CRS3857RES1000mN3501000E4400000"
   )
   expect_error(
-    derive_grid_internal(mixed_crs_ids),
+    inspire_grid_from_ids_internal(mixed_crs_ids),
     "INSPIRE identifiers contain more than one CRS"
   )
 
@@ -87,36 +87,36 @@ test_that("derive_grid_internal throws errors for invalid ID sets", {
     "CRS3035RES100mN3501000E4400000"
   )
   expect_error(
-    derive_grid_internal(mixed_cellsize_ids),
+    inspire_grid_from_ids_internal(mixed_cellsize_ids),
     "Multiple different cell sizes found"
   )
 
   # 3. Geographic (long/lat) CRS
   geo_id <- "CRS4326RES100mN50E10"
   expect_error(
-    derive_grid_internal(geo_id),
+    inspire_grid_from_ids_internal(geo_id),
     "The coordinate reference system must be a projected system"
   )
 })
 
-test_that("derive_grid_internal handles empty input", {
+test_that("inspire_grid_from_ids_internal handles empty input", {
   empty_ids <- character(0)
 
   # Polygons
   expect_error(
-    derive_grid_internal(empty_ids),
+    inspire_grid_from_ids_internal(empty_ids),
     "Input 'inspire' cannot be an empty vector."
   )
 
   # Points
   expect_error(
-    derive_grid_internal(empty_ids, output_type = "sf_points"),
+    inspire_grid_from_ids_internal(empty_ids, output_type = "sf_points"),
     "Input 'inspire' cannot be an empty vector."
   )
 
   # Data frame
   expect_error(
-    derive_grid_internal(empty_ids, output_type = "dataframe"),
+    inspire_grid_from_ids_internal(empty_ids, output_type = "dataframe"),
     "Input 'inspire' cannot be an empty vector."
   )
 })

@@ -21,6 +21,7 @@ Imports:
     later,
     promises,
     ps,
+    readr,
     sf,
     sfheaders,
     terra

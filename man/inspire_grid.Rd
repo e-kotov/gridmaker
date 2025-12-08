@@ -69,6 +69,8 @@ inspire_grid_from_ids(
   point_type = c("llc", "centroid"),
   output_type = c("sf_polygons", "sf_points", "dataframe"),
   include_llc = TRUE,
+  id_format = c("both", "long", "short"),
+  axis_order = c("NE", "EN"),
   quiet = FALSE,
   dsn = NULL,
   layer = NULL,

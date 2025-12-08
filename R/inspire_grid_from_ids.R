@@ -29,6 +29,8 @@ inspire_grid_from_ids <- function(
   point_type = c("llc", "centroid"),
   output_type = c("sf_polygons", "sf_points", "dataframe"),
   include_llc = TRUE,
+  id_format = c("both", "long", "short"),
+  axis_order = c("NE", "EN"),
   quiet = FALSE,
   dsn = NULL,
   layer = NULL,
@@ -48,6 +50,8 @@ inspire_grid_from_ids <- function(
       point_type = point_type,
       output_type = output_type,
       include_llc = include_llc,
+      id_format = id_format,
+      axis_order = axis_order,
       dsn = dsn,
       layer = layer,
       quiet = quiet

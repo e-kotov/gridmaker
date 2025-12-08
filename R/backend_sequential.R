@@ -34,17 +34,8 @@ inspire_grid_from_extent_internal <- function(
     )
   }
 
-  tz_count <- function(x) {
-    n <- 0L
-    x <- as.integer(x)
-    while (x %% 10L == 0L && x != 0) {
-      n <- n + 1L
-      x <- x %/% 10L
-    }
-    n
-  }
   make_ids <- function(x_llc, y_llc, cs, axis_order, epsg = 3035) {
-    nzeros <- tz_count(cs)
+    nzeros <- .tz_count(cs)
     div <- as.integer(10^nzeros)
     size_lbl <- if (cs >= 1000) paste0(cs / 1000, "km") else paste0(cs, "m")
 

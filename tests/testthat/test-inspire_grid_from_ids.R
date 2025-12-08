@@ -120,3 +120,99 @@ test_that("inspire_grid_from_ids_internal handles empty input", {
     "Input 'inspire' cannot be an empty vector."
   )
 })
+
+test_that("Round-trip: grid from extent -> short IDs -> grid from IDs matches original", {
+  # This test verifies that a grid can be correctly reconstructed from short IDs
+  # when CRS is provided, fixing the coordinate scaling and CRS propagation bugs.
+
+  # Step 1: Create a small extent for testing
+  test_extent <- st_bbox(
+    c(xmin = 1000000, ymin = 1000000, xmax = 1030000, ymax = 1030000),
+    crs = st_crs(TARGET_CRS)
+  )
+
+  # Step 2: Generate the original grid from extent with short IDs
+  grid_original <- inspire_grid_from_extent(
+    grid_extent = test_extent,
+    cellsize_m = CELLSIZE,
+    crs = TARGET_CRS,
+    output_type = "sf_polygons",
+    id_format = "short"
+  )
+
+  expect_s3_class(grid_original, "sf")
+  expect_gt(nrow(grid_original), 0)
+  expect_true("GRD_ID" %in% names(grid_original))
+
+  # Step 3: Extract the short IDs
+  short_ids <- grid_original$GRD_ID
+
+  # Verify they are indeed short format (no "CRS" prefix)
+  expect_true(all(!startsWith(short_ids, "CRS")))
+
+  # Step 4: Regenerate grid from short IDs WITH crs parameter
+  # This should NOT produce a warning and should use the correct CRS
+  grid_regenerated <- inspire_grid_from_ids_internal(
+    short_ids,
+    output_type = "sf_polygons",
+    crs = TARGET_CRS
+  )
+
+  # Step 5: Compare the two grids
+  expect_s3_class(grid_regenerated, "sf")
+  expect_equal(nrow(grid_regenerated), nrow(grid_original))
+  expect_equal(st_crs(grid_regenerated), st_crs(grid_original))
+
+  # The regenerated grid should have the same cell positions
+  # Sort both by short ID to ensure proper comparison
+  grid_original_sorted <- grid_original[order(grid_original$GRD_ID), ]
+  grid_regenerated_sorted <- grid_regenerated[order(grid_regenerated$id), ]
+
+  # Compare LLC coordinates (these should match exactly)
+  expect_equal(
+    grid_original_sorted$X_LLC,
+    grid_regenerated_sorted$X_LLC,
+    tolerance = 1e-6
+  )
+  expect_equal(
+    grid_original_sorted$Y_LLC,
+    grid_regenerated_sorted$Y_LLC,
+    tolerance = 1e-6
+  )
+
+  # Compare geometries (should be identical)
+  geom_original <- st_geometry(grid_original_sorted)
+  geom_regenerated <- st_geometry(grid_regenerated_sorted)
+
+  # Extract centroids and compare
+  centroid_original <- st_coordinates(st_centroid(geom_original))
+  centroid_regenerated <- st_coordinates(st_centroid(geom_regenerated))
+
+  expect_equal(
+    centroid_original[, "X"],
+    centroid_regenerated[, "X"],
+    tolerance = 1e-6
+  )
+  expect_equal(
+    centroid_original[, "Y"],
+    centroid_regenerated[, "Y"],
+    tolerance = 1e-6
+  )
+})
+
+test_that("Short IDs with explicit CRS parameter do not produce warnings", {
+  # This test verifies that the CRS propagation fix works correctly
+  short_ids <- c("10kmN100E100", "10kmN101E100")
+
+  # With CRS provided, there should be NO warning
+  expect_no_warning(
+    grid_with_crs <- inspire_grid_from_ids_internal(
+      short_ids,
+      output_type = "sf_polygons",
+      crs = TARGET_CRS
+    )
+  )
+
+  expect_s3_class(grid_with_crs, "sf")
+  expect_equal(st_crs(grid_with_crs), st_crs(TARGET_CRS))
+})

@@ -84,8 +84,13 @@ inspire_id_format <- function(ids, crs = 3035, axis_order = "NE") {
       paste0(parsed$cellsize, "m")
     )
 
-    y_short <- parsed$y / parsed$cellsize
-    x_short <- parsed$x / parsed$cellsize
+    # Use robust divisor logic (10^tz_count) consistent with grid generation
+    divisors <- vapply(parsed$cellsize, function(cs) {
+      10^.tz_count(cs)
+    }, FUN.VALUE = numeric(1))
+
+    y_short <- parsed$y / divisors
+    x_short <- parsed$x / divisors
 
     if (axis_order == "NE") {
       sprintf("%sN%.0fE%.0f", res_str, y_short, x_short)
@@ -123,8 +128,13 @@ inspire_id_format <- function(ids, crs = 3035, axis_order = "NE") {
     numeric_res <- as.numeric(gsub("k?m", "", parsed$res_str))
     cellsize_m <- ifelse(is_km, numeric_res * 1000, numeric_res)
 
-    y_long <- parsed$y * cellsize_m
-    x_long <- parsed$x * cellsize_m
+    # Use robust multiplier logic
+    multipliers <- vapply(cellsize_m, function(cs) {
+      10^.tz_count(cs)
+    }, FUN.VALUE = numeric(1))
+
+    y_long <- parsed$y * multipliers
+    x_long <- parsed$x * multipliers
 
     sprintf("CRS%.0fRES%.0fmN%.0fE%.0f", crs, cellsize_m, y_long, x_long)
   }

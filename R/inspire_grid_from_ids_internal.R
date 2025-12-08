@@ -26,7 +26,11 @@ inspire_grid_from_ids_internal <- function(
   }
 
   # Parse IDs to get coords and validate consistency across all IDs
-  grid_df <- inspire_id_to_coords(ids, as_sf = FALSE)
+  # IMPORTANT: Check ... for 'crs' to allow user overrides for short IDs
+  dots <- list(...)
+  crs_in <- dots$crs
+
+  grid_df <- inspire_id_to_coords(ids, as_sf = FALSE, crs = crs_in)
   names(grid_df) <- c("crs", "cellsize", "Y_LLC", "X_LLC")
 
   if (length(unique(grid_df$crs)) > 1) {

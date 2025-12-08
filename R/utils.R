@@ -372,6 +372,19 @@ validate_disk_compatibility <- function(output_type, dsn) {
   return(TRUE)
 }
 
+#' Count trailing zeros
+#' @keywords internal
+#' @noRd
+.tz_count <- function(x) {
+  n <- 0L
+  x <- as.integer(x)
+  while (!is.na(x) && x != 0L && x %% 10L == 0L) {
+    n <- n + 1L
+    x <- x %/% 10L
+  }
+  n
+}
+
 #' Internal helper to write a grid chunk to disk (sf or flat file)
 #' @keywords internal
 #' @noRd

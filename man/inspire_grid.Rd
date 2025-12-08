@@ -251,7 +251,7 @@ This automatic limiting can be overridden by setting \code{options(gridmaker.til
 \strong{Note:} Parallel processing is not supported when \code{output_type = "spatraster"}.
 Raster output will always run sequentially.}
 
-\item{quiet}{Logical value. If \code{TRUE}, all progress messages are suppressed. Defaults to \code{FALSE}.}
+\item{quiet}{Logical value. If \code{TRUE}, all progress messages and progress bars are suppressed. Defaults to \code{FALSE}.}
 
 \item{dsn}{The destination for the output grid. If provided, the grid is written
 to this file path instead of being returned as an object.}

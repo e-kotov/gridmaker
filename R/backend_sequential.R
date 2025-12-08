@@ -13,6 +13,7 @@ inspire_grid_from_extent_internal <- function(
   axis_order = c("NE", "EN"),
   include_llc = TRUE,
   point_type = c("centroid", "llc"),
+  return_raw_coordinates = FALSE,
   ...
 ) {
   # --- 1. PRE-CHECKS AND HELPERS ---
@@ -267,7 +268,9 @@ inspire_grid_from_extent_internal <- function(
   y_coords <- seq.int(from = ymin, to = ymax - 1, by = cellsize_m)
   if (length(x_coords) == 0 || length(y_coords) == 0) {
     return(
-      if (output_type %in% c("sf_polygons", "sf_points")) {
+      if (return_raw_coordinates || output_type == "dataframe") {
+        data.frame()
+      } else if (output_type %in% c("sf_polygons", "sf_points")) {
         sf::st_sf(geometry = sf::st_sfc(crs = grid_crs))
       } else {
         data.frame()
@@ -275,6 +278,43 @@ inspire_grid_from_extent_internal <- function(
     )
   }
   grid_df <- expand.grid(X_LLC = x_coords, Y_LLC = y_coords)
+
+  # --- OPTIMIZATION: RAW COORDINATES MODE ---
+  # Used by in-memory parallel backends to reduce serialization overhead
+  if (return_raw_coordinates) {
+    # 1. Handle Clipping Internally
+    # We must generate temp geometry, filter, and discard it to keep the return object light.
+    if (clip_to_input && !is.null(clipping_target)) {
+      # Generate temp geometry just for the intersection check
+      # Note: as_inspire_grid_polygons is available in package namespace
+      temp_sf <- as_inspire_grid_polygons(grid_df, cellsize_m, grid_crs)
+      intersects_indices <- sf::st_intersects(temp_sf, clipping_target)
+      keep_indices <- lengths(intersects_indices) > 0
+      grid_df <- grid_df[keep_indices, , drop = FALSE]
+    }
+
+    # 2. Generate IDs (cheap computation)
+    if (nrow(grid_df) > 0 && id_format != "none") {
+      ids <- make_ids(
+        grid_df$X_LLC,
+        grid_df$Y_LLC,
+        cellsize_m,
+        axis_order,
+        grid_crs$epsg %||% 3035
+      )
+      if (id_format == "long") {
+        grid_df$GRD_ID <- ids$long
+      } else if (id_format == "short") {
+        grid_df$GRD_ID <- ids$short
+      } else if (id_format == "both") {
+        grid_df$GRD_ID_LONG <- ids$long
+        grid_df$GRD_ID_SHORT <- ids$short
+      }
+    }
+
+    # 3. Return lightweight dataframe immediately
+    return(grid_df)
+  }
 
   # --- 8. HANDLE OUTPUT TYPE ---
   out_obj <- as_inspire_grid(

@@ -74,6 +74,64 @@ test_that("Parallel execution matches sequential result", {
 })
 
 
+test_that("Optimized In-Memory (Mirai) matches Sequential result exactly", {
+  skip_if_not_installed("mirai")
+  skip_if_not_installed("sf")
+
+  # Setup data
+  nc_raw <- sf::st_read(system.file("shape/nc.shp", package = "sf"), quiet = TRUE)
+  nc <- sf::st_transform(nc_raw, 5070)
+
+  # 1. Sequential Generation
+  grid_seq <- inspire_grid_from_extent(
+    grid_extent = nc,
+    cellsize_m = 10000,
+    parallel = FALSE,
+    quiet = TRUE
+  )
+
+  # 2. Parallel Generation (Mirai)
+  tryCatch(
+    {
+      mirai::daemons(2)
+
+      grid_par <- inspire_grid_from_extent(
+        grid_extent = nc,
+        cellsize_m = 10000,
+        parallel = TRUE,
+        quiet = TRUE
+      )
+
+      # 3. Comparisons
+      # Check class
+      expect_s3_class(grid_par, "sf")
+
+      # Check rows
+      expect_equal(nrow(grid_seq), nrow(grid_par))
+
+      # Check content (Order might differ, so sort by ID)
+      seq_sorted <- grid_seq[order(grid_seq$GRD_ID_LONG), ]
+      par_sorted <- grid_par[order(grid_par$GRD_ID_LONG), ]
+
+      # Drop geometry to check data frame content
+      expect_equal(
+        sf::st_drop_geometry(seq_sorted),
+        sf::st_drop_geometry(par_sorted)
+      )
+
+      # Check Geometry (WKB)
+      expect_equal(
+        sf::st_as_binary(sf::st_geometry(seq_sorted)),
+        sf::st_as_binary(sf::st_geometry(par_sorted))
+      )
+    },
+    finally = {
+      mirai::daemons(0)
+    }
+  )
+})
+
+
 test_that("Backend detection logic with parallel = 'auto' works", {
   skip_on_cran()
   skip_if_not_installed("future")

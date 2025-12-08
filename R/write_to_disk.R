@@ -94,24 +94,15 @@ stream_grid_mirai <- function(
   # Determine optimal number of chunks for parallelism
   num_daemons <- mirai::status()$connections
 
-  # Estimate total cells to optimize worker count
-  width_m <- xmax - xmin
-  total_cells_est <- (width_m / cellsize_m) * total_rows
-
-  # Heuristic: Limit active workers for small grids to avoid overhead
-  # Based on multi-resolution benchmarks (50m-1000m cell sizes):
-  # < 50k cells: max 4 workers (parallel overhead ~50% of runtime)
-  # < 500k cells: max 8 workers (optimal for most scenarios)
-  # < 2M cells: max 16 workers
-  # >= 2M cells: use all workers, but warn if >32
-  effective_workers <- num_daemons
-  if (total_cells_est < 50000) {
-    effective_workers <- min(num_daemons, 4)
-  } else if (total_cells_est < 500000) {
-    effective_workers <- min(num_daemons, 8)
-  } else if (total_cells_est < 2000000) {
-    effective_workers <- min(num_daemons, 16)
-  }
+  # Use centralized heuristic (is_disk_stream = TRUE ensures we don't cap at 4 workers)
+  effective_workers <- tune_parallel_configuration(
+    grid_extent,
+    cellsize_m,
+    grid_crs,
+    num_daemons,
+    backend = "mirai",
+    is_disk_stream = TRUE
+  )
 
   tile_multiplier <- getOption("gridmaker.tile_multiplier", default = 1)
   user_set_multiplier <- !is.null(getOption("gridmaker.tile_multiplier"))
@@ -195,13 +186,6 @@ stream_grid_mirai <- function(
         num_daemons,
         "configured) often decreases performance due to overhead.",
         "Benchmarks show 8-16 workers optimal for disk operations."
-      ))
-    } else if (num_daemons > 16 && total_cells_est < 500000) {
-      message(paste(
-        "  Tip: For grids with <500k cells, 8 workers typically provide",
-        "optimal performance. You have",
-        num_daemons,
-        "configured."
       ))
     }
   }

@@ -343,7 +343,9 @@ regex_match <- function(text, pattern, i = NULL, ...) {
 #' @keywords internal
 #' @noRd
 validate_disk_compatibility <- function(output_type, dsn) {
-  if (is.null(dsn)) return(TRUE)
+  if (is.null(dsn)) {
+    return(TRUE)
+  }
 
   ext <- tolower(tools::file_ext(dsn))
   is_text <- ext %in% c("csv", "tsv", "txt")
@@ -365,12 +367,92 @@ validate_disk_compatibility <- function(output_type, dsn) {
   # 2. Check for readr availability if text output is requested
   if (is_text) {
     if (!requireNamespace("readr", quietly = TRUE)) {
-      stop("Package 'readr' is required to write to .csv/.tsv/.txt files. Please install it.", call. = FALSE)
+      stop(
+        "Package 'readr' is required to write to .csv/.tsv/.txt files. Please install it.",
+        call. = FALSE
+      )
     }
   }
 
   return(TRUE)
 }
+
+#' Internal heuristic to optimize worker count based on grid size and backend
+#' @keywords internal
+#' @noRd
+tune_parallel_configuration <- function(
+  grid_extent,
+  cellsize_m,
+  crs,
+  available_workers,
+  backend = c("mirai", "future"),
+  is_disk_stream = FALSE
+) {
+  backend <- match.arg(backend)
+
+  # Ensure cellsize is numeric and valid
+  if (is.null(cellsize_m) || is.na(cellsize_m) || cellsize_m <= 0) {
+    cellsize_m <- 1
+  }
+
+  # 1. Disk Streaming Logic: Use all available workers
+  if (isTRUE(is_disk_stream)) {
+    return(as.integer(available_workers))
+  }
+
+  # 2. In-Memory Logic: Estimate Cell Count
+  n_cells <- NA_real_
+
+  # Optimization: Direct calculation for numeric vectors (common in tests/simple calls)
+  # This avoids sf::st_bbox overhead and potential CRS errors if sf isn't fully loaded
+  if (is.numeric(grid_extent) && length(grid_extent) == 4) {
+    # Handle named or unnamed vectors: c(xmin, ymin, xmax, ymax)
+    if (all(c("xmin", "xmax", "ymin", "ymax") %in% names(grid_extent))) {
+      w <- as.numeric(grid_extent["xmax"] - grid_extent["xmin"])
+      h <- as.numeric(grid_extent["ymax"] - grid_extent["ymin"])
+    } else {
+      # Assume order: xmin, ymin, xmax, ymax
+      w <- as.numeric(grid_extent[3] - grid_extent[1])
+      h <- as.numeric(grid_extent[4] - grid_extent[2])
+    }
+    n_cells <- (w / cellsize_m) * (h / cellsize_m)
+  } else {
+    # Fallback for sf/bbox objects: Use helper
+    bbox <- tryCatch(
+      .get_bbox_from_grid_extent(grid_extent, crs),
+      error = function(e) NULL
+    )
+    if (!is.null(bbox)) {
+      w <- as.numeric(bbox["xmax"] - bbox["xmin"])
+      h <- as.numeric(bbox["ymax"] - bbox["ymin"])
+      n_cells <- (w / cellsize_m) * (h / cellsize_m)
+    }
+  }
+
+  # Robustness: If calculation failed (NA/Inf), assume large to force parallelism
+  # This ensures we don't accidentally run a massive job sequentially
+  if (is.na(n_cells) || !is.finite(n_cells)) {
+    n_cells <- 1e9
+  }
+
+  # 3. Apply Heuristics
+
+  # Rule A: Cap at 4 workers for in-memory to prevent main thread bottlenecks
+  optimal_workers <- min(available_workers, 4)
+
+  # Rule B: Future backend is fragile with large memory transfers
+  if (backend == "future" && n_cells > 500000) {
+    optimal_workers <- min(optimal_workers, 2)
+  }
+
+  # Rule C: Sequential fallback for trivial grids (e.g. < 10k cells)
+  if (n_cells < 10000) {
+    return(0L)
+  }
+
+  return(as.integer(optimal_workers))
+}
+
 
 #' Internal helper to write a grid chunk to disk (sf or flat file)
 #' @keywords internal
@@ -380,7 +462,6 @@ write_grid_chunk <- function(chunk, dsn, layer, append, quiet, ...) {
 
   # --- Text/Delimited Output (readr) ---
   if (ext %in% c("csv", "tsv", "txt")) {
-
     # Drop geometry if it exists (e.g. user asked for sf_polygons but wrote to .csv)
     if (inherits(chunk, "sf")) {
       chunk <- sf::st_drop_geometry(chunk)
@@ -410,7 +491,6 @@ write_grid_chunk <- function(chunk, dsn, layer, append, quiet, ...) {
     )
 
     do.call(readr::write_delim, call_args)
-
   } else {
     # --- Spatial Output (sf) ---
     # sf::st_write accepts '...' for driver specific options

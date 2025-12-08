@@ -34,7 +34,7 @@ run_parallel_future <- function(grid_extent, cellsize_m, crs, dot_args) {
     clipping_target <- target
   }
 
-  # --- 2. CREATE TILES (DEFINITIVE CORRECT LOGIC) ---
+  # --- 2. CREATE TILES ---
   full_bbox <- sf::st_bbox(grid_extent)
   xmin <- floor(as.numeric(full_bbox["xmin"]) / cellsize_m) * cellsize_m
   ymin <- floor(as.numeric(full_bbox["ymin"]) / cellsize_m) * cellsize_m
@@ -42,34 +42,30 @@ run_parallel_future <- function(grid_extent, cellsize_m, crs, dot_args) {
   ymax <- ceiling(as.numeric(full_bbox["ymax"]) / cellsize_m) * cellsize_m
 
   num_workers <- future::nbrOfWorkers()
-  # Scale down multiplier for high core counts to avoid overhead
-  default_multiplier <- if (num_workers > 16) 1 else 2
-  tile_multiplier <- getOption(
-    "gridmaker.tile_multiplier",
-    default = default_multiplier
+
+  # Auto-tune worker count
+  effective_workers <- tune_parallel_configuration(
+    grid_extent, cellsize_m, grid_crs, num_workers, backend = "future", is_disk_stream = FALSE
   )
-  num_tiles <- as.integer(round(num_workers * tile_multiplier))
+
+  if (effective_workers == 0) {
+    return(do.call(inspire_grid_from_extent_internal, c(list(grid_extent = grid_extent), all_args)))
+  }
+
+  tile_multiplier <- getOption("gridmaker.tile_multiplier", default = 1)
+  num_tiles <- as.integer(round(effective_workers * tile_multiplier))
+  if (num_tiles < 2) num_tiles <- 2
 
   if (!quiet) {
-    message(paste(
-      "Processing",
-      num_tiles,
-      "tiles using",
-      num_workers,
-      "future workers..."
-    ))
+    message(paste("Processing", num_tiles, "tiles using", num_workers, "future workers (optimized to", effective_workers, "active)..."))
   }
 
-  # Calculate total rows and divide them among tiles
   total_rows <- as.integer(round((ymax - ymin) / cellsize_m))
-  if (total_rows < num_tiles) {
-    num_tiles <- total_rows
-  }
+  if (total_rows < num_tiles) num_tiles <- total_rows
 
-  # Create breaks based on integer row counts, then convert to coordinates
   row_breaks <- floor(seq.int(0, total_rows, length.out = num_tiles + 1))
   y_breaks <- ymin + (row_breaks * cellsize_m)
-  y_breaks <- unique(y_breaks) # Ensure no zero-height tiles
+  y_breaks <- unique(y_breaks)
 
   tile_bboxes <- lapply(1:(length(y_breaks) - 1), function(i) {
     sf::st_bbox(
@@ -78,27 +74,48 @@ run_parallel_future <- function(grid_extent, cellsize_m, crs, dot_args) {
     )
   })
 
-  # --- 3. PROCESS AND CLIP TILES IN PARALLEL ---
+  # --- 3. PROCESS TILES (RAW MODE) ---
   grid_chunks <- furrr::future_map(
     .x = tile_bboxes,
     .f = ~ {
       args_for_tile <- c(list(grid_extent = .x), all_args)
       args_for_tile$clip_to_input <- FALSE
+
+      # OPTIMIZATION: Return raw data frame
+      args_for_tile$return_raw_coordinates <- TRUE
+
       chunk <- do.call(inspire_grid_from_extent_internal, args_for_tile)
-      if (nrow(chunk) > 0 && !is.null(clipping_target)) {
-        intersects_indices <- sf::st_intersects(chunk, clipping_target)
-        chunk <- chunk[lengths(intersects_indices) > 0, ]
-      }
       if (nrow(chunk) == 0) NULL else chunk
     },
     .progress = !quiet,
     .options = furrr::furrr_options(seed = TRUE, packages = "gridmaker")
   )
 
-  # --- 4. COMBINE (No de-duplication needed) ---
+  # --- 4. COMBINE AND HYDRATE ---
   if (!quiet) {
-    message("Combining results...")
+    message("Combining results and generating geometries...")
   }
-  final_grid <- do.call(rbind, purrr::compact(grid_chunks))
-  return(final_grid)
+
+  combined_df <- do.call(rbind, purrr::compact(grid_chunks))
+
+  if (is.null(combined_df) || nrow(combined_df) == 0) {
+    return(sf::st_sf(geometry = sf::st_sfc(crs = grid_crs)))
+  }
+
+  final_sf <- as_inspire_grid(
+    coords = combined_df,
+    cellsize = cellsize_m,
+    crs = grid_crs,
+    output_type = dot_args$output_type %||% "sf_polygons",
+    point_type = dot_args$point_type %||% "centroid"
+  )
+
+  final_sf <- clean_and_order_grid(
+    final_sf,
+    output_type = dot_args$output_type %||% "sf_polygons",
+    point_type = dot_args$point_type %||% "centroid",
+    include_llc = dot_args$include_llc %||% TRUE
+  )
+
+  return(final_sf)
 }

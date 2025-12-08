@@ -13,20 +13,15 @@
 #' including INSPIRE-compliant grid IDs and automatic parallel processing with
 #' `mirai` and `future` backends.
 #'
-#' @param x,grid_extent,ids The main input object.
-#'   \itemize{
-#'     \item For \code{inspire_grid}: The generic input (either a spatial object or character vector).
-#'     \item For \code{inspire_grid_from_extent}: The spatial object (\code{grid_extent}) defining the extent.
-#'     \item For \code{inspire_grid_from_ids}: The character vector of IDs (\code{ids}).
-#'   }
+#' @param x The main input object: either a spatial object (extent) or a character vector (INSPIRE IDs).
 #' @param cellsize_m A single integer representing the grid cell size in metres
-#'   (e.g., 1000 for a 1 km grid). Required when \code{x} is a spatial extent.
+#'   (e.g., 1000 for a 1 km grid). Required for spatial inputs.
 #' @param crs The coordinate reference system (CRS) for the output grid.
 #'   Accepts various formats handled by `sf::st_crs()`: an integer or numeric
 #'   EPSG code (e.g., `3035`), a string representation like `"epsg:3035"`, or
 #'   a `crs` object. If `NULL` (default), the CRS is inherited from
-#'   \code{x}. If \code{x} also lacks a CRS, the function will stop
-#'   with an error. (Used only when \code{x} is an extent.)
+#'   the spatial input. If the input also lacks a CRS, the function will stop
+#'   with an error.
 #' @param output_type The class of the output object: `"sf_polygons"` (default) creates
 #'   a spatial object with polygon geometries, `"sf_points"` creates an `sf`
 #'   object with point geometries, `"dataframe"` creates a data frame with
@@ -34,13 +29,13 @@
 #'   `"spatraster"` creates a `terra::SpatRaster` object with grid cell IDs
 #'   stored as factor levels (Raster Attribute Table).
 #' @param clip_to_input A logical value. If `TRUE`, the grid is filtered to
-#'   include only cells that intersect \code{x}. This does not cut
-#'   cell geometries. (Used only when \code{x} is an extent.)
+#'   include only cells that intersect the spatial input. This does not cut
+#'   cell geometries.
 #' @param use_convex_hull A logical value. If `TRUE` and `clip_to_input` is
 #'   `TRUE`, the grid is clipped to the convex hull of the input geometry,
 #'   which can be faster and simpler than using a complex polygon.
 #' @param buffer_m A numeric value. If `clip_to_input` is `TRUE`, this specifies
-#'   a buffer distance in metres to apply to \code{x} before clipping.
+#'   a buffer distance in metres to apply to the spatial input before clipping.
 #'   Defaults to `0` (no buffer).
 #' @param id_format A character string specifying which grid cell IDs to generate.
 #'   Options are `"both"` (default), `"long"`, `"short"`, or `"none"`.
@@ -56,16 +51,6 @@
 #'   in the output.
 #' @param point_type A character string, used only when `output_type = "sf_points"`.
 #'   Determines the location of the points: `"centroid"` for the center of the cell, or `"llc"` for the lower-left corner.
-#' @param dsn The destination for the output grid. For sf objects, this is passed to
-#'   `sf::st_write`. For `spatraster` output, this uses `terra::writeRaster`.
-#'   This can be a file path (e.g., `"path/to/grid.gpkg"` for vector data or
-#'   `"path/to/grid.tif"` for raster data) or a database connection string.
-#'   If \code{dsn} is provided, the grid is written to the specified location
-#'   instead of being returned as an object.
-#' @param layer The name of the grid layer, passed directly to `sf::st_write`.
-#'   Its interpretation depends on the destination driver. For a GeoPackage
-#'   file, this will be the layer name. If \code{dsn} is a file path and `layer` is
-#'   not specified, it defaults to the file's base name.
 #' @param parallel Controls parallel execution. Options are:
 #'   \itemize{
 #'     \item **`'auto'` (default):** Automatically detects and uses a configured
@@ -86,22 +71,24 @@
 #'   <50k cells use max 4 workers, <500k cells use max 8 workers, <2M cells use max 16 workers.
 #'   This automatic limiting can be overridden by setting `options(gridmaker.tile_multiplier)`.
 #'   **Note:** Parallel processing is not supported when `output_type = "spatraster"`.
-#'   Raster output will always run sequentially. (Used only when \code{x} is an extent.)
+#'   Raster output will always run sequentially.
 #' @param quiet Logical value. If `TRUE`, all progress messages and progress bars are suppressed. Defaults to `FALSE`.
-#' @param max_memory_gb A numeric value. Maximum memory in gigabytes to use for grid creation. Default is NULL, in which case there is an automatic limit of available system memory. The available memory detection may fail on certain HPC (High Performance Computing) systems where jobs are allocated a fixed amount of memory that is less than the total system memory of the allocated node. (Used only when \code{x} is an extent.)
-#' @param ... Additional arguments passed to the specific method.
-#'   \itemize{
-#'     \item For extent-based generation, these are passed to the backend handlers.
-#'     \item When writing to text files (e.g., .csv, .tsv) via \code{dsn}, these arguments are passed to \code{\link[readr]{write_delim}} (e.g., \code{na = "NA"}, \code{quote = "all"}).
-#'     \item When writing to spatial files via \code{dsn}, these are passed to \code{\link[sf]{st_write}}.
-#'     \item For \code{output_type = "spatraster"} writing, these are passed to \code{\link[terra]{writeRaster}}.
-#'     \item For streaming backends (`mirai` or sequential), this can include \code{max_cells_per_chunk} to control memory usage.
-#'   }
-#'
-#' @details
-#' The `...` parameter allows you to pass the parameters listed above (like `cellsize_m`,
-#' `crs`, `output_type`, etc.) to the appropriate backend method depending on whether
-#' you're creating a grid from an extent or reconstructing from INSPIRE IDs.
+#' @param dsn The destination for the output grid. For sf objects, this is passed to
+#'   `sf::st_write`. For `spatraster` output, this uses `terra::writeRaster`.
+#'   This can be a file path (e.g., `"path/to/grid.gpkg"` for vector data or
+#'   `"path/to/grid.tif"` for raster data) or a database connection string.
+#'   If \code{dsn} is provided, the grid is written to the specified location
+#'   instead of being returned as an object.
+#' @param layer The name of the grid layer, passed directly to `sf::st_write`.
+#'   Its interpretation depends on the destination driver. For a GeoPackage
+#'   file, this will be the layer name. If \code{dsn} is a file path and `layer` is
+#'   not specified, it defaults to the file's base name.
+#' @param max_memory_gb A numeric value. Maximum memory in gigabytes to use for grid creation. Default is NULL, in which case there is an automatic limit of available system memory. The available memory detection may fail on certain HPC (High Performance Computing) systems where jobs are allocated a fixed amount of memory that is less than the total system memory of the allocated node.
+#' @param ... Additional arguments passed to backend handlers.
+#'   When writing to text files (e.g., .csv, .tsv) via \code{dsn}, these arguments are passed to \code{\link[readr]{write_delim}} (e.g., \code{na = "NA"}, \code{quote = "all"}).
+#'   When writing to spatial files via \code{dsn}, these are passed to \code{\link[sf]{st_write}}.
+#'   For \code{output_type = "spatraster"} writing, these are passed to \code{\link[terra]{writeRaster}}.
+#'   For streaming backends (`mirai` or sequential), this can include \code{max_cells_per_chunk} to control memory usage.
 #'
 #' @return If \code{dsn} is \code{NULL} (the default), an \code{sf} object, \code{data.frame},
 #'   or \code{SpatRaster} representing the grid. If \code{dsn} is specified, the function writes
@@ -132,30 +119,274 @@ inspire_grid <- function(
 
 #' @export
 #' @rdname inspire_grid
-inspire_grid.sf <- function(x, ...) inspire_grid_from_extent(grid_extent = x, ...)
+inspire_grid.sf <- function(
+  x,
+  cellsize_m = NULL,
+  crs = NULL,
+  output_type = "sf_polygons",
+  clip_to_input = FALSE,
+  use_convex_hull = FALSE,
+  buffer_m = 0,
+  id_format = "both",
+  axis_order = "NE",
+  include_llc = TRUE,
+  point_type = "centroid",
+  parallel = "auto",
+  quiet = FALSE,
+  dsn = NULL,
+  layer = NULL,
+  max_memory_gb = NULL,
+  ...
+) {
+  inspire_grid_from_extent(
+    grid_extent = x,
+    cellsize_m = cellsize_m,
+    crs = crs,
+    output_type = output_type,
+    clip_to_input = clip_to_input,
+    use_convex_hull = use_convex_hull,
+    buffer_m = buffer_m,
+    id_format = id_format,
+    axis_order = axis_order,
+    include_llc = include_llc,
+    point_type = point_type,
+    parallel = parallel,
+    quiet = quiet,
+    dsn = dsn,
+    layer = layer,
+    max_memory_gb = max_memory_gb,
+    ...
+  )
+}
 
 #' @export
 #' @rdname inspire_grid
-inspire_grid.sfc <- function(x, ...) inspire_grid_from_extent(grid_extent = x, ...)
+inspire_grid.sfc <- function(
+  x,
+  cellsize_m = NULL,
+  crs = NULL,
+  output_type = "sf_polygons",
+  clip_to_input = FALSE,
+  use_convex_hull = FALSE,
+  buffer_m = 0,
+  id_format = "both",
+  axis_order = "NE",
+  include_llc = TRUE,
+  point_type = "centroid",
+  parallel = "auto",
+  quiet = FALSE,
+  dsn = NULL,
+  layer = NULL,
+  max_memory_gb = NULL,
+  ...
+) {
+  inspire_grid_from_extent(
+    grid_extent = x,
+    cellsize_m = cellsize_m,
+    crs = crs,
+    output_type = output_type,
+    clip_to_input = clip_to_input,
+    use_convex_hull = use_convex_hull,
+    buffer_m = buffer_m,
+    id_format = id_format,
+    axis_order = axis_order,
+    include_llc = include_llc,
+    point_type = point_type,
+    parallel = parallel,
+    quiet = quiet,
+    dsn = dsn,
+    layer = layer,
+    max_memory_gb = max_memory_gb,
+    ...
+  )
+}
 
 #' @export
 #' @rdname inspire_grid
-inspire_grid.bbox <- function(x, ...) inspire_grid_from_extent(grid_extent = x, ...)
+inspire_grid.bbox <- function(
+  x,
+  cellsize_m = NULL,
+  crs = NULL,
+  output_type = "sf_polygons",
+  clip_to_input = FALSE,
+  use_convex_hull = FALSE,
+  buffer_m = 0,
+  id_format = "both",
+  axis_order = "NE",
+  include_llc = TRUE,
+  point_type = "centroid",
+  parallel = "auto",
+  quiet = FALSE,
+  dsn = NULL,
+  layer = NULL,
+  max_memory_gb = NULL,
+  ...
+) {
+  inspire_grid_from_extent(
+    grid_extent = x,
+    cellsize_m = cellsize_m,
+    crs = crs,
+    output_type = output_type,
+    clip_to_input = clip_to_input,
+    use_convex_hull = use_convex_hull,
+    buffer_m = buffer_m,
+    id_format = id_format,
+    axis_order = axis_order,
+    include_llc = include_llc,
+    point_type = point_type,
+    parallel = parallel,
+    quiet = quiet,
+    dsn = dsn,
+    layer = layer,
+    max_memory_gb = max_memory_gb,
+    ...
+  )
+}
 
 #' @export
 #' @rdname inspire_grid
-inspire_grid.numeric <- function(x, ...) inspire_grid_from_extent(grid_extent = x, ...)
+inspire_grid.numeric <- function(
+  x,
+  cellsize_m = NULL,
+  crs = NULL,
+  output_type = "sf_polygons",
+  clip_to_input = FALSE,
+  use_convex_hull = FALSE,
+  buffer_m = 0,
+  id_format = "both",
+  axis_order = "NE",
+  include_llc = TRUE,
+  point_type = "centroid",
+  parallel = "auto",
+  quiet = FALSE,
+  dsn = NULL,
+  layer = NULL,
+  max_memory_gb = NULL,
+  ...
+) {
+  inspire_grid_from_extent(
+    grid_extent = x,
+    cellsize_m = cellsize_m,
+    crs = crs,
+    output_type = output_type,
+    clip_to_input = clip_to_input,
+    use_convex_hull = use_convex_hull,
+    buffer_m = buffer_m,
+    id_format = id_format,
+    axis_order = axis_order,
+    include_llc = include_llc,
+    point_type = point_type,
+    parallel = parallel,
+    quiet = quiet,
+    dsn = dsn,
+    layer = layer,
+    max_memory_gb = max_memory_gb,
+    ...
+  )
+}
 
 #' @export
 #' @rdname inspire_grid
-inspire_grid.matrix <- function(x, ...) inspire_grid_from_extent(grid_extent = x, ...)
+inspire_grid.matrix <- function(
+  x,
+  cellsize_m = NULL,
+  crs = NULL,
+  output_type = "sf_polygons",
+  clip_to_input = FALSE,
+  use_convex_hull = FALSE,
+  buffer_m = 0,
+  id_format = "both",
+  axis_order = "NE",
+  include_llc = TRUE,
+  point_type = "centroid",
+  parallel = "auto",
+  quiet = FALSE,
+  dsn = NULL,
+  layer = NULL,
+  max_memory_gb = NULL,
+  ...
+) {
+  inspire_grid_from_extent(
+    grid_extent = x,
+    cellsize_m = cellsize_m,
+    crs = crs,
+    output_type = output_type,
+    clip_to_input = clip_to_input,
+    use_convex_hull = use_convex_hull,
+    buffer_m = buffer_m,
+    id_format = id_format,
+    axis_order = axis_order,
+    include_llc = include_llc,
+    point_type = point_type,
+    parallel = parallel,
+    quiet = quiet,
+    dsn = dsn,
+    layer = layer,
+    max_memory_gb = max_memory_gb,
+    ...
+  )
+}
 
 #' @export
 #' @rdname inspire_grid
-inspire_grid.character <- function(x, ...) inspire_grid_from_ids(ids = x, ...)
+inspire_grid.character <- function(
+  x,
+  # Relevant arguments (passed to inspire_grid_from_ids)
+  crs = NULL,
+  point_type = "centroid",
+  output_type = "sf_polygons",
+  include_llc = TRUE,
+  id_format = "both",
+  axis_order = "NE",
+  quiet = FALSE,
+  dsn = NULL,
+  layer = NULL,
+  # Irrelevant arguments (sink these to prevent them from entering '...')
+  cellsize_m = NULL,
+  clip_to_input = FALSE,
+  use_convex_hull = FALSE,
+  buffer_m = 0,
+  parallel = "auto",
+  max_memory_gb = NULL,
+  # Everything else (e.g., backend options for st_write)
+  ...
+) {
+  # Warn if user provided irrelevant arguments
+  if (!is.null(cellsize_m) || isTRUE(clip_to_input) ||
+      isTRUE(use_convex_hull) || buffer_m != 0 || parallel != "auto" ||
+      !is.null(max_memory_gb)) {
+    warning(
+      "Arguments 'cellsize_m', 'clip_to_input', 'use_convex_hull', ",
+      "'buffer_m', 'parallel', and 'max_memory_gb' are ignored for INSPIRE ID reconstruction.",
+      call. = FALSE
+    )
+  }
+
+  inspire_grid_from_ids(
+    ids = x,
+    crs = crs,
+    point_type = point_type,
+    output_type = output_type,
+    include_llc = include_llc,
+    id_format = id_format,
+    axis_order = axis_order,
+    quiet = quiet,
+    dsn = dsn,
+    layer = layer,
+    ...
+  )
+}
 
 #' @rdname inspire_grid
 #' @export
+#'
+#' @param grid_extent The spatial object defining the extent. Can be an \code{sf} object,
+#'   \code{sfc} geometry collection, \code{bbox}, \code{numeric} vector (as c(xmin, ymin, xmax, ymax)),
+#'   or \code{matrix}.
+#'
+#' @details
+#' This function creates a spatial grid aligned to the CRS origin, with support for
+#' clipping to input geometries, parallel processing, and multiple output formats.
 #'
 #' @examples
 #' library(sf)

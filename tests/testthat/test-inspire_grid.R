@@ -531,8 +531,8 @@ test_that("S3 dispatch works correctly for inspire_grid()", {
 test_that("S3 dispatch preserves all arguments", {
   # Test that arguments are correctly passed through S3 dispatch
   grid_s3 <- inspire_grid(
-    nc, 
-    cellsize_m = CELLSIZE, 
+    nc,
+    cellsize_m = CELLSIZE,
     crs = TARGET_CRS,
     output_type = "sf_points",
     clip_to_input = TRUE,
@@ -541,7 +541,7 @@ test_that("S3 dispatch preserves all arguments", {
     include_llc = FALSE,
     quiet = TRUE
   )
-  
+
   grid_direct <- inspire_grid_from_extent(
     grid_extent = nc,
     cellsize_m = CELLSIZE,
@@ -553,13 +553,71 @@ test_that("S3 dispatch preserves all arguments", {
     include_llc = FALSE,
     quiet = TRUE
   )
-  
+
   # Should produce identical results
   expect_equal(nrow(grid_s3), nrow(grid_direct))
   expect_equal(names(grid_s3), names(grid_direct))
   expect_false("X_LLC" %in% names(grid_s3))
   expect_true(any(class(st_geometry(grid_s3)) == "sfc_POINT"))
-  
+
   # Check that axis_order was respected
   expect_true(all(grepl("E.*N", grid_s3$GRD_ID)))
+})
+
+test_that("API Safety: inspire_grid.character warns on irrelevant arguments", {
+  # Create some dummy IDs
+  ids <- c("CRS3035RES1000mN3000000E4000000")
+
+  # 1. Test that extent-specific arguments trigger a warning
+  # We expect a warning about "clip_to_input" being ignored
+  expect_warning(
+    inspire_grid(ids, clip_to_input = TRUE, quiet = TRUE),
+    regexp = "Arguments.*are ignored"
+  )
+
+  expect_warning(
+    inspire_grid(ids, cellsize_m = 500, quiet = TRUE),
+    regexp = "Arguments.*are ignored"
+  )
+
+  # 2. Test that these arguments do NOT cause a crash
+  # (i.e., they are successfully removed from '...' before hitting internal functions)
+  res <- suppressWarnings(
+    inspire_grid(ids, buffer_m = 500, use_convex_hull = TRUE, quiet = TRUE)
+  )
+  expect_s3_class(res, "sf")
+  expect_equal(nrow(res), 1)
+})
+
+test_that("API Safety: inspire_grid.character allows 'crs' to pass through", {
+  # Use Short IDs which require a CRS
+  short_ids <- c("1kmN3000E4000")
+  target_crs <- 3857
+
+  # 1. Ensure passing 'crs' works and is applied
+  # If 'crs' was accidentally in the "Argument Sink", this would default to 3035
+  grid_3857 <- inspire_grid(short_ids, crs = target_crs, quiet = TRUE)
+
+  expect_equal(sf::st_crs(grid_3857)$epsg, target_crs)
+
+  # 2. Ensure passing 'crs' does NOT trigger the "ignored argument" warning
+  # We might get other warnings (like "CRS not specified" if the logic is off),
+  # but we specifically don't want the "Arguments ... are ignored" warning for 'crs'.
+  expect_warning(
+    inspire_grid(short_ids, crs = target_crs, quiet = TRUE),
+    regexp = NA # Expect NO warning
+  )
+})
+
+test_that("API Safety: inspire_grid generic defaults do not pollute methods", {
+  # The generic has defaults (e.g., cellsize_m = NULL).
+  # We need to ensure that simply calling inspire_grid(ids)
+  # does NOT trigger warnings just because the default values exist.
+
+  ids <- c("CRS3035RES1000mN3000000E4000000")
+
+  # Should be silent (no warnings about ignored NULLs)
+  expect_silent(
+    inspire_grid(ids, quiet = TRUE)
+  )
 })

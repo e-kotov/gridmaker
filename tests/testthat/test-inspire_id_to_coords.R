@@ -30,12 +30,14 @@ test_that("inspire_id_to_coords works with short format IDs", {
   )
 
   # Default output (dataframe)
+  # 10km cells with short coords N349E444 scale to (3490000, 4440000) in meters
+  # Because 10000m has 4 trailing zeros, multiplier = 10^4 = 10000
   parsed_df <- inspire_id_to_coords(short_id, crs = 3035)
   expect_s3_class(parsed_df, "data.frame")
   expect_equal(names(parsed_df), c("crs", "cellsize", "y", "x"))
   expect_equal(parsed_df$cellsize, 10000) # Check m conversion
-  expect_equal(parsed_df$y, 349)
-  expect_equal(parsed_df$x, 444)
+  expect_equal(parsed_df$y, 3490000)
+  expect_equal(parsed_df$x, 4440000)
 
   # sf output
   parsed_sf <- inspire_id_to_coords(short_id, as_sf = TRUE, crs = 3035)
@@ -43,8 +45,8 @@ test_that("inspire_id_to_coords works with short format IDs", {
   # Short format IDs default to CRS 3035
   expect_equal(sf::st_crs(parsed_sf), sf::st_crs(3035))
   coords <- sf::st_coordinates(parsed_sf)
-  expect_equal(as.numeric(coords[1, "X"]), 444)
-  expect_equal(as.numeric(coords[1, "Y"]), 349)
+  expect_equal(as.numeric(coords[1, "X"]), 4440000)
+  expect_equal(as.numeric(coords[1, "Y"]), 3490000)
 })
 
 test_that("inspire_id_to_coords handles vectorization and mixed-format issues", {
@@ -60,10 +62,12 @@ test_that("inspire_id_to_coords handles vectorization and mixed-format issues", 
   )
   expect_equal(nrow(parsed_vec), 3)
 
+  # 1km = 1000m has 3 trailing zeros, multiplier = 10^3 = 1000
+  # So short coords 3618 and 4478 scale to 3618000 and 4478000
   expect_equal(parsed_vec$cellsize[1], 1000)
   expect_equal(parsed_vec$x[1], 4447000)
-  expect_equal(parsed_vec$y[2], 3618)
-  expect_equal(parsed_vec$x[3], 4478)
+  expect_equal(parsed_vec$y[2], 3618000)
+  expect_equal(parsed_vec$x[3], 4478000)
 })
 
 test_that("inspire_id_to_coords handles edge cases: malformed, NA, and empty inputs", {

@@ -194,11 +194,11 @@ test_that("inspire_grid_from_ids writes dataframe to CSV correctly (with chunkin
 
   expect_true(file.exists(tmp_csv))
 
-  # Check content
+  # Check content (default id_format = "both" produces GRD_ID_LONG and GRD_ID_SHORT)
   df_in <- readr::read_csv(tmp_csv, show_col_types = FALSE)
   expect_equal(nrow(df_in), 2)
-  expect_true("id" %in% names(df_in))
-  expect_equal(df_in$id, ids)
+  expect_true(all(c("GRD_ID_LONG", "GRD_ID_SHORT") %in% names(df_in)))
+  expect_equal(df_in$GRD_ID_LONG, ids)
 })
 
 test_that("inspire_grid_from_extent streams to CSV (dropping geometry)", {

@@ -28,7 +28,7 @@ Can also be a \code{sf}/\code{sfc} object in which case the coordinates are
 extracted using \code{\link[sf]{st_coordinates}}.}
 
 \item{cellsize_m}{A single integer representing the grid cell size in metres
-(e.g., 1000 for a 1 km grid). Required when \code{x} is a spatial extent.}
+(e.g., 1000 for a 1 km grid). Required for spatial inputs.}
 
 \item{short}{If \code{TRUE}, generates short INSPIRE ID. Defaults to
 \code{FALSE}.}

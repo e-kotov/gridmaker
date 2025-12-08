@@ -32,17 +32,125 @@ inspire_grid(
   ...
 )
 
-\method{inspire_grid}{sf}(x, ...)
+\method{inspire_grid}{sf}(
+  x,
+  cellsize_m = NULL,
+  crs = NULL,
+  output_type = "sf_polygons",
+  clip_to_input = FALSE,
+  use_convex_hull = FALSE,
+  buffer_m = 0,
+  id_format = "both",
+  axis_order = "NE",
+  include_llc = TRUE,
+  point_type = "centroid",
+  parallel = "auto",
+  quiet = FALSE,
+  dsn = NULL,
+  layer = NULL,
+  max_memory_gb = NULL,
+  ...
+)
 
-\method{inspire_grid}{sfc}(x, ...)
+\method{inspire_grid}{sfc}(
+  x,
+  cellsize_m = NULL,
+  crs = NULL,
+  output_type = "sf_polygons",
+  clip_to_input = FALSE,
+  use_convex_hull = FALSE,
+  buffer_m = 0,
+  id_format = "both",
+  axis_order = "NE",
+  include_llc = TRUE,
+  point_type = "centroid",
+  parallel = "auto",
+  quiet = FALSE,
+  dsn = NULL,
+  layer = NULL,
+  max_memory_gb = NULL,
+  ...
+)
 
-\method{inspire_grid}{bbox}(x, ...)
+\method{inspire_grid}{bbox}(
+  x,
+  cellsize_m = NULL,
+  crs = NULL,
+  output_type = "sf_polygons",
+  clip_to_input = FALSE,
+  use_convex_hull = FALSE,
+  buffer_m = 0,
+  id_format = "both",
+  axis_order = "NE",
+  include_llc = TRUE,
+  point_type = "centroid",
+  parallel = "auto",
+  quiet = FALSE,
+  dsn = NULL,
+  layer = NULL,
+  max_memory_gb = NULL,
+  ...
+)
 
-\method{inspire_grid}{numeric}(x, ...)
+\method{inspire_grid}{numeric}(
+  x,
+  cellsize_m = NULL,
+  crs = NULL,
+  output_type = "sf_polygons",
+  clip_to_input = FALSE,
+  use_convex_hull = FALSE,
+  buffer_m = 0,
+  id_format = "both",
+  axis_order = "NE",
+  include_llc = TRUE,
+  point_type = "centroid",
+  parallel = "auto",
+  quiet = FALSE,
+  dsn = NULL,
+  layer = NULL,
+  max_memory_gb = NULL,
+  ...
+)
 
-\method{inspire_grid}{matrix}(x, ...)
+\method{inspire_grid}{matrix}(
+  x,
+  cellsize_m = NULL,
+  crs = NULL,
+  output_type = "sf_polygons",
+  clip_to_input = FALSE,
+  use_convex_hull = FALSE,
+  buffer_m = 0,
+  id_format = "both",
+  axis_order = "NE",
+  include_llc = TRUE,
+  point_type = "centroid",
+  parallel = "auto",
+  quiet = FALSE,
+  dsn = NULL,
+  layer = NULL,
+  max_memory_gb = NULL,
+  ...
+)
 
-\method{inspire_grid}{character}(x, ...)
+\method{inspire_grid}{character}(
+  x,
+  cellsize_m = NULL,
+  crs = NULL,
+  output_type = "sf_polygons",
+  clip_to_input = FALSE,
+  use_convex_hull = FALSE,
+  buffer_m = 0,
+  id_format = "both",
+  axis_order = "NE",
+  include_llc = TRUE,
+  point_type = "llc",
+  parallel = "auto",
+  quiet = FALSE,
+  dsn = NULL,
+  layer = NULL,
+  max_memory_gb = NULL,
+  ...
+)
 
 inspire_grid_from_extent(
   grid_extent,
@@ -69,6 +177,8 @@ inspire_grid_from_ids(
   point_type = c("llc", "centroid"),
   output_type = c("sf_polygons", "sf_points", "dataframe"),
   include_llc = TRUE,
+  id_format = c("both", "long", "short"),
+  axis_order = c("NE", "EN"),
   quiet = FALSE,
   dsn = NULL,
   layer = NULL,
@@ -76,59 +186,48 @@ inspire_grid_from_ids(
 )
 }
 \arguments{
-\item{x, grid_extent, ids}{The main input object.
-\itemize{
-\item For \code{inspire_grid}: The generic input (either a spatial object or character vector).
-\item For \code{inspire_grid_from_extent}: The spatial object (\code{grid_extent}) defining the extent.
-\item For \code{inspire_grid_from_ids}: The character vector of IDs (\code{ids}).
-}}
+\item{x}{The main input object: either a spatial object (extent) or a character vector (INSPIRE IDs).}
 
 \item{cellsize_m}{A single integer representing the grid cell size in metres
-(e.g., 1000 for a 1 km grid). Required when \code{x} is a spatial extent.}
+(e.g., 1000 for a 1 km grid). Required for spatial inputs.}
 
 \item{crs}{The coordinate reference system (CRS) for the output grid.
 Accepts various formats handled by \code{sf::st_crs()}: an integer or numeric
 EPSG code (e.g., \code{3035}), a string representation like \code{"epsg:3035"}, or
 a \code{crs} object. If \code{NULL} (default), the CRS is inherited from
-\code{x}. If \code{x} also lacks a CRS, the function will stop
-with an error. (Used only when \code{x} is an extent.)}
+the spatial input. If the input also lacks a CRS, the function will stop
+with an error.}
 
-\item{output_type}{The class of the output object: \code{"sf_polygons"} (default) creates
-a spatial object with polygon geometries, \code{"sf_points"} creates an \code{sf}
-object with point geometries, \code{"dataframe"} creates a data frame with
-grid cell centroid coordinates (\code{X_centroid}, \code{Y_centroid}), and
-\code{"spatraster"} creates a \code{terra::SpatRaster} object with grid cell IDs
-stored as factor levels (Raster Attribute Table).}
+\item{output_type}{The class of the output object: \code{"sf_polygons"} (default),
+\code{"sf_points"}, or \code{"dataframe"}.}
 
 \item{clip_to_input}{A logical value. If \code{TRUE}, the grid is filtered to
-include only cells that intersect \code{x}. This does not cut
-cell geometries. (Used only when \code{x} is an extent.)}
+include only cells that intersect the spatial input. This does not cut
+cell geometries.}
 
 \item{use_convex_hull}{A logical value. If \code{TRUE} and \code{clip_to_input} is
 \code{TRUE}, the grid is clipped to the convex hull of the input geometry,
 which can be faster and simpler than using a complex polygon.}
 
 \item{buffer_m}{A numeric value. If \code{clip_to_input} is \code{TRUE}, this specifies
-a buffer distance in metres to apply to \code{x} before clipping.
+a buffer distance in metres to apply to the spatial input before clipping.
 Defaults to \code{0} (no buffer).}
 
-\item{id_format}{A character string specifying which grid cell IDs to generate.
+\item{id_format}{A character string specifying which grid cell IDs to include.
 Options are \code{"both"} (default), \code{"long"}, \code{"short"}, or \code{"none"}.}
 
-\item{axis_order}{A character string specifying the coordinate order for the
-output Short INSPIRE IDs. This parameter is \strong{only used when \code{id_format} is
-\code{"short"} or \code{"both"}}. It can be one of:
-\itemize{
-\item \code{"NE"} (the default) to produce the format \verb{\{cellsize\}N\{y\}E\{x\}}.
-\item \code{"EN"} to produce the format \verb{\{cellsize\}E\{x\}N\{y\}} (e.g. this format is used in \href{https://www.dst.dk/en/TilSalg/produkter/geodata/kvadratnet}{Danish national grid}).
-}}
+\item{axis_order}{A character string specifying the coordinate order for output
+Short INSPIRE IDs (only used when \code{id_format} is \code{"short"} or \code{"both"}):
+\code{"NE"} (default) for \verb{\{cellsize\}N\{y\}E\{x\}} format, or \code{"EN"} for
+\verb{\{cellsize\}E\{x\}N\{y\}} format.}
 
 \item{include_llc}{A logical value. If \code{TRUE} (default), columns for the
 lower-left corner coordinates (\code{X_LLC}, \code{Y_LLC}) of each cell are included
 in the output.}
 
-\item{point_type}{A character string, used only when \code{output_type = "sf_points"}.
-Determines the location of the points: \code{"centroid"} for the center of the cell, or \code{"llc"} for the lower-left corner.}
+\item{point_type}{A character string determining the location of the points
+when \code{output_type = "sf_points"}: \code{"centroid"} for the center of the cell,
+or \code{"llc"} for the lower-left corner. Default is \code{"llc"}.}
 
 \item{parallel}{Controls parallel execution. Options are:
 \itemize{
@@ -150,32 +249,27 @@ The function automatically limits active workers for small grids to minimize ove
 <50k cells use max 4 workers, <500k cells use max 8 workers, <2M cells use max 16 workers.
 This automatic limiting can be overridden by setting \code{options(gridmaker.tile_multiplier)}.
 \strong{Note:} Parallel processing is not supported when \code{output_type = "spatraster"}.
-Raster output will always run sequentially. (Used only when \code{x} is an extent.)}
+Raster output will always run sequentially.}
 
-\item{quiet}{Logical value. If \code{TRUE}, all progress messages and progress bars are suppressed. Defaults to \code{FALSE}.}
+\item{quiet}{Logical value. If \code{TRUE}, all progress messages are suppressed. Defaults to \code{FALSE}.}
 
-\item{dsn}{The destination for the output grid. For sf objects, this is passed to
-\code{sf::st_write}. For \code{spatraster} output, this uses \code{terra::writeRaster}.
-This can be a file path (e.g., \code{"path/to/grid.gpkg"} for vector data or
-\code{"path/to/grid.tif"} for raster data) or a database connection string.
-If \code{dsn} is provided, the grid is written to the specified location
-instead of being returned as an object.}
+\item{dsn}{The destination for the output grid. If provided, the grid is written
+to this file path instead of being returned as an object.}
 
-\item{layer}{The name of the grid layer, passed directly to \code{sf::st_write}.
-Its interpretation depends on the destination driver. For a GeoPackage
-file, this will be the layer name. If \code{dsn} is a file path and \code{layer} is
-not specified, it defaults to the file's base name.}
+\item{layer}{The name of the grid layer when writing to file (e.g., for GeoPackage).
+If not specified and \code{dsn} is a file path, defaults to the file's base name.}
 
-\item{max_memory_gb}{A numeric value. Maximum memory in gigabytes to use for grid creation. Default is NULL, in which case there is an automatic limit of available system memory. The available memory detection may fail on certain HPC (High Performance Computing) systems where jobs are allocated a fixed amount of memory that is less than the total system memory of the allocated node. (Used only when \code{x} is an extent.)}
+\item{max_memory_gb}{A numeric value. Maximum memory in gigabytes to use for grid creation. Default is NULL, in which case there is an automatic limit of available system memory. The available memory detection may fail on certain HPC (High Performance Computing) systems where jobs are allocated a fixed amount of memory that is less than the total system memory of the allocated node.}
 
-\item{...}{Additional arguments passed to the specific method.
-\itemize{
-\item For extent-based generation, these are passed to the backend handlers.
-\item When writing to text files (e.g., .csv, .tsv) via \code{dsn}, these arguments are passed to \code{\link[readr]{write_delim}} (e.g., \code{na = "NA"}, \code{quote = "all"}).
-\item When writing to spatial files via \code{dsn}, these are passed to \code{\link[sf]{st_write}}.
-\item For \code{output_type = "spatraster"} writing, these are passed to \code{\link[terra]{writeRaster}}.
-\item For streaming backends (\code{mirai} or sequential), this can include \code{max_cells_per_chunk} to control memory usage.
-}}
+\item{...}{Additional arguments passed to backend handlers or to \code{\link[sf]{st_write}}
+when writing to file.}
+
+\item{grid_extent}{The spatial object defining the extent. Can be an \code{sf} object,
+\code{sfc} geometry collection, \code{bbox}, \code{numeric} vector (as c(xmin, ymin, xmax, ymax)),
+or \code{matrix}.}
+
+\item{ids}{A character vector of INSPIRE-compliant grid cell IDs
+(e.g., \code{"CRS3035RES100000mN26E43"}).}
 }
 \value{
 If \code{dsn} is \code{NULL} (the default), an \code{sf} object, \code{data.frame},
@@ -183,7 +277,7 @@ or \code{SpatRaster} representing the grid. If \code{dsn} is specified, the func
 the grid to a file and returns \code{invisible(dsn)}.
 
 An \code{sf} object or \code{data.frame} representing the grid derived from
-the INSPIRE IDs.
+the INSPIRE IDs. If \code{dsn} is specified, returns \code{invisible(dsn)}.
 }
 \description{
 Generates a standard-compliant spatial grid aligned to the CRS origin.
@@ -203,9 +297,8 @@ regular spatial grid from it. For generating a spatial grid from a spatial
 extent, see \code{\link{inspire_grid_from_extent}}.
 }
 \details{
-The \code{...} parameter allows you to pass the parameters listed above (like \code{cellsize_m},
-\code{crs}, \code{output_type}, etc.) to the appropriate backend method depending on whether
-you're creating a grid from an extent or reconstructing from INSPIRE IDs.
+This function creates a spatial grid aligned to the CRS origin, with support for
+clipping to input geometries, parallel processing, and multiple output formats.
 }
 \examples{
 library(sf)

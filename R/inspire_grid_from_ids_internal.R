@@ -3,6 +3,8 @@ inspire_grid_from_ids_internal <- function(
   point_type = c("llc", "centroid"),
   output_type = c("sf_polygons", "sf_points", "dataframe"),
   include_llc = TRUE,
+  id_format = c("both", "long", "short"),
+  axis_order = c("NE", "EN"),
   quiet = FALSE,
   dsn = NULL,
   layer = NULL,
@@ -10,6 +12,8 @@ inspire_grid_from_ids_internal <- function(
 ) {
   output_type <- match.arg(output_type)
   point_type <- match.arg(point_type)
+  id_format <- match.arg(id_format)
+  axis_order <- match.arg(axis_order)
 
   if (!requireNamespace("sf", quietly = TRUE)) {
     stop("The 'sf' package is required. Please install it.", call. = FALSE)
@@ -26,7 +30,11 @@ inspire_grid_from_ids_internal <- function(
   }
 
   # Parse IDs to get coords and validate consistency across all IDs
-  grid_df <- inspire_id_to_coords(ids, as_sf = FALSE)
+  # IMPORTANT: Check ... for 'crs' to allow user overrides for short IDs
+  dots <- list(...)
+  crs_in <- dots$crs
+
+  grid_df <- inspire_id_to_coords(ids, as_sf = FALSE, crs = crs_in)
   names(grid_df) <- c("crs", "cellsize", "Y_LLC", "X_LLC")
 
   if (length(unique(grid_df$crs)) > 1) {
@@ -52,6 +60,44 @@ inspire_grid_from_ids_internal <- function(
   }
 
   cellsize <- grid_df$cellsize[[1]]
+  epsg_code <- grid_crs$epsg %||% 3035
+
+  # Detect input format (long IDs start with "CRS")
+  input_is_long <- all(startsWith(ids, "CRS"))
+
+  # Helper to convert/format IDs based on id_format and axis_order
+  format_output_ids <- function(input_ids, id_format, axis_order, epsg) {
+    if (id_format == "long") {
+      if (input_is_long) {
+        list(GRD_ID = input_ids)
+      } else {
+        list(GRD_ID = inspire_id_format(input_ids, crs = epsg))
+      }
+    } else if (id_format == "short") {
+      if (input_is_long) {
+        list(GRD_ID = inspire_id_format(input_ids, axis_order = axis_order))
+      } else {
+        # Input is short - convert to long first, then back to short with desired axis_order
+        long_ids <- inspire_id_format(input_ids, crs = epsg)
+        list(GRD_ID = inspire_id_format(long_ids, axis_order = axis_order))
+      }
+    } else {
+      # id_format == "both"
+      if (input_is_long) {
+        list(
+          GRD_ID_LONG = input_ids,
+          GRD_ID_SHORT = inspire_id_format(input_ids, axis_order = axis_order)
+        )
+      } else {
+        long_ids <- inspire_id_format(input_ids, crs = epsg)
+        short_ids <- inspire_id_format(long_ids, axis_order = axis_order)
+        list(
+          GRD_ID_LONG = long_ids,
+          GRD_ID_SHORT = short_ids
+        )
+      }
+    }
+  }
 
   # --- 1. In-Memory Generation (dsn is NULL) ---
   if (is.null(dsn)) {
@@ -63,8 +109,11 @@ inspire_grid_from_ids_internal <- function(
       point_type = point_type
     )
 
-    # Add ID (Specific to this function)
-    out_obj$id <- ids
+    # Add IDs with proper format and column names
+    formatted_ids <- format_output_ids(ids, id_format, axis_order, epsg_code)
+    for (col_name in names(formatted_ids)) {
+      out_obj[[col_name]] <- formatted_ids[[col_name]]
+    }
 
     # Cleanup and reorder using helper
     return(clean_and_order_grid(
@@ -114,7 +163,11 @@ inspire_grid_from_ids_internal <- function(
       point_type = point_type
     )
 
-    chunk_obj$id <- chunk_ids
+    # Add IDs with proper format and column names
+    formatted_ids <- format_output_ids(chunk_ids, id_format, axis_order, epsg_code)
+    for (col_name in names(formatted_ids)) {
+      chunk_obj[[col_name]] <- formatted_ids[[col_name]]
+    }
 
     # Use helper for consistency
     chunk_obj <- clean_and_order_grid(

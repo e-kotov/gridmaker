@@ -123,8 +123,15 @@ parse_inspire_ids <- function(inspire, is_long, is_short) {
     }
 
     parsed[short_indices, "cellsize"] <- res_to_m(parsed_short_ne$cellsize_str)
-    parsed[short_indices, "y"] <- parsed_short_ne$y
-    parsed[short_indices, "x"] <- parsed_short_ne$x
+
+    # Calculate multipliers to restore coordinates based on cellsize trailing zeros
+    # This inverses the division logic used during grid generation
+    multipliers <- vapply(parsed[short_indices, "cellsize"], function(cs) {
+      10^.tz_count(cs)
+    }, FUN.VALUE = numeric(1))
+
+    parsed[short_indices, "y"] <- parsed_short_ne$y * multipliers
+    parsed[short_indices, "x"] <- parsed_short_ne$x * multipliers
   }
 
   return(parsed)

@@ -42,22 +42,130 @@ inspire_grid(
 )
 
 # S3 method for class 'sf'
-inspire_grid(x, ...)
+inspire_grid(
+  x,
+  cellsize_m = NULL,
+  crs = NULL,
+  output_type = "sf_polygons",
+  clip_to_input = FALSE,
+  use_convex_hull = FALSE,
+  buffer_m = 0,
+  id_format = "both",
+  axis_order = "NE",
+  include_llc = TRUE,
+  point_type = "centroid",
+  parallel = "auto",
+  quiet = FALSE,
+  dsn = NULL,
+  layer = NULL,
+  max_memory_gb = NULL,
+  ...
+)
 
 # S3 method for class 'sfc'
-inspire_grid(x, ...)
+inspire_grid(
+  x,
+  cellsize_m = NULL,
+  crs = NULL,
+  output_type = "sf_polygons",
+  clip_to_input = FALSE,
+  use_convex_hull = FALSE,
+  buffer_m = 0,
+  id_format = "both",
+  axis_order = "NE",
+  include_llc = TRUE,
+  point_type = "centroid",
+  parallel = "auto",
+  quiet = FALSE,
+  dsn = NULL,
+  layer = NULL,
+  max_memory_gb = NULL,
+  ...
+)
 
 # S3 method for class 'bbox'
-inspire_grid(x, ...)
+inspire_grid(
+  x,
+  cellsize_m = NULL,
+  crs = NULL,
+  output_type = "sf_polygons",
+  clip_to_input = FALSE,
+  use_convex_hull = FALSE,
+  buffer_m = 0,
+  id_format = "both",
+  axis_order = "NE",
+  include_llc = TRUE,
+  point_type = "centroid",
+  parallel = "auto",
+  quiet = FALSE,
+  dsn = NULL,
+  layer = NULL,
+  max_memory_gb = NULL,
+  ...
+)
 
 # S3 method for class 'numeric'
-inspire_grid(x, ...)
+inspire_grid(
+  x,
+  cellsize_m = NULL,
+  crs = NULL,
+  output_type = "sf_polygons",
+  clip_to_input = FALSE,
+  use_convex_hull = FALSE,
+  buffer_m = 0,
+  id_format = "both",
+  axis_order = "NE",
+  include_llc = TRUE,
+  point_type = "centroid",
+  parallel = "auto",
+  quiet = FALSE,
+  dsn = NULL,
+  layer = NULL,
+  max_memory_gb = NULL,
+  ...
+)
 
 # S3 method for class 'matrix'
-inspire_grid(x, ...)
+inspire_grid(
+  x,
+  cellsize_m = NULL,
+  crs = NULL,
+  output_type = "sf_polygons",
+  clip_to_input = FALSE,
+  use_convex_hull = FALSE,
+  buffer_m = 0,
+  id_format = "both",
+  axis_order = "NE",
+  include_llc = TRUE,
+  point_type = "centroid",
+  parallel = "auto",
+  quiet = FALSE,
+  dsn = NULL,
+  layer = NULL,
+  max_memory_gb = NULL,
+  ...
+)
 
 # S3 method for class 'character'
-inspire_grid(x, ...)
+inspire_grid(
+  x,
+  cellsize_m = NULL,
+  crs = NULL,
+  output_type = "sf_polygons",
+  clip_to_input = FALSE,
+  use_convex_hull = FALSE,
+  buffer_m = 0,
+  id_format = "both",
+  axis_order = "NE",
+  include_llc = TRUE,
+  point_type = "llc",
+  parallel = "auto",
+  quiet = FALSE,
+  dsn = NULL,
+  layer = NULL,
+  max_memory_gb = NULL,
+  ...
+)
 
 inspire_grid_from_extent(
   grid_extent,
@@ -84,6 +192,8 @@ inspire_grid_from_ids(
   point_type = c("llc", "centroid"),
   output_type = c("sf_polygons", "sf_points", "dataframe"),
   include_llc = TRUE,
+  id_format = c("both", "long", "short"),
+  axis_order = c("NE", "EN"),
   quiet = FALSE,
   dsn = NULL,
   layer = NULL,
@@ -93,22 +203,15 @@ inspire_grid_from_ids(
 
 ## Arguments
 
-- x, grid_extent, ids:
+- x:
 
-  The main input object.
-
-  - For `inspire_grid`: The generic input (either a spatial object or
-    character vector).
-
-  - For `inspire_grid_from_extent`: The spatial object (`grid_extent`)
-    defining the extent.
-
-  - For `inspire_grid_from_ids`: The character vector of IDs (`ids`).
+  The main input object: either a spatial object (extent) or a character
+  vector (INSPIRE IDs).
 
 - cellsize_m:
 
   A single integer representing the grid cell size in metres (e.g., 1000
-  for a 1 km grid). Required when `x` is a spatial extent.
+  for a 1 km grid). Required for spatial inputs.
 
 - crs:
 
@@ -117,25 +220,18 @@ inspire_grid_from_ids(
   [`sf::st_crs()`](https://r-spatial.github.io/sf/reference/st_crs.html):
   an integer or numeric EPSG code (e.g., `3035`), a string
   representation like `"epsg:3035"`, or a `crs` object. If `NULL`
-  (default), the CRS is inherited from `x`. If `x` also lacks a CRS, the
-  function will stop with an error. (Used only when `x` is an extent.)
+  (default), the CRS is inherited from the spatial input. If the input
+  also lacks a CRS, the function will stop with an error.
 
 - output_type:
 
-  The class of the output object: `"sf_polygons"` (default) creates a
-  spatial object with polygon geometries, `"sf_points"` creates an `sf`
-  object with point geometries, `"dataframe"` creates a data frame with
-  grid cell centroid coordinates (`X_centroid`, `Y_centroid`), and
-  `"spatraster"` creates a
-  [`terra::SpatRaster`](https://rspatial.github.io/terra/reference/SpatRaster-class.html)
-  object with grid cell IDs stored as factor levels (Raster Attribute
-  Table).
+  The class of the output object: `"sf_polygons"` (default),
+  `"sf_points"`, or `"dataframe"`.
 
 - clip_to_input:
 
   A logical value. If `TRUE`, the grid is filtered to include only cells
-  that intersect `x`. This does not cut cell geometries. (Used only when
-  `x` is an extent.)
+  that intersect the spatial input. This does not cut cell geometries.
 
 - use_convex_hull:
 
@@ -146,25 +242,20 @@ inspire_grid_from_ids(
 - buffer_m:
 
   A numeric value. If `clip_to_input` is `TRUE`, this specifies a buffer
-  distance in metres to apply to `x` before clipping. Defaults to `0`
-  (no buffer).
+  distance in metres to apply to the spatial input before clipping.
+  Defaults to `0` (no buffer).
 
 - id_format:
 
-  A character string specifying which grid cell IDs to generate. Options
+  A character string specifying which grid cell IDs to include. Options
   are `"both"` (default), `"long"`, `"short"`, or `"none"`.
 
 - axis_order:
 
-  A character string specifying the coordinate order for the output
-  Short INSPIRE IDs. This parameter is **only used when `id_format` is
-  `"short"` or `"both"`**. It can be one of:
-
-  - `"NE"` (the default) to produce the format `{cellsize}N{y}E{x}`.
-
-  - `"EN"` to produce the format `{cellsize}E{x}N{y}` (e.g. this format
-    is used in [Danish national
-    grid](https://www.dst.dk/en/TilSalg/produkter/geodata/kvadratnet)).
+  A character string specifying the coordinate order for output Short
+  INSPIRE IDs (only used when `id_format` is `"short"` or `"both"`):
+  `"NE"` (default) for `{cellsize}N{y}E{x}` format, or `"EN"` for
+  `{cellsize}E{x}N{y}` format.
 
 - include_llc:
 
@@ -174,9 +265,9 @@ inspire_grid_from_ids(
 
 - point_type:
 
-  A character string, used only when `output_type = "sf_points"`.
-  Determines the location of the points: `"centroid"` for the center of
-  the cell, or `"llc"` for the lower-left corner.
+  A character string determining the location of the points when
+  `output_type = "sf_points"`: `"centroid"` for the center of the cell,
+  or `"llc"` for the lower-left corner. Default is `"llc"`.
 
 - parallel:
 
@@ -205,31 +296,23 @@ inspire_grid_from_ids(
   limiting can be overridden by setting
   `options(gridmaker.tile_multiplier)`. **Note:** Parallel processing is
   not supported when `output_type = "spatraster"`. Raster output will
-  always run sequentially. (Used only when `x` is an extent.)
+  always run sequentially.
 
 - quiet:
 
-  Logical value. If `TRUE`, all progress messages and progress bars are
-  suppressed. Defaults to `FALSE`.
+  Logical value. If `TRUE`, all progress messages are suppressed.
+  Defaults to `FALSE`.
 
 - dsn:
 
-  The destination for the output grid. For sf objects, this is passed to
-  [`sf::st_write`](https://r-spatial.github.io/sf/reference/st_write.html).
-  For `spatraster` output, this uses
-  [`terra::writeRaster`](https://rspatial.github.io/terra/reference/writeRaster.html).
-  This can be a file path (e.g., `"path/to/grid.gpkg"` for vector data
-  or `"path/to/grid.tif"` for raster data) or a database connection
-  string. If `dsn` is provided, the grid is written to the specified
-  location instead of being returned as an object.
+  The destination for the output grid. If provided, the grid is written
+  to this file path instead of being returned as an object.
 
 - layer:
 
-  The name of the grid layer, passed directly to
-  [`sf::st_write`](https://r-spatial.github.io/sf/reference/st_write.html).
-  Its interpretation depends on the destination driver. For a GeoPackage
-  file, this will be the layer name. If `dsn` is a file path and `layer`
-  is not specified, it defaults to the file's base name.
+  The name of the grid layer when writing to file (e.g., for
+  GeoPackage). If not specified and `dsn` is a file path, defaults to
+  the file's base name.
 
 - max_memory_gb:
 
@@ -238,28 +321,24 @@ inspire_grid_from_ids(
   available system memory. The available memory detection may fail on
   certain HPC (High Performance Computing) systems where jobs are
   allocated a fixed amount of memory that is less than the total system
-  memory of the allocated node. (Used only when `x` is an extent.)
+  memory of the allocated node.
 
 - ...:
 
-  Additional arguments passed to the specific method.
+  Additional arguments passed to backend handlers or to
+  [`st_write`](https://r-spatial.github.io/sf/reference/st_write.html)
+  when writing to file.
 
-  - For extent-based generation, these are passed to the backend
-    handlers.
+- grid_extent:
 
-  - When writing to text files (e.g., .csv, .tsv) via `dsn`, these
-    arguments are passed to
-    [`write_delim`](https://readr.tidyverse.org/reference/write_delim.html)
-    (e.g., `na = "NA"`, `quote = "all"`).
+  The spatial object defining the extent. Can be an `sf` object, `sfc`
+  geometry collection, `bbox`, `numeric` vector (as c(xmin, ymin, xmax,
+  ymax)), or `matrix`.
 
-  - When writing to spatial files via `dsn`, these are passed to
-    [`st_write`](https://r-spatial.github.io/sf/reference/st_write.html).
+- ids:
 
-  - For `output_type = "spatraster"` writing, these are passed to
-    [`writeRaster`](https://rspatial.github.io/terra/reference/writeRaster.html).
-
-  - For streaming backends (`mirai` or sequential), this can include
-    `max_cells_per_chunk` to control memory usage.
+  A character vector of INSPIRE-compliant grid cell IDs (e.g.,
+  `"CRS3035RES100000mN26E43"`).
 
 ## Value
 
@@ -268,14 +347,13 @@ If `dsn` is `NULL` (the default), an `sf` object, `data.frame`, or
 writes the grid to a file and returns `invisible(dsn)`.
 
 An `sf` object or `data.frame` representing the grid derived from the
-INSPIRE IDs.
+INSPIRE IDs. If `dsn` is specified, returns `invisible(dsn)`.
 
 ## Details
 
-The `...` parameter allows you to pass the parameters listed above (like
-`cellsize_m`, `crs`, `output_type`, etc.) to the appropriate backend
-method depending on whether you're creating a grid from an extent or
-reconstructing from INSPIRE IDs.
+This function creates a spatial grid aligned to the CRS origin, with
+support for clipping to input geometries, parallel processing, and
+multiple output formats.
 
 ## Examples
 

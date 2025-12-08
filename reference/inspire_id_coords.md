@@ -45,7 +45,7 @@ inspire_id_to_coords(inspire, as_sf = FALSE, crs = NULL)
 - cellsize_m:
 
   A single integer representing the grid cell size in metres (e.g., 1000
-  for a 1 km grid). Required when `x` is a spatial extent.
+  for a 1 km grid). Required for spatial inputs.
 
 - short:
 
@@ -131,8 +131,8 @@ inspire_id_from_coords(coords, llc = TRUE, cellsize_m = 1000, short = TRUE, axis
 
 # Extract coordinates from short ID strings
 inspire_id_to_coords("100mN34000E44000", crs = 3035)
-#>    crs cellsize     y     x
-#> 1 3035      100 34000 44000
+#>    crs cellsize       y       x
+#> 1 3035      100 3400000 4400000
 
 # Generate IDs from an sf dataframe
 if (requireNamespace("sf", quietly = TRUE)) {

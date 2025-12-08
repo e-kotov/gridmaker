@@ -105,7 +105,7 @@ extracted using <code><a href="https://r-spatial.github.io/sf/reference/st_coord
 
 <dt id="arg-cellsize-m">cellsize_m<a class="anchor" aria-label="anchor" href="#arg-cellsize-m"></a></dt>
 <dd><p>A single integer representing the grid cell size in metres
-(e.g., 1000 for a 1 km grid). Required when <code>x</code> is a spatial extent.</p></dd>
+(e.g., 1000 for a 1 km grid). Required for spatial inputs.</p></dd>
 
 
 <dt id="arg-short">short<a class="anchor" aria-label="anchor" href="#arg-short"></a></dt>
@@ -189,8 +189,8 @@ the centers of the grid cells as opposed to the lower-left corners.</p>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Extract coordinates from short ID strings</span></span></span>
 <span class="r-in"><span><span class="fu">inspire_id_to_coords</span><span class="op">(</span><span class="st">"100mN34000E44000"</span>, crs <span class="op">=</span> <span class="fl">3035</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    crs cellsize     y     x</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1 3035      100 34000 44000</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    crs cellsize       y       x</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1 3035      100 3400000 4400000</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Generate IDs from an sf dataframe</span></span></span>
 <span class="r-in"><span><span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/ns-load.html" class="external-link">requireNamespace</a></span><span class="op">(</span><span class="st">"sf"</span>, quietly <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span></span>

@@ -3,7 +3,7 @@ pkgdown: 2.2.0
 pkgdown_sha: ~
 articles:
   gridmaker: gridmaker.html
-last_built: 2025-12-08T12:36Z
+last_built: 2025-12-08T21:03Z
 urls:
   reference: http://www.ekotov.pro/gridmaker/reference
   article: http://www.ekotov.pro/gridmaker/articles

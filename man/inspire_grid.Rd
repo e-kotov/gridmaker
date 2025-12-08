@@ -227,7 +227,7 @@ in the output.}
 
 \item{point_type}{A character string determining the location of the points
 when \code{output_type = "sf_points"}: \code{"centroid"} for the center of the cell,
-or \code{"llc"} for the lower-left corner. Default is \code{"llc"}.}
+or \code{"llc"} for the lower-left corner. Default is \code{"llc"} for \code{inspire_grid_from_ids()}, and \code{"centroid"} for \code{inspire_grid.character()}.}
 
 \item{parallel}{Controls parallel execution. Options are:
 \itemize{

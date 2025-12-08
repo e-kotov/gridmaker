@@ -50,7 +50,7 @@
 #'   lower-left corner coordinates (`X_LLC`, `Y_LLC`) of each cell are included
 #'   in the output.
 #' @param point_type A character string, used only when `output_type = "sf_points"`.
-#'   Determines the location of the points: `"centroid"` for the center of the cell, or `"llc"` for the lower-left corner.
+#'   Determines the location of the points: `"centroid"` for the center of the cell, or \code{"llc"} for the lower-left corner. Default is \code{"llc"} for \code{inspire_grid_from_ids()}, and \code{"centroid"} for \code{inspire_grid.character()}.
 #' @param parallel Controls parallel execution. Options are:
 #'   \itemize{
 #'     \item **`'auto'` (default):** Automatically detects and uses a configured
@@ -332,29 +332,33 @@ inspire_grid.matrix <- function(
 inspire_grid.character <- function(
   x,
   # --- Must match Generic Order Exactly ---
-  cellsize_m = NULL,        # Ignored (Sink)
-  crs = NULL,               # Used
+  cellsize_m = NULL, # Ignored (Sink)
+  crs = NULL, # Used
   output_type = "sf_polygons", # Used
-  clip_to_input = FALSE,    # Ignored (Sink)
-  use_convex_hull = FALSE,  # Ignored (Sink)
-  buffer_m = 0,             # Ignored (Sink)
-  id_format = "both",       # Used
-  axis_order = "NE",        # Used
-  include_llc = TRUE,       # Used
-  point_type = "centroid",  # Used
-  parallel = "auto",        # Ignored (Sink)
-  quiet = FALSE,            # Used
-  dsn = NULL,               # Used
-  layer = NULL,             # Used
-  max_memory_gb = NULL,     # Ignored (Sink)
+  clip_to_input = FALSE, # Ignored (Sink)
+  use_convex_hull = FALSE, # Ignored (Sink)
+  buffer_m = 0, # Ignored (Sink)
+  id_format = "both", # Used
+  axis_order = "NE", # Used
+  include_llc = TRUE, # Used
+  point_type = "llc", # Used
+  parallel = "auto", # Ignored (Sink)
+  quiet = FALSE, # Used
+  dsn = NULL, # Used
+  layer = NULL, # Used
+  max_memory_gb = NULL, # Ignored (Sink)
   ...
 ) {
-
   # 1. Guardrails: Warn if specific ignored arguments are provided
   # Note: We check if they are explicitly non-NULL/TRUE, distinct from defaults
-  if (!is.null(cellsize_m) || isTRUE(clip_to_input) ||
-      isTRUE(use_convex_hull) || buffer_m != 0 || parallel != "auto" ||
-      !is.null(max_memory_gb)) {
+  if (
+    !is.null(cellsize_m) ||
+      isTRUE(clip_to_input) ||
+      isTRUE(use_convex_hull) ||
+      buffer_m != 0 ||
+      parallel != "auto" ||
+      !is.null(max_memory_gb)
+  ) {
     warning(
       "Arguments 'cellsize_m', 'clip_to_input', 'use_convex_hull', ",
       "'buffer_m', 'parallel', and 'max_memory_gb' are ignored for INSPIRE ID reconstruction.",
@@ -541,11 +545,18 @@ inspire_grid_from_extent <- function(
   # --- 3. RASTER PATH (SEQUENTIAL ONLY) ---
   if (output_type == "spatraster") {
     if (!requireNamespace("terra", quietly = TRUE)) {
-      stop("Package 'terra' is required for 'spatraster' output.", call. = FALSE)
+      stop(
+        "Package 'terra' is required for 'spatraster' output.",
+        call. = FALSE
+      )
     }
 
     if (isTRUE(parallel) || (is.character(parallel) && parallel == "auto")) {
-      if (!quiet) message("Note: 'spatraster' output does not support parallel processing. Running sequentially.")
+      if (!quiet) {
+        message(
+          "Note: 'spatraster' output does not support parallel processing. Running sequentially."
+        )
+      }
     }
 
     # Collect arguments
@@ -559,7 +570,9 @@ inspire_grid_from_extent <- function(
 
     # Write to disk if requested
     if (!is.null(dsn)) {
-      if (!quiet) message("Writing raster to ", dsn)
+      if (!quiet) {
+        message("Writing raster to ", dsn)
+      }
       # Pass ellipsis (...) to writeRaster for options like compression
       terra::writeRaster(r, filename = dsn, overwrite = TRUE, ...)
       return(invisible(dsn))

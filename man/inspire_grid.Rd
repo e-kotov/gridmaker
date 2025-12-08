@@ -143,7 +143,7 @@ inspire_grid(
   id_format = "both",
   axis_order = "NE",
   include_llc = TRUE,
-  point_type = "centroid",
+  point_type = "llc",
   parallel = "auto",
   quiet = FALSE,
   dsn = NULL,
@@ -227,7 +227,7 @@ in the output.}
 
 \item{point_type}{A character string determining the location of the points
 when \code{output_type = "sf_points"}: \code{"centroid"} for the center of the cell,
-or \code{"llc"} for the lower-left corner. Default is \code{"llc"} for \code{inspire_grid_from_ids()}, and \code{"centroid"} for \code{inspire_grid.character()}.}
+or \code{"llc"} for the lower-left corner. Default is \code{"llc"}.}
 
 \item{parallel}{Controls parallel execution. Options are:
 \itemize{
@@ -251,7 +251,7 @@ This automatic limiting can be overridden by setting \code{options(gridmaker.til
 \strong{Note:} Parallel processing is not supported when \code{output_type = "spatraster"}.
 Raster output will always run sequentially.}
 
-\item{quiet}{Logical value. If \code{TRUE}, all progress messages and progress bars are suppressed. Defaults to \code{FALSE}.}
+\item{quiet}{Logical value. If \code{TRUE}, all progress messages are suppressed. Defaults to \code{FALSE}.}
 
 \item{dsn}{The destination for the output grid. If provided, the grid is written
 to this file path instead of being returned as an object.}

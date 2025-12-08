@@ -276,7 +276,13 @@ test_that("CSV writing respects extra arguments (e.g. na string)", {
   chunk2 <- data.frame(a = c(NA), b = c(NA))
   tmp_csv2 <- tempfile(fileext = ".csv")
   on.exit(unlink(tmp_csv2), add = TRUE)
-  write_grid_chunk(chunk2, tmp_csv2, layer = NULL, append = FALSE, quiet = TRUE) # Default NA is usually "" or "NA" depending on readr version
+  # Test default NA string written to CSV when no custom 'na' argument is provided.
+  # The default NA string is usually "" (empty string) or "NA" depending on the readr version.
+  write_grid_chunk(chunk2, tmp_csv2, layer = NULL, append = FALSE, quiet = TRUE)
+  lines2 <- readLines(tmp_csv2)
+  # Check that either "" (empty field) or "NA" appears in the output for NA values.
+  # This ensures the default NA handling is as expected.
+  expect_true(any(grepl('(^|,)NA($|,)', lines2)) || any(grepl(',,', lines2)))
 
   # Verify pass-through of 'quote' arg
   tmp_csv3 <- tempfile(fileext = ".csv")

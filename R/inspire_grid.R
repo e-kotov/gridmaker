@@ -331,27 +331,27 @@ inspire_grid.matrix <- function(
 #' @rdname inspire_grid
 inspire_grid.character <- function(
   x,
-  # Relevant arguments (passed to inspire_grid_from_ids)
-  crs = NULL,
-  point_type = "centroid",
-  output_type = "sf_polygons",
-  include_llc = TRUE,
-  id_format = "both",
-  axis_order = "NE",
-  quiet = FALSE,
-  dsn = NULL,
-  layer = NULL,
-  # Irrelevant arguments (sink these to prevent them from entering '...')
-  cellsize_m = NULL,
-  clip_to_input = FALSE,
-  use_convex_hull = FALSE,
-  buffer_m = 0,
-  parallel = "auto",
-  max_memory_gb = NULL,
-  # Everything else (e.g., backend options for st_write)
+  # --- Must match Generic Order Exactly ---
+  cellsize_m = NULL,        # Ignored (Sink)
+  crs = NULL,               # Used
+  output_type = "sf_polygons", # Used
+  clip_to_input = FALSE,    # Ignored (Sink)
+  use_convex_hull = FALSE,  # Ignored (Sink)
+  buffer_m = 0,             # Ignored (Sink)
+  id_format = "both",       # Used
+  axis_order = "NE",        # Used
+  include_llc = TRUE,       # Used
+  point_type = "centroid",  # Used
+  parallel = "auto",        # Ignored (Sink)
+  quiet = FALSE,            # Used
+  dsn = NULL,               # Used
+  layer = NULL,             # Used
+  max_memory_gb = NULL,     # Ignored (Sink)
   ...
 ) {
-  # Warn if user provided irrelevant arguments
+
+  # 1. Guardrails: Warn if specific ignored arguments are provided
+  # Note: We check if they are explicitly non-NULL/TRUE, distinct from defaults
   if (!is.null(cellsize_m) || isTRUE(clip_to_input) ||
       isTRUE(use_convex_hull) || buffer_m != 0 || parallel != "auto" ||
       !is.null(max_memory_gb)) {
@@ -362,6 +362,9 @@ inspire_grid.character <- function(
     )
   }
 
+  # 2. Call the internal function
+  # We explicitly pass the *relevant* arguments found above.
+  # We do NOT pass the *ignored* arguments (like cellsize_m).
   inspire_grid_from_ids(
     ids = x,
     crs = crs,

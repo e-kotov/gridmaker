@@ -284,8 +284,14 @@ with an error.</p></dd>
 
 
 <dt id="arg-output-type">output_type<a class="anchor" aria-label="anchor" href="#arg-output-type"></a></dt>
-<dd><p>The class of the output object: <code>"sf_polygons"</code> (default),
-<code>"sf_points"</code>, or <code>"dataframe"</code>.</p></dd>
+<dd><p>The class of the output object: <code>"sf_polygons"</code> (default) creates
+a spatial object with polygon geometries, <code>"sf_points"</code> creates an <code>sf</code>
+object with point geometries, <code>"dataframe"</code> creates a data frame with
+grid cell centroid coordinates (<code>X_centroid</code>, <code>Y_centroid</code>), and
+<code>"spatraster"</code> creates a <code><a href="https://rspatial.github.io/terra/reference/SpatRaster-class.html" class="external-link">terra::SpatRaster</a></code> object with grid cell IDs
+stored as factor levels (Raster Attribute Table).
+<strong>Note:</strong> <code>"spatraster"</code> is only supported by <code>inspire_grid_from_extent()</code>,
+not by <code>inspire_grid_from_ids()</code>.</p></dd>
 
 
 <dt id="arg-clip-to-input">clip_to_input<a class="anchor" aria-label="anchor" href="#arg-clip-to-input"></a></dt>
@@ -307,15 +313,16 @@ Defaults to <code>0</code> (no buffer).</p></dd>
 
 
 <dt id="arg-id-format">id_format<a class="anchor" aria-label="anchor" href="#arg-id-format"></a></dt>
-<dd><p>A character string specifying which grid cell IDs to include.
+<dd><p>A character string specifying which grid cell IDs to generate.
 Options are <code>"both"</code> (default), <code>"long"</code>, <code>"short"</code>, or <code>"none"</code>.</p></dd>
 
 
 <dt id="arg-axis-order">axis_order<a class="anchor" aria-label="anchor" href="#arg-axis-order"></a></dt>
-<dd><p>A character string specifying the coordinate order for output
-Short INSPIRE IDs (only used when <code>id_format</code> is <code>"short"</code> or <code>"both"</code>):
-<code>"NE"</code> (default) for <code>{cellsize}N{y}E{x}</code> format, or <code>"EN"</code> for
-<code>{cellsize}E{x}N{y}</code> format.</p></dd>
+<dd><p>A character string specifying the coordinate order for the
+output Short INSPIRE IDs. This parameter is <strong>only used when <code>id_format</code> is
+<code>"short"</code> or <code>"both"</code></strong>. It can be one of:</p><ul><li><p><code>"NE"</code> (the default) to produce the format <code>{cellsize}N{y}E{x}</code>.</p></li>
+<li><p><code>"EN"</code> to produce the format <code>{cellsize}E{x}N{y}</code> (e.g. this format is used in <a href="https://www.dst.dk/en/TilSalg/produkter/geodata/kvadratnet" class="external-link">Danish national grid</a>).</p></li>
+</ul></dd>
 
 
 <dt id="arg-include-llc">include_llc<a class="anchor" aria-label="anchor" href="#arg-include-llc"></a></dt>
@@ -352,17 +359,23 @@ Raster output will always run sequentially.</p></dd>
 
 
 <dt id="arg-quiet">quiet<a class="anchor" aria-label="anchor" href="#arg-quiet"></a></dt>
-<dd><p>Logical value. If <code>TRUE</code>, all progress messages are suppressed. Defaults to <code>FALSE</code>.</p></dd>
+<dd><p>Logical value. If <code>TRUE</code>, all progress messages and progress bars are suppressed. Defaults to <code>FALSE</code>.</p></dd>
 
 
 <dt id="arg-dsn">dsn<a class="anchor" aria-label="anchor" href="#arg-dsn"></a></dt>
-<dd><p>The destination for the output grid. If provided, the grid is written
-to this file path instead of being returned as an object.</p></dd>
+<dd><p>The destination for the output grid. For sf objects, this is passed to
+<code><a href="https://r-spatial.github.io/sf/reference/st_write.html" class="external-link">sf::st_write</a></code>. For <code>spatraster</code> output, this uses <code><a href="https://rspatial.github.io/terra/reference/writeRaster.html" class="external-link">terra::writeRaster</a></code>.
+This can be a file path (e.g., <code>"path/to/grid.gpkg"</code> for vector data or
+<code>"path/to/grid.tif"</code> for raster data) or a database connection string.
+If <code>dsn</code> is provided, the grid is written to the specified location
+instead of being returned as an object.</p></dd>
 
 
 <dt id="arg-layer">layer<a class="anchor" aria-label="anchor" href="#arg-layer"></a></dt>
-<dd><p>The name of the grid layer when writing to file (e.g., for GeoPackage).
-If not specified and <code>dsn</code> is a file path, defaults to the file's base name.</p></dd>
+<dd><p>The name of the grid layer, passed directly to <code><a href="https://r-spatial.github.io/sf/reference/st_write.html" class="external-link">sf::st_write</a></code>.
+Its interpretation depends on the destination driver. For a GeoPackage
+file, this will be the layer name. If <code>dsn</code> is a file path and <code>layer</code> is
+not specified, it defaults to the file's base name.</p></dd>
 
 
 <dt id="arg-max-memory-gb">max_memory_gb<a class="anchor" aria-label="anchor" href="#arg-max-memory-gb"></a></dt>
@@ -370,8 +383,11 @@ If not specified and <code>dsn</code> is a file path, defaults to the file's bas
 
 
 <dt id="arg--">...<a class="anchor" aria-label="anchor" href="#arg--"></a></dt>
-<dd><p>Additional arguments passed to backend handlers or to <code><a href="https://r-spatial.github.io/sf/reference/st_write.html" class="external-link">st_write</a></code>
-when writing to file.</p></dd>
+<dd><p>Additional arguments passed to backend handlers.
+When writing to text files (e.g., .csv, .tsv) via <code>dsn</code>, these arguments are passed to <code><a href="https://readr.tidyverse.org/reference/write_delim.html" class="external-link">write_delim</a></code> (e.g., <code>na = "NA"</code>, <code>quote = "all"</code>).
+When writing to spatial files via <code>dsn</code>, these are passed to <code><a href="https://r-spatial.github.io/sf/reference/st_write.html" class="external-link">st_write</a></code>.
+For <code>output_type = "spatraster"</code> writing, these are passed to <code><a href="https://rspatial.github.io/terra/reference/writeRaster.html" class="external-link">writeRaster</a></code>.
+For streaming backends (<code>mirai</code> or sequential), this can include <code>max_cells_per_chunk</code> to control memory usage.</p></dd>
 
 
 <dt id="arg-grid-extent">grid_extent<a class="anchor" aria-label="anchor" href="#arg-grid-extent"></a></dt>

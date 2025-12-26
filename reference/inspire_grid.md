@@ -225,8 +225,15 @@ inspire_grid_from_ids(
 
 - output_type:
 
-  The class of the output object: `"sf_polygons"` (default),
-  `"sf_points"`, or `"dataframe"`.
+  The class of the output object: `"sf_polygons"` (default) creates a
+  spatial object with polygon geometries, `"sf_points"` creates an `sf`
+  object with point geometries, `"dataframe"` creates a data frame with
+  grid cell centroid coordinates (`X_centroid`, `Y_centroid`), and
+  `"spatraster"` creates a
+  [`terra::SpatRaster`](https://rspatial.github.io/terra/reference/SpatRaster-class.html)
+  object with grid cell IDs stored as factor levels (Raster Attribute
+  Table). **Note:** `"spatraster"` is only supported by
+  `inspire_grid_from_extent()`, not by `inspire_grid_from_ids()`.
 
 - clip_to_input:
 
@@ -247,15 +254,20 @@ inspire_grid_from_ids(
 
 - id_format:
 
-  A character string specifying which grid cell IDs to include. Options
+  A character string specifying which grid cell IDs to generate. Options
   are `"both"` (default), `"long"`, `"short"`, or `"none"`.
 
 - axis_order:
 
-  A character string specifying the coordinate order for output Short
-  INSPIRE IDs (only used when `id_format` is `"short"` or `"both"`):
-  `"NE"` (default) for `{cellsize}N{y}E{x}` format, or `"EN"` for
-  `{cellsize}E{x}N{y}` format.
+  A character string specifying the coordinate order for the output
+  Short INSPIRE IDs. This parameter is **only used when `id_format` is
+  `"short"` or `"both"`**. It can be one of:
+
+  - `"NE"` (the default) to produce the format `{cellsize}N{y}E{x}`.
+
+  - `"EN"` to produce the format `{cellsize}E{x}N{y}` (e.g. this format
+    is used in [Danish national
+    grid](https://www.dst.dk/en/TilSalg/produkter/geodata/kvadratnet)).
 
 - include_llc:
 
@@ -300,19 +312,27 @@ inspire_grid_from_ids(
 
 - quiet:
 
-  Logical value. If `TRUE`, all progress messages are suppressed.
-  Defaults to `FALSE`.
+  Logical value. If `TRUE`, all progress messages and progress bars are
+  suppressed. Defaults to `FALSE`.
 
 - dsn:
 
-  The destination for the output grid. If provided, the grid is written
-  to this file path instead of being returned as an object.
+  The destination for the output grid. For sf objects, this is passed to
+  [`sf::st_write`](https://r-spatial.github.io/sf/reference/st_write.html).
+  For `spatraster` output, this uses
+  [`terra::writeRaster`](https://rspatial.github.io/terra/reference/writeRaster.html).
+  This can be a file path (e.g., `"path/to/grid.gpkg"` for vector data
+  or `"path/to/grid.tif"` for raster data) or a database connection
+  string. If `dsn` is provided, the grid is written to the specified
+  location instead of being returned as an object.
 
 - layer:
 
-  The name of the grid layer when writing to file (e.g., for
-  GeoPackage). If not specified and `dsn` is a file path, defaults to
-  the file's base name.
+  The name of the grid layer, passed directly to
+  [`sf::st_write`](https://r-spatial.github.io/sf/reference/st_write.html).
+  Its interpretation depends on the destination driver. For a GeoPackage
+  file, this will be the layer name. If `dsn` is a file path and `layer`
+  is not specified, it defaults to the file's base name.
 
 - max_memory_gb:
 
@@ -325,9 +345,16 @@ inspire_grid_from_ids(
 
 - ...:
 
-  Additional arguments passed to backend handlers or to
-  [`st_write`](https://r-spatial.github.io/sf/reference/st_write.html)
-  when writing to file.
+  Additional arguments passed to backend handlers. When writing to text
+  files (e.g., .csv, .tsv) via `dsn`, these arguments are passed to
+  [`write_delim`](https://readr.tidyverse.org/reference/write_delim.html)
+  (e.g., `na = "NA"`, `quote = "all"`). When writing to spatial files
+  via `dsn`, these are passed to
+  [`st_write`](https://r-spatial.github.io/sf/reference/st_write.html).
+  For `output_type = "spatraster"` writing, these are passed to
+  [`writeRaster`](https://rspatial.github.io/terra/reference/writeRaster.html).
+  For streaming backends (`mirai` or sequential), this can include
+  `max_cells_per_chunk` to control memory usage.
 
 - grid_extent:
 

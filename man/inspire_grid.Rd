@@ -198,8 +198,14 @@ a \code{crs} object. If \code{NULL} (default), the CRS is inherited from
 the spatial input. If the input also lacks a CRS, the function will stop
 with an error.}
 
-\item{output_type}{The class of the output object: \code{"sf_polygons"} (default),
-\code{"sf_points"}, or \code{"dataframe"}.}
+\item{output_type}{The class of the output object: \code{"sf_polygons"} (default) creates
+a spatial object with polygon geometries, \code{"sf_points"} creates an \code{sf}
+object with point geometries, \code{"dataframe"} creates a data frame with
+grid cell centroid coordinates (\code{X_centroid}, \code{Y_centroid}), and
+\code{"spatraster"} creates a \code{terra::SpatRaster} object with grid cell IDs
+stored as factor levels (Raster Attribute Table).
+\strong{Note:} \code{"spatraster"} is only supported by \code{inspire_grid_from_extent()},
+not by \code{inspire_grid_from_ids()}.}
 
 \item{clip_to_input}{A logical value. If \code{TRUE}, the grid is filtered to
 include only cells that intersect the spatial input. This does not cut
@@ -213,13 +219,16 @@ which can be faster and simpler than using a complex polygon.}
 a buffer distance in metres to apply to the spatial input before clipping.
 Defaults to \code{0} (no buffer).}
 
-\item{id_format}{A character string specifying which grid cell IDs to include.
+\item{id_format}{A character string specifying which grid cell IDs to generate.
 Options are \code{"both"} (default), \code{"long"}, \code{"short"}, or \code{"none"}.}
 
-\item{axis_order}{A character string specifying the coordinate order for output
-Short INSPIRE IDs (only used when \code{id_format} is \code{"short"} or \code{"both"}):
-\code{"NE"} (default) for \verb{\{cellsize\}N\{y\}E\{x\}} format, or \code{"EN"} for
-\verb{\{cellsize\}E\{x\}N\{y\}} format.}
+\item{axis_order}{A character string specifying the coordinate order for the
+output Short INSPIRE IDs. This parameter is \strong{only used when \code{id_format} is
+\code{"short"} or \code{"both"}}. It can be one of:
+\itemize{
+\item \code{"NE"} (the default) to produce the format \verb{\{cellsize\}N\{y\}E\{x\}}.
+\item \code{"EN"} to produce the format \verb{\{cellsize\}E\{x\}N\{y\}} (e.g. this format is used in \href{https://www.dst.dk/en/TilSalg/produkter/geodata/kvadratnet}{Danish national grid}).
+}}
 
 \item{include_llc}{A logical value. If \code{TRUE} (default), columns for the
 lower-left corner coordinates (\code{X_LLC}, \code{Y_LLC}) of each cell are included
@@ -251,18 +260,27 @@ This automatic limiting can be overridden by setting \code{options(gridmaker.til
 \strong{Note:} Parallel processing is not supported when \code{output_type = "spatraster"}.
 Raster output will always run sequentially.}
 
-\item{quiet}{Logical value. If \code{TRUE}, all progress messages are suppressed. Defaults to \code{FALSE}.}
+\item{quiet}{Logical value. If \code{TRUE}, all progress messages and progress bars are suppressed. Defaults to \code{FALSE}.}
 
-\item{dsn}{The destination for the output grid. If provided, the grid is written
-to this file path instead of being returned as an object.}
+\item{dsn}{The destination for the output grid. For sf objects, this is passed to
+\code{sf::st_write}. For \code{spatraster} output, this uses \code{terra::writeRaster}.
+This can be a file path (e.g., \code{"path/to/grid.gpkg"} for vector data or
+\code{"path/to/grid.tif"} for raster data) or a database connection string.
+If \code{dsn} is provided, the grid is written to the specified location
+instead of being returned as an object.}
 
-\item{layer}{The name of the grid layer when writing to file (e.g., for GeoPackage).
-If not specified and \code{dsn} is a file path, defaults to the file's base name.}
+\item{layer}{The name of the grid layer, passed directly to \code{sf::st_write}.
+Its interpretation depends on the destination driver. For a GeoPackage
+file, this will be the layer name. If \code{dsn} is a file path and \code{layer} is
+not specified, it defaults to the file's base name.}
 
 \item{max_memory_gb}{A numeric value. Maximum memory in gigabytes to use for grid creation. Default is NULL, in which case there is an automatic limit of available system memory. The available memory detection may fail on certain HPC (High Performance Computing) systems where jobs are allocated a fixed amount of memory that is less than the total system memory of the allocated node.}
 
-\item{...}{Additional arguments passed to backend handlers or to \code{\link[sf]{st_write}}
-when writing to file.}
+\item{...}{Additional arguments passed to backend handlers.
+When writing to text files (e.g., .csv, .tsv) via \code{dsn}, these arguments are passed to \code{\link[readr]{write_delim}} (e.g., \code{na = "NA"}, \code{quote = "all"}).
+When writing to spatial files via \code{dsn}, these are passed to \code{\link[sf]{st_write}}.
+For \code{output_type = "spatraster"} writing, these are passed to \code{\link[terra]{writeRaster}}.
+For streaming backends (\code{mirai} or sequential), this can include \code{max_cells_per_chunk} to control memory usage.}
 
 \item{grid_extent}{The spatial object defining the extent. Can be an \code{sf} object,
 \code{sfc} geometry collection, \code{bbox}, \code{numeric} vector (as c(xmin, ymin, xmax, ymax)),

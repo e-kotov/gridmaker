@@ -9,24 +9,15 @@
 #' @param point_type A character string determining the location of the points
 #'   when `output_type = "sf_points"`: `"centroid"` for the center of the cell,
 #'   or `"llc"` for the lower-left corner. Default is `"llc"`.
-#' @param output_type The class of the output object: `"sf_polygons"` (default),
-#'   `"sf_points"`, or `"dataframe"`.
-#' @param include_llc A logical value. If `TRUE` (default), columns for the
-#'   lower-left corner coordinates (`X_LLC`, `Y_LLC`) of each cell are included
-#'   in the output.
-#' @param id_format A character string specifying which grid cell IDs to include.
-#'   Options are `"both"` (default), `"long"`, `"short"`, or `"none"`.
-#' @param axis_order A character string specifying the coordinate order for output
-#'   Short INSPIRE IDs (only used when `id_format` is `"short"` or `"both"`):
-#'   `"NE"` (default) for `{cellsize}N{y}E{x}` format, or `"EN"` for
-#'   `{cellsize}E{x}N{y}` format.
-#' @param quiet Logical value. If `TRUE`, all progress messages are suppressed. Defaults to `FALSE`.
-#' @param dsn The destination for the output grid. If provided, the grid is written
-#'   to this file path instead of being returned as an object.
-#' @param layer The name of the grid layer when writing to file (e.g., for GeoPackage).
-#'   If not specified and `dsn` is a file path, defaults to the file's base name.
-#' @param ... Additional arguments passed to backend handlers or to \code{\link[sf]{st_write}}
-#'   when writing to file.
+#' @param output_type The class of the output object: `"sf_polygons"` (default) creates
+#'   a spatial object with polygon geometries, `"sf_points"` creates an `sf`
+#'   object with point geometries, `"dataframe"` creates a data frame with
+#'   grid cell centroid coordinates (`X_centroid`, `Y_centroid`), and
+#'   `"spatraster"` creates a `terra::SpatRaster` object with grid cell IDs
+#'   stored as factor levels (Raster Attribute Table).
+#'   **Note:** `"spatraster"` is only supported by `inspire_grid_from_extent()`,
+#'   not by `inspire_grid_from_ids()`.
+#' @inheritParams inspire_grid_params
 #'
 #' @return An `sf` object or `data.frame` representing the grid derived from
 #'   the INSPIRE IDs. If \code{dsn} is specified, returns \code{invisible(dsn)}.

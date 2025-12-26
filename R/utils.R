@@ -347,12 +347,13 @@ validate_disk_compatibility <- function(output_type, dsn) {
 
   ext <- tolower(tools::file_ext(dsn))
   is_text <- ext %in% c("csv", "tsv", "txt")
-  is_spatial_output <- output_type %in% c("sf_polygons", "sf_points")
+  is_spatial_vector <- output_type %in% c("sf_polygons", "sf_points")
   is_dataframe <- output_type == "dataframe"
+  is_raster <- output_type == "spatraster"
+  is_raster_format <- ext %in% c("tif", "tiff", "nc", "img", "asc", "grd")
 
-  # 1. Prevent Dataframe -> Spatial Format (e.g. gpkg, shp)
-  # We assume anything NOT text is spatial/binary if it's not supported by readr
-  if (is_dataframe && !is_text) {
+  # 1. Prevent Dataframe -> Spatial Vector Format (e.g. gpkg, shp)
+  if (is_dataframe && !is_text && !is_raster_format) {
     stop(
       sprintf(
         "Output type 'dataframe' cannot be written to file extension '.%s'.\n  Please use '.csv', '.tsv', or '.txt' for dataframes, or change output_type to 'sf_polygons'/'sf_points'.",
@@ -362,7 +363,18 @@ validate_disk_compatibility <- function(output_type, dsn) {
     )
   }
 
-  # 2. Check for readr availability if text output is requested
+  # 2. Prevent SpatRaster -> Non-Raster Formats
+  if (is_raster && !is_raster_format) {
+    stop(
+      sprintf(
+        "Output type 'spatraster' cannot be written to file extension '.%s'.\n  Please use raster formats like '.tif', '.nc', '.asc', '.img', or '.grd'.",
+        ext
+      ),
+      call. = FALSE
+    )
+  }
+
+  # 3. Check for readr availability if text output is requested
   if (is_text) {
     if (!requireNamespace("readr", quietly = TRUE)) {
       stop("Package 'readr' is required to write to .csv/.tsv/.txt files. Please install it.", call. = FALSE)

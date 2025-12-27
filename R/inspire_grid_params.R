@@ -30,6 +30,21 @@
 #'   `"path/to/grid.tif"` for raster data) or a database connection string.
 #'   If \code{dsn} is provided, the grid is written to the specified location
 #'   instead of being returned as an object.
+#'
+#'   **Supported vector formats for chunked disk writes:**
+#'   \itemize{
+#'     \item `.gpkg` (GeoPackage) - **Recommended** - Best balance of speed, compatibility, and modern features
+#'     \item `.shp` (Shapefile) - Widely used, fast writes, but has limitations (10-char field names, 2GB limit)
+#'     \item `.geojson`, `.json` (GeoJSON) - Web-friendly, works but slower for large grids
+#'     \item `.geojsonl`, `.geojsonseq` (GeoJSONSeq) - Newline-delimited GeoJSON
+#'     \item `.sqlite` (SQLite/SpatiaLite) - Database format (GeoPackage is built on SQLite)
+#'     \item `.fgb` (FlatGeobuf) - Cloud-optimized format
+#'     \item `.gdb` (OpenFileGDB) - ESRI FileGDB format
+#'     \item `.csv`, `.tsv`, `.txt` (for dataframe output only)
+#'   }
+#'
+#'
+#'   Other formats not listed have not been tested and will generate a warning.
 #' @param layer The name of the grid layer, passed directly to `sf::st_write`.
 #'   Its interpretation depends on the destination driver. For a GeoPackage
 #'   file, this will be the layer name. If \code{dsn} is a file path and `layer` is
@@ -39,6 +54,7 @@
 #'   When writing to spatial files via \code{dsn}, these are passed to \code{\link[sf]{st_write}}.
 #'   For \code{output_type = "spatraster"} writing, these are passed to \code{\link[terra]{writeRaster}}.
 #'   For streaming backends (`mirai` or sequential), this can include \code{max_cells_per_chunk} to control memory usage.
+#' @param max_memory_gb A numeric value. Maximum memory in gigabytes to use for grid creation. Default is `NULL`, in which case there is an automatic limit based on **available free system memory** (not total system RAM).
 #'
 #' @name inspire_grid_params
 #' @keywords internal

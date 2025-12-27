@@ -33,7 +33,21 @@ in the output.}
 This can be a file path (e.g., \code{"path/to/grid.gpkg"} for vector data or
 \code{"path/to/grid.tif"} for raster data) or a database connection string.
 If \code{dsn} is provided, the grid is written to the specified location
-instead of being returned as an object.}
+instead of being returned as an object.
+
+\strong{Supported vector formats for chunked disk writes:}
+\itemize{
+\item \code{.gpkg} (GeoPackage) - \strong{Recommended} - Best balance of speed, compatibility, and modern features
+\item \code{.shp} (Shapefile) - Widely used, fast writes, but has limitations (10-char field names, 2GB limit)
+\item \code{.geojson}, \code{.json} (GeoJSON) - Web-friendly, works but slower for large grids
+\item \code{.geojsonl}, \code{.geojsonseq} (GeoJSONSeq) - Newline-delimited GeoJSON
+\item \code{.sqlite} (SQLite/SpatiaLite) - Database format (GeoPackage is built on SQLite)
+\item \code{.fgb} (FlatGeobuf) - Cloud-optimized format
+\item \code{.gdb} (OpenFileGDB) - ESRI FileGDB format
+\item \code{.csv}, \code{.tsv}, \code{.txt} (for dataframe output only)
+}
+
+Other formats not listed have not been tested and will generate a warning.}
 
 \item{layer}{The name of the grid layer, passed directly to \code{sf::st_write}.
 Its interpretation depends on the destination driver. For a GeoPackage
@@ -45,6 +59,8 @@ When writing to text files (e.g., .csv, .tsv) via \code{dsn}, these arguments ar
 When writing to spatial files via \code{dsn}, these are passed to \code{\link[sf]{st_write}}.
 For \code{output_type = "spatraster"} writing, these are passed to \code{\link[terra]{writeRaster}}.
 For streaming backends (\code{mirai} or sequential), this can include \code{max_cells_per_chunk} to control memory usage.}
+
+\item{max_memory_gb}{A numeric value. Maximum memory in gigabytes to use for grid creation. Default is \code{NULL}, in which case there is an automatic limit based on \strong{available free system memory} (not total system RAM).}
 }
 \description{
 This is a documentation template containing common parameter definitions

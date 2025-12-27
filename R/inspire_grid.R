@@ -54,7 +54,7 @@
 #'   This automatic limiting can be overridden by setting `options(gridmaker.tile_multiplier)`.
 #'   **Note:** Parallel processing is not supported when `output_type = "spatraster"`.
 #'   Raster output will always run sequentially.
-#' @param max_memory_gb A numeric value. Maximum memory in gigabytes to use for grid creation. Default is NULL, in which case there is an automatic limit of available system memory. The available memory detection may fail on certain HPC (High Performance Computing) systems where jobs are allocated a fixed amount of memory that is less than the total system memory of the allocated node.
+#' @param max_memory_gb A numeric value. Maximum memory in gigabytes to use for grid creation. Default is `NULL`, in which case there is an automatic limit based on **available free system memory** (not total system RAM). Using this argument allows manual override, which is recommended on certain HPC (High Performance Computing) systems where jobs are allocated a fixed amount of memory that is less than the total free memory of the allocated node.
 #' @inheritParams inspire_grid_params
 #'
 #' @return If \code{dsn} is \code{NULL} (the default), an \code{sf} object, \code{data.frame},

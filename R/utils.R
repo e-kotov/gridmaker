@@ -343,7 +343,9 @@ regex_match <- function(text, pattern, i = NULL, ...) {
 #' @keywords internal
 #' @noRd
 validate_disk_compatibility <- function(output_type, dsn) {
-  if (is.null(dsn)) return(TRUE)
+  if (is.null(dsn)) {
+    return(TRUE)
+  }
 
   ext <- tolower(tools::file_ext(dsn))
   is_text <- ext %in% c("csv", "tsv", "txt")
@@ -351,6 +353,29 @@ validate_disk_compatibility <- function(output_type, dsn) {
   is_dataframe <- output_type == "dataframe"
   is_raster <- output_type == "spatraster"
   is_raster_format <- ext %in% c("tif", "tiff", "nc", "img", "asc", "grd")
+
+  # Vector formats that support append (required for chunked disk writes)
+  # Empirically tested and confirmed to work:
+  # - GeoPackage (.gpkg) and SQLite (.sqlite) - excellent append support
+  # - Shapefile (.shp) - supports append (but has other limitations like field name length)
+  # - GeoJSON (.geojson, .json) - supports append
+  # - FlatGeobuf (.fgb) - cloud-optimized, supports append
+  # - OpenFileGDB (.gdb) - ESRI FileGDB, supports append
+  # - GeoJSONSeq (.geojsonl, .geojsonseq) - newline-delimited GeoJSON, supports append
+  append_safe_vector_formats <- c(
+    "gpkg",
+    "sqlite",
+    "shp",
+    "geojson",
+    "json",
+    "fgb",
+    "gdb",
+    "geojsonl",
+    "geojsonseq"
+  )
+
+  # Formats explicitly confirmed to NOT support append
+  no_append_formats <- c("kml", "gml")
 
   # 1. Prevent Dataframe -> Spatial Vector Format (e.g. gpkg, shp)
   if (is_dataframe && !is_text && !is_raster_format) {
@@ -374,10 +399,42 @@ validate_disk_compatibility <- function(output_type, dsn) {
     )
   }
 
-  # 3. Check for readr availability if text output is requested
+  # 3. Validate vector format supports append (required for chunked disk writes)
+  if (is_spatial_vector && !is_text) {
+    if (ext %in% no_append_formats) {
+      # Explicitly unsupported formats
+      stop(
+        sprintf(
+          "Output type '%s' cannot be written to '.%s' format.\n  The '.%s' format does not support appending to existing files.\n  Supported vector formats: %s\n  Or generate the grid in memory (dsn = NULL) and save manually.",
+          output_type,
+          ext,
+          ext,
+          paste0(".", append_safe_vector_formats, collapse = ", ")
+        ),
+        call. = FALSE
+      )
+    } else if (!ext %in% append_safe_vector_formats) {
+      # Unknown/untested formats - provide a warning but more permissive
+      warning(
+        sprintf(
+          "Output type '%s' with '.%s' format has not been tested for append support.\n  Tested formats: %s\n  The operation may fail if this format does not support appending.",
+          output_type,
+          ext,
+          paste0(".", append_safe_vector_formats, collapse = ", ")
+        ),
+        call. = FALSE,
+        immediate. = TRUE
+      )
+    }
+  }
+
+  # 4. Check for readr availability if text output is requested
   if (is_text) {
     if (!requireNamespace("readr", quietly = TRUE)) {
-      stop("Package 'readr' is required to write to .csv/.tsv/.txt files. Please install it.", call. = FALSE)
+      stop(
+        "Package 'readr' is required to write to .csv/.tsv/.txt files. Please install it.",
+        call. = FALSE
+      )
     }
   }
 
@@ -405,7 +462,6 @@ write_grid_chunk <- function(chunk, dsn, layer, append, quiet, ...) {
 
   # --- Text/Delimited Output (readr) ---
   if (ext %in% c("csv", "tsv", "txt")) {
-
     # Drop geometry if it exists (e.g. user asked for sf_polygons but wrote to .csv)
     if (inherits(chunk, "sf")) {
       chunk <- sf::st_drop_geometry(chunk)
@@ -435,7 +491,6 @@ write_grid_chunk <- function(chunk, dsn, layer, append, quiet, ...) {
     )
 
     do.call(readr::write_delim, call_args)
-
   } else {
     # --- Spatial Output (sf) ---
     # sf::st_write accepts '...' for driver specific options

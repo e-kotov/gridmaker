@@ -32,7 +32,10 @@ test_that("inspire_grid_from_extent streams correctly to disk with mirai backend
   # 3. GENERATE REFERENCE GRID (IN-MEMORY) ----
   # This is the "ground truth" that we will compare against.
   # It is run sequentially to ensure deterministic output.
-  grid_in_memory <- do.call(inspire_grid_from_extent, c(common_args, list(parallel = FALSE)))
+  grid_in_memory <- do.call(
+    inspire_grid_from_extent,
+    c(common_args, list(parallel = FALSE))
+  )
 
   # 4. RUN STREAMING GRID CREATION (ON-DISK) ----
   # Set up a 2-core mirai backend for the test
@@ -96,7 +99,10 @@ test_that("inspire_grid_from_extent handles `layer` argument correctly for disk 
   dir.create(temp_dir)
   withr::defer(unlink(temp_dir, recursive = TRUE, force = TRUE))
 
-  simple_extent <- sf::st_bbox(c(xmin = 0, ymin = 0, xmax = 100, ymax = 100), crs = 3035)
+  simple_extent <- sf::st_bbox(
+    c(xmin = 0, ymin = 0, xmax = 100, ymax = 100),
+    crs = 3035
+  )
 
   # Test 1: When layer is NULL, it defaults from dsn and gives a message
   dsn_default <- file.path(temp_dir, "default.gpkg")
@@ -157,7 +163,7 @@ test_that("inspire_grid_from_extent returns dsn invisibly when writing to disk",
   expect_true(file.exists(temp_dsn))
 })
 
-test_that("validate_disk_compatibility throws correct errors", {
+test_that("validate_disk_compatibility validates formats correctly", {
   # Error: Dataframe -> GPKG
   expect_error(
     validate_disk_compatibility("dataframe", "test.gpkg"),
@@ -168,9 +174,37 @@ test_that("validate_disk_compatibility throws correct errors", {
   skip_if_not_installed("readr")
   expect_true(validate_disk_compatibility("dataframe", "test.csv"))
 
-  # Success: SF -> GPKG
+  # Success: Tested vector formats that support append
   expect_true(validate_disk_compatibility("sf_polygons", "test.gpkg"))
+  expect_true(validate_disk_compatibility("sf_polygons", "test.sqlite"))
+  expect_true(validate_disk_compatibility("sf_polygons", "test.shp"))
+  expect_true(validate_disk_compatibility("sf_polygons", "test.geojson"))
+  expect_true(validate_disk_compatibility("sf_polygons", "test.json"))
+
+  # Error: KML and GML explicitly cannot append
+  expect_error(
+    validate_disk_compatibility("sf_polygons", "test.kml"),
+    "cannot be written to '.kml' format"
+  )
+
+  expect_error(
+    validate_disk_compatibility("sf_polygons", "test.gml"),
+    "cannot be written to '.gml' format"
+  )
+
+  # Success: Newly added tested formats
+  expect_true(validate_disk_compatibility("sf_polygons", "test.fgb"))
+  expect_true(validate_disk_compatibility("sf_polygons", "test.gdb"))
+  expect_true(validate_disk_compatibility("sf_polygons", "test.geojsonl"))
+  expect_true(validate_disk_compatibility("sf_polygons", "test.geojsonseq"))
+
+  # Warning: Truly untested format (e.g., MapInfo TAB)
+  expect_warning(
+    validate_disk_compatibility("sf_polygons", "test.tab"),
+    "has not been tested for append support"
+  )
 })
+
 
 test_that("inspire_grid_from_ids writes dataframe to CSV correctly (with chunking)", {
   skip_if_not_installed("readr")
@@ -208,7 +242,10 @@ test_that("inspire_grid_from_extent streams to CSV (dropping geometry)", {
   # Setup: Create a grid that will definitely be chunked (small RAM limit sim or just standard stream)
   # We use standard stream_grid_sequential via inspire_grid_from_extent by not setting parallel
 
-  simple_extent <- sf::st_bbox(c(xmin = 0, ymin = 0, xmax = 20000, ymax = 20000), crs = 3035)
+  simple_extent <- sf::st_bbox(
+    c(xmin = 0, ymin = 0, xmax = 20000, ymax = 20000),
+    crs = 3035
+  )
   tmp_csv <- tempfile(fileext = ".csv")
   on.exit(unlink(tmp_csv), add = TRUE)
 
@@ -266,7 +303,14 @@ test_that("CSV writing respects extra arguments (e.g. na string)", {
   chunk <- data.frame(a = c(1, NA), b = c("x", "y"))
 
   # Write with custom NA string
-  write_grid_chunk(chunk, tmp_csv, layer = NULL, append = FALSE, quiet = TRUE, na = "MISSING")
+  write_grid_chunk(
+    chunk,
+    tmp_csv,
+    layer = NULL,
+    append = FALSE,
+    quiet = TRUE,
+    na = "MISSING"
+  )
 
   # Read back raw text to verify "MISSING" is there
   lines <- readLines(tmp_csv)
@@ -287,7 +331,14 @@ test_that("CSV writing respects extra arguments (e.g. na string)", {
   # Verify pass-through of 'quote' arg
   tmp_csv3 <- tempfile(fileext = ".csv")
   on.exit(unlink(tmp_csv3), add = TRUE)
-  write_grid_chunk(chunk, tmp_csv3, layer = NULL, append = FALSE, quiet = TRUE, quote = "all")
+  write_grid_chunk(
+    chunk,
+    tmp_csv3,
+    layer = NULL,
+    append = FALSE,
+    quiet = TRUE,
+    quote = "all"
+  )
   lines3 <- readLines(tmp_csv3)
   # Look for quoted character values like "x" (quote = "all" quotes character columns)
   expect_true(any(grepl('"x"', lines3)))

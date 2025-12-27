@@ -38,3 +38,14 @@ navbar:
 home:
   title: 'gridmaker: Create INSPIRE-compliant grids with IDs'
   description: 'Create INSPIRE-compliant grids with IDs'
+
+articles:
+  - title: "Get started"
+    navbar: "Get Started"
+    contents:
+      - gridmaker
+
+  - title: "Tutorials"
+    navbar: "Tutorials"
+    contents:
+      - grid-to-disk

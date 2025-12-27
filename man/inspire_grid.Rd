@@ -29,6 +29,7 @@ inspire_grid(
   dsn = NULL,
   layer = NULL,
   max_memory_gb = NULL,
+  include_rat = FALSE,
   ...
 )
 
@@ -49,6 +50,7 @@ inspire_grid(
   dsn = NULL,
   layer = NULL,
   max_memory_gb = NULL,
+  include_rat = FALSE,
   ...
 )
 
@@ -69,6 +71,7 @@ inspire_grid(
   dsn = NULL,
   layer = NULL,
   max_memory_gb = NULL,
+  include_rat = FALSE,
   ...
 )
 
@@ -89,6 +92,7 @@ inspire_grid(
   dsn = NULL,
   layer = NULL,
   max_memory_gb = NULL,
+  include_rat = FALSE,
   ...
 )
 
@@ -109,6 +113,7 @@ inspire_grid(
   dsn = NULL,
   layer = NULL,
   max_memory_gb = NULL,
+  include_rat = FALSE,
   ...
 )
 
@@ -129,6 +134,7 @@ inspire_grid(
   dsn = NULL,
   layer = NULL,
   max_memory_gb = NULL,
+  include_rat = FALSE,
   ...
 )
 
@@ -149,6 +155,7 @@ inspire_grid(
   dsn = NULL,
   layer = NULL,
   max_memory_gb = NULL,
+  include_rat = FALSE,
   ...
 )
 
@@ -169,6 +176,7 @@ inspire_grid_from_extent(
   dsn = NULL,
   layer = NULL,
   max_memory_gb = NULL,
+  include_rat = FALSE,
   ...
 )
 
@@ -289,6 +297,26 @@ file, this will be the layer name. If \code{dsn} is a file path and \code{layer}
 not specified, it defaults to the file's base name.}
 
 \item{max_memory_gb}{A numeric value. Maximum memory in gigabytes to use for grid creation. Default is \code{NULL}, in which case there is an automatic limit based on \strong{available free system memory} (not total system RAM). Using this argument allows manual override, which is recommended on certain HPC (High Performance Computing) systems where jobs are allocated a fixed amount of memory that is less than the total free memory of the allocated node.}
+
+\item{include_rat}{Logical. If \code{TRUE}, generate a Raster Attribute Table (RAT)
+mapping numeric cell IDs to INSPIRE grid ID strings. Default is \code{FALSE}.
+
+\strong{What is a RAT?} A Raster Attribute Table stores metadata (like INSPIRE IDs)
+for each unique raster value. Without RAT, raster cells contain only numeric
+IDs (1, 2, 3...). With RAT, software like QGIS/R can display the IDs as
+human-readable labels.
+
+\strong{Format-specific behavior:}
+\itemize{
+\item \strong{GeoTIFF (.tif):} RAT stored in \code{.tif.aux.xml} sidecar file (XML).
+\strong{Warning:} This sidecar can be \strong{larger than the TIFF itself} for large
+grids. For chunked/streaming writes, requires a second pass (slower).
+Consider NetCDF or KEA formats for large grids with labels.
+\item \strong{NetCDF (.nc), KEA (.kea):} RAT embedded natively. \strong{Recommended}
+for large grids requiring labels.
+\item \strong{HDF5 (.hdf):} RAT \strong{not supported}. An error is raised if
+\code{include_rat = TRUE}.
+}}
 
 \item{...}{Additional arguments passed to backend handlers.
 When writing to text files (e.g., .csv, .tsv) via \code{dsn}, these arguments are passed to \code{\link[readr]{write_delim}} (e.g., \code{na = "NA"}, \code{quote = "all"}).

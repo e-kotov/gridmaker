@@ -352,7 +352,8 @@ validate_disk_compatibility <- function(output_type, dsn) {
   is_spatial_vector <- output_type %in% c("sf_polygons", "sf_points")
   is_dataframe <- output_type == "dataframe"
   is_raster <- output_type == "spatraster"
-  is_raster_format <- ext %in% c("tif", "tiff", "nc", "img", "asc", "grd")
+  is_raster_format <- ext %in%
+    c("tif", "tiff", "nc", "img", "asc", "grd", "hdf", "hdf5")
 
   # Vector formats that support append (required for chunked disk writes)
   # Empirically tested and confirmed to work:

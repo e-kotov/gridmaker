@@ -30,6 +30,14 @@ and exists solely to provide @inheritParams targets."><meta property="og:image" 
     <div id="navbar" class="collapse navbar-collapse ms-3">
       <ul class="navbar-nav me-auto"><li class="nav-item"><a class="nav-link" href="../articles/gridmaker.html">Get started</a></li>
 <li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
+<li class="nav-item dropdown">
+  <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
+  <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Get Started</h6></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Tutorials</h6></li>
+    <li><a class="dropdown-item" href="../articles/grid-to-disk.html">Create grid directly on disk (low memory usage)</a></li>
+  </ul></li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
       </ul><ul class="navbar-nav"><li class="nav-item"><form class="form-inline" role="search">
  <input class="form-control" type="search" name="search-input" id="search-input" autocomplete="off" aria-label="Search site" placeholder="Search for" data-search-index="../search.json"></form></li>
@@ -95,7 +103,16 @@ in the output.</p></dd>
 This can be a file path (e.g., <code>"path/to/grid.gpkg"</code> for vector data or
 <code>"path/to/grid.tif"</code> for raster data) or a database connection string.
 If <code>dsn</code> is provided, the grid is written to the specified location
-instead of being returned as an object.</p></dd>
+instead of being returned as an object.</p>
+<p><strong>Supported vector formats for chunked disk writes:</strong></p><ul><li><p><code>.gpkg</code> (GeoPackage) - <strong>Recommended</strong> - Best balance of speed, compatibility, and modern features</p></li>
+<li><p><code>.shp</code> (Shapefile) - Widely used, fast writes, but has limitations (10-char field names, 2GB limit)</p></li>
+<li><p><code>.geojson</code>, <code>.json</code> (GeoJSON) - Web-friendly, works but slower for large grids</p></li>
+<li><p><code>.geojsonl</code>, <code>.geojsonseq</code> (GeoJSONSeq) - Newline-delimited GeoJSON</p></li>
+<li><p><code>.sqlite</code> (SQLite/SpatiaLite) - Database format (GeoPackage is built on SQLite)</p></li>
+<li><p><code>.fgb</code> (FlatGeobuf) - Cloud-optimized format</p></li>
+<li><p><code>.gdb</code> (OpenFileGDB) - ESRI FileGDB format</p></li>
+<li><p><code>.csv</code>, <code>.tsv</code>, <code>.txt</code> (for dataframe output only)</p></li>
+</ul><p>Other formats not listed have not been tested and will generate a warning.</p></dd>
 
 
 <dt id="arg-layer">layer<a class="anchor" aria-label="anchor" href="#arg-layer"></a></dt>
@@ -111,6 +128,10 @@ When writing to text files (e.g., .csv, .tsv) via <code>dsn</code>, these argume
 When writing to spatial files via <code>dsn</code>, these are passed to <code><a href="https://r-spatial.github.io/sf/reference/st_write.html" class="external-link">st_write</a></code>.
 For <code>output_type = "spatraster"</code> writing, these are passed to <code><a href="https://rspatial.github.io/terra/reference/writeRaster.html" class="external-link">writeRaster</a></code>.
 For streaming backends (<code>mirai</code> or sequential), this can include <code>max_cells_per_chunk</code> to control memory usage.</p></dd>
+
+
+<dt id="arg-max-memory-gb">max_memory_gb<a class="anchor" aria-label="anchor" href="#arg-max-memory-gb"></a></dt>
+<dd><p>A numeric value. Maximum memory in gigabytes to use for grid creation. Default is <code>NULL</code>, in which case there is an automatic limit based on <strong>available free system memory</strong> (not total system RAM).</p></dd>
 
 </dl></div>
 

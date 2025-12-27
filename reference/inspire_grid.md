@@ -326,6 +326,31 @@ inspire_grid_from_ids(
   string. If `dsn` is provided, the grid is written to the specified
   location instead of being returned as an object.
 
+  **Supported vector formats for chunked disk writes:**
+
+  - `.gpkg` (GeoPackage) - **Recommended** - Best balance of speed,
+    compatibility, and modern features
+
+  - `.shp` (Shapefile) - Widely used, fast writes, but has limitations
+    (10-char field names, 2GB limit)
+
+  - `.geojson`, `.json` (GeoJSON) - Web-friendly, works but slower for
+    large grids
+
+  - `.geojsonl`, `.geojsonseq` (GeoJSONSeq) - Newline-delimited GeoJSON
+
+  - `.sqlite` (SQLite/SpatiaLite) - Database format (GeoPackage is built
+    on SQLite)
+
+  - `.fgb` (FlatGeobuf) - Cloud-optimized format
+
+  - `.gdb` (OpenFileGDB) - ESRI FileGDB format
+
+  - `.csv`, `.tsv`, `.txt` (for dataframe output only)
+
+  Other formats not listed have not been tested and will generate a
+  warning.
+
 - layer:
 
   The name of the grid layer, passed directly to
@@ -337,11 +362,12 @@ inspire_grid_from_ids(
 - max_memory_gb:
 
   A numeric value. Maximum memory in gigabytes to use for grid creation.
-  Default is NULL, in which case there is an automatic limit of
-  available system memory. The available memory detection may fail on
-  certain HPC (High Performance Computing) systems where jobs are
-  allocated a fixed amount of memory that is less than the total system
-  memory of the allocated node.
+  Default is `NULL`, in which case there is an automatic limit based on
+  **available free system memory** (not total system RAM). Using this
+  argument allows manual override, which is recommended on certain HPC
+  (High Performance Computing) systems where jobs are allocated a fixed
+  amount of memory that is less than the total free memory of the
+  allocated node.
 
 - ...:
 

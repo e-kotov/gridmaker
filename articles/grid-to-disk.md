@@ -1,0 +1,310 @@
+# Create grid directly on disk (low memory usage)
+
+``` r
+library(gridmaker)
+```
+
+## Introduction
+
+When creating high-resolution grids for large areas, memory constraints
+can become a significant challenge. The
+[gridmaker](https://github.com/e-kotov/gridmaker) package provides a
+disk-based streaming approach that allows you to create grids directly
+on disk without loading the entire grid into memory. This is
+particularly useful when:
+
+- Creating grids with millions of cells (e.g., 100m grid for Spain) that
+  would exceed available RAM
+- You want to save the grid to disk for later use anyway, avoiding the
+  need to keep it in memory
+- Working on memory-constrained systems where keeping large objects in
+  RAM is not feasible (the aformentioned 100m grid for Spain would
+  require over 100 GB of RAM if created in memory, but only about 4 GB
+  of peak memory when using the disk-based approach)
+
+The disk-based approach uses the `dsn` parameter in
+[`inspire_grid()`](http://www.ekotov.pro/gridmaker/reference/inspire_grid.md)
+to write grid chunks sequentially to a file as they are generated,
+keeping memory usage low and constant regardless of the final grid size.
+
+## Example: Create a 100m grid for Spain
+
+This example demonstrates creating a high-resolution 100m grid covering
+Spain, which generates millions of grid cells. Without the disk-based
+approach, this would require substantial memory.
+
+### Setup
+
+We will use `giscoR` package to get the boundary of Spain. If you don’t
+have it installed, you can install it from CRAN with
+`install.packages("giscoR")`.
+
+``` r
+# install.packages("giscoR")
+library(giscoR)
+library(sf)
+library(tictoc)
+```
+
+### Get the country boundary
+
+Let’s get the boundary of Spain in ETRS89-LAEA (EPSG:3035):
+
+``` r
+spain_boundary <- gisco_get_countries(
+  year = "2024",
+  epsg = "3035",
+  country = "Spain",
+  resolution = "01"
+)
+
+plot(spain_boundary$geometry)
+```
+
+### Create grid directly to GeoPackage
+
+Now we can create a 100m grid and write it directly to a GeoPackage
+file. The function will automatically:
+
+- Determine optimal chunk size based on available memory
+- Stream grid chunks sequentially to disk
+- Keep memory usage low and constant
+
+``` r
+library(tictoc)
+
+tic()
+spain_grid_100m <- inspire_grid(
+  x = spain_boundary,
+  cellsize_m = 100,
+  output_type = "sf_polygons",
+  dsn = "spain_grid_100m.gpkg"
+)
+toc()
+```
+
+> **Performance Note**
+>
+> Based on benchmark testing, creating a 100m grid for Spain:
+>
+> - **Total cells**: ~15 million polygons
+> - **Processing time**: ~4.3 hours (15,476 seconds)
+> - **Chunk size**: 40 rows per chunk (382 chunks total) (determined
+>   automatically)
+> - **Memory usage**: Low and constant just under 4 GB (determined by
+>   chunk size)
+>
+> The processing is done sequentially when no parallel backend is
+> detected, streaming chunks directly to disk.
+
+### Create grid directly to GeoTIFF (raster)
+
+> **Warning**
+>
+> Raster grid creation does not support chunked streaming to disk yet,
+> so the raster will be created first in memory and then saved to disk.
+> So this will not work on memory-constrained systems for very large
+> grids. Future versions may support chunked raster writing.
+
+Alternatively, you can create a raster grid directly to a GeoTIFF file
+using `SpatRaster` output:
+
+``` r
+tic()
+spain_grid_100m_raster <- inspire_grid(
+  x = spain_boundary,
+  cellsize_m = 100,
+  output_type = "spatraster",
+  dsn = "spain_grid_100m.tiff"
+)
+toc()
+```
+
+### Read the grid from disk
+
+Once created, you can read the grid from disk in chunks or subsets to
+avoid loading everything into memory:
+
+``` r
+# Read only the first 1000 features
+library(sf)
+grid_subset <- st_read("spain_grid_100m.gpkg", query = "SELECT * FROM grid LIMIT 1000")
+
+# Or read a spatial subset using a bounding box
+bbox_filter <- st_bbox(c(xmin = 4000000, ymin = 3000000,
+                          xmax = 4100000, ymax = 3100000),
+                        crs = st_crs(3035))
+grid_spatial_subset <- st_read("spain_grid_100m.gpkg", wkt_filter = st_as_text(st_as_sfc(bbox_filter)))
+```
+
+## Controlling memory usage
+
+The
+[`inspire_grid()`](http://www.ekotov.pro/gridmaker/reference/inspire_grid.md)
+function automatically determines the optimal chunk size based on
+**currently available (free) RAM**, not total system memory.
+
+> **Automatic Memory Detection**
+>
+> The automatic mechanism uses
+> [`ps::ps_system_memory()`](https://ps.r-lib.org/reference/ps_system_memory.html)
+> to check for available free RAM. On shared systems or High Performance
+> Computing (HPC) nodes, this detection might see the total free RAM of
+> the entire node, even if your specific process is allocated a smaller
+> amount. In such cases, the automatic calculation might overestimate
+> available RAM, leading to memory errors.
+
+You can control memory usage manually using the `max_memory_gb`
+argument:
+
+``` r
+# Manually limit memory usage to 2 GB
+spain_grid_100m <- inspire_grid(
+  x = spain_boundary,
+  cellsize_m = 100,
+  output_type = "sf_polygons",
+  dsn = "spain_grid_100m.gpkg",
+  max_memory_gb = 2
+)
+```
+
+If you provide `max_memory_gb`, the function will use this value instead
+of the automatic detection to calculate how many rows can fit into each
+chunk.
+
+The function will display information about the calculated chunk size:
+
+``` r
+# Sequentially generating and writing 382 chunks ( 40 rows/chunk)...
+#   Note: Memory constraints limited chunk size (max 40 rows/chunk)
+```
+
+If you have more memory available, the function will use larger chunks
+for better performance. If memory is very constrained, it will use
+smaller chunks to ensure the process completes successfully.
+
+## Output formats
+
+The disk-based approach supports multiple output formats depending on
+the `output_type` parameter:
+
+### Vector formats (`output_type = "sf_polygons"` or `"sf_points"`)
+
+Vector grids are written using
+[`sf::st_write()`](https://r-spatial.github.io/sf/reference/st_write.html)
+in chunked append mode.
+
+#### Recommended Formats
+
+**GeoPackage (`.gpkg`)** - **Primary Recommendation**
+
+GeoPackage offers the best balance of speed, cross-platform
+compatibility, and modern features: - Single-file format (easy to manage
+and share) - OGC standard with wide software support - Good write
+performance (baseline reference speed) - No field name length
+restrictions - No file size limits - Built on SQLite, ensuring data
+integrity through transactions
+
+**Shapefile (`.shp`)** - Legacy Alternative
+
+Shapefile remains widely used in GIS and is supported: - **~20% faster
+writes** than GeoPackage due to non-transactional writes - Universal
+compatibility with all GIS software - **Limitations:** - Field names
+limited to 10 characters - Maximum file size of 2 GB - Multi-file format
+(.shp, .shx, .dbf, .prj) - Lacks support for modern features
+(timestamps, mixed geometry types)
+
+**GeoJSON (`.geojson`, `.json`)** - Web/API Use Only
+
+GeoJSON works for chunked writes but has significant performance
+limitations: - Human-readable JSON format - Web API standard - **~40%
+the speed** of GeoPackage (2-3x slower than database formats) - **Not
+recommended for large grids** - performance degrades significantly - Use
+only for small grids or when JSON format is specifically required
+
+#### Other Supported Formats
+
+The following formats have been tested and confirmed to support append
+operations: - **GeoJSONSeq** (`.geojsonl`, `.geojsonseq`) -
+Newline-delimited GeoJSON for streaming - **FlatGeobuf** (`.fgb`) -
+Cloud-optimized format for HTTP range requests - Additional formats
+(`.gdb`, `.sqlite`) - see
+[`sf::st_drivers()`](https://r-spatial.github.io/sf/reference/st_drivers.html)
+for full list
+
+> **Format Support**
+>
+> All formats listed are confirmed through empirical testing to support
+> appending, which is required for memory-efficient chunked writes.
+> Other formats may work but will generate a warning.
+
+#### For Text Output
+
+For plain text output with `output_type = "dataframe"`: - **CSV**
+(`.csv`) - Comma-separated values - **TSV** (`.tsv`) - Tab-separated
+values - **TXT** (`.txt`) - Tab-delimited text file
+
+### Raster formats (`output_type = "spatraster"`)
+
+Raster grids are written using
+[`terra::writeRaster()`](https://rspatial.github.io/terra/reference/writeRaster.html),
+which supports:
+
+- **GeoTIFF** (`.tif`, `.tiff`) - Recommended, widely supported
+- **NetCDF** (`.nc`) - Good for multidimensional data
+- **ASCII Grid** (`.asc`) - Text-based, human-readable
+- **ERDAS Imagine** (`.img`) - Common in remote sensing
+- And other formats supported by GDAL
+
+> **Performance Comparison**
+>
+> Based on benchmark testing with a 100m grid for Spain (~15 million
+> cells):
+>
+> - **Raster output** (GeoTIFF): ~47 minutes (2,842 seconds)
+> - **Vector output** (GeoPackage): ~4.3 hours (15,476 seconds)
+> - **Speedup**: Raster is ~5.4x faster than vector
+>
+> Choose raster output when you only need grid cell identifiers and
+> values. Use vector output when you need actual polygon geometries for
+> spatial operations.
+
+### Text/tabular formats (`output_type = "dataframe"`)
+
+For non-spatial tabular output, the following formats are supported:
+
+- **CSV** (`.csv`) - Comma-separated values
+- **TSV** (`.tsv`) - Tab-separated values
+- **TXT** (`.txt`) - Tab-delimited text file
+
+These formats drop the geometry column and write only the attribute data
+(grid IDs and coordinates).
+
+## Tips for large grids
+
+1.  **Use raster output when possible**: If you don’t need polygon
+    geometries, use `output_type = "spatraster"` for much faster
+    processing.
+
+2.  **Monitor progress**: The function displays a progress bar showing
+    chunk processing status.
+
+3.  **Specify layer name**: Use the `layer` parameter to set a custom
+    layer name in GeoPackage files:
+
+    ``` r
+    inspire_grid(x = boundary, cellsize_m = 100,
+                 dsn = "grid.gpkg", layer = "my_grid")
+    ```
+
+4.  **File overwriting**: Existing output files will be overwritten with
+    a warning.
+
+5.  **Sequential vs parallel**: The disk-based approach currently runs
+    sequentially to ensure proper streaming. Future versions may support
+    parallel chunking.
+
+> **Note**
+>
+> For original Eurostat’s command line utility to create GISCO grids,
+> see <https://github.com/eurostat/GridMaker>.

@@ -2,8 +2,9 @@ pandoc: 3.1.11
 pkgdown: 2.2.0
 pkgdown_sha: ~
 articles:
+  grid-to-disk: grid-to-disk.html
   gridmaker: gridmaker.html
-last_built: 2025-12-26T13:37Z
+last_built: 2025-12-27T17:23Z
 urls:
   reference: http://www.ekotov.pro/gridmaker/reference
   article: http://www.ekotov.pro/gridmaker/articles

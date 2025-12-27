@@ -46,7 +46,6 @@ We will use `giscoR` package to get the boundary of Spain. If you don't have it 
 # install.packages("giscoR")
 library(giscoR)
 library(sf)
-library(tictoc)
 ```
 
 ## Get the country boundary
@@ -73,16 +72,12 @@ Now we can create a 100m grid and write it directly to a GeoPackage file. The fu
 - Keep memory usage low and constant
 
 ```{r}
-library(tictoc)
-
-tic()
 spain_grid_100m <- inspire_grid(
   x = spain_boundary,
   cellsize_m = 100,
   output_type = "sf_polygons",
   dsn = "spain_grid_100m.gpkg"
 )
-toc()
 ```
 
 ::: callout-note
@@ -100,22 +95,42 @@ The processing is done sequentially when no parallel backend is detected, stream
 
 ## Create grid directly to GeoTIFF (raster)
 
-::: callout-warning
-Raster grid creation does not support chunked streaming to disk yet, so the raster will be created first in memory and then saved to disk. So this will not work on memory-constrained systems for very large grids. Future versions may support chunked raster writing.
-:::
-
-Alternatively, you can create a raster grid directly to a GeoTIFF file using `SpatRaster` output:
+Raster grid creation also supports chunked streaming to disk via the `terra` backend. This follows a similar logic to vector output, where the grid is generated and written in blocks to minimize memory usage.
 
 ```{r}
-tic()
+# By default, rasters are written without a Raster Attribute Table (RAT)
+# for maximum performance.
 spain_grid_100m_raster <- inspire_grid(
   x = spain_boundary,
   cellsize_m = 100,
   output_type = "spatraster",
   dsn = "spain_grid_100m.tiff"
 )
-toc()
 ```
+
+### Raster Attribute Tables (RAT)
+
+By default, raster outputs contain only numeric cell identifiers. If you need the human-readable INSPIRE IDs (e.g., `100mN1234E5678`), you can use `include_rat = TRUE`.
+
+```{r}
+# Opt-in for RAT generation (slower, creates larger files)
+inspire_grid(
+  x = spain_boundary,
+  cellsize_m = 100,
+  output_type = "spatraster",
+  dsn = "spain_grid_100m_with_rat.tiff",
+  include_rat = TRUE
+)
+```
+
+::: callout-note
+## Format-Specific RAT Behavior
+The storage of Raster Attribute Tables depends on the file format:
+
+- **GeoTIFF** (`.tif`): RAT is stored in an external `.aux.xml` sidecar file. For large grids, this sidecar can become quite large.
+- **NetCDF** (`.nc`) and **KEA** (`.kea`): RAT is embedded natively within the file. These are recommended if you require embedded metadata.
+- **HDF5**: RAT is currently not supported for this format.
+:::
 
 
 ## Read the grid from disk

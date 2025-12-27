@@ -55,6 +55,25 @@
 #'   For \code{output_type = "spatraster"} writing, these are passed to \code{\link[terra]{writeRaster}}.
 #'   For streaming backends (`mirai` or sequential), this can include \code{max_cells_per_chunk} to control memory usage.
 #' @param max_memory_gb A numeric value. Maximum memory in gigabytes to use for grid creation. Default is `NULL`, in which case there is an automatic limit based on **available free system memory** (not total system RAM).
+#' @param include_rat Logical. If `TRUE`, generate a Raster Attribute Table (RAT)
+#'   mapping numeric cell IDs to INSPIRE grid ID strings. Default is `FALSE`.
+#'
+#'   **What is a RAT?** A Raster Attribute Table stores metadata (like INSPIRE IDs)
+#'   for each unique raster value. Without RAT, raster cells contain only numeric
+#'   IDs (1, 2, 3...). With RAT, software like QGIS/R can display the IDs as
+#'   human-readable labels.
+#'
+#'   **Format-specific behavior:**
+#'   \itemize{
+#'     \item **GeoTIFF (.tif):** RAT stored in `.tif.aux.xml` sidecar file (XML).
+#'       **Warning:** This sidecar can be **larger than the TIFF itself** for large
+#'       grids. For chunked/streaming writes, requires a second pass (slower).
+#'       Consider NetCDF or KEA formats for large grids with labels.
+#'     \item **NetCDF (.nc), KEA (.kea):** RAT embedded natively. **Recommended**
+#'       for large grids requiring labels.
+#'     \item **HDF5 (.hdf):** RAT **not supported**. An error is raised if
+#'       `include_rat = TRUE`.
+#'   }
 #'
 #' @name inspire_grid_params
 #' @keywords internal

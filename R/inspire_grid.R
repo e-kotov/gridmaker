@@ -79,6 +79,7 @@ inspire_grid <- function(
   dsn = NULL,
   layer = NULL,
   max_memory_gb = NULL,
+  include_rat = FALSE,
   ...
 ) {
   # Validate output_type early
@@ -116,6 +117,7 @@ inspire_grid.sf <- function(
   dsn = NULL,
   layer = NULL,
   max_memory_gb = NULL,
+  include_rat = FALSE,
   ...
 ) {
   inspire_grid_from_extent(
@@ -135,6 +137,7 @@ inspire_grid.sf <- function(
     dsn = dsn,
     layer = layer,
     max_memory_gb = max_memory_gb,
+    include_rat = include_rat,
     ...
   )
 }
@@ -158,6 +161,7 @@ inspire_grid.sfc <- function(
   dsn = NULL,
   layer = NULL,
   max_memory_gb = NULL,
+  include_rat = FALSE,
   ...
 ) {
   inspire_grid_from_extent(
@@ -177,6 +181,7 @@ inspire_grid.sfc <- function(
     dsn = dsn,
     layer = layer,
     max_memory_gb = max_memory_gb,
+    include_rat = include_rat,
     ...
   )
 }
@@ -200,6 +205,7 @@ inspire_grid.bbox <- function(
   dsn = NULL,
   layer = NULL,
   max_memory_gb = NULL,
+  include_rat = FALSE,
   ...
 ) {
   inspire_grid_from_extent(
@@ -219,6 +225,7 @@ inspire_grid.bbox <- function(
     dsn = dsn,
     layer = layer,
     max_memory_gb = max_memory_gb,
+    include_rat = include_rat,
     ...
   )
 }
@@ -242,6 +249,7 @@ inspire_grid.numeric <- function(
   dsn = NULL,
   layer = NULL,
   max_memory_gb = NULL,
+  include_rat = FALSE,
   ...
 ) {
   inspire_grid_from_extent(
@@ -261,6 +269,7 @@ inspire_grid.numeric <- function(
     dsn = dsn,
     layer = layer,
     max_memory_gb = max_memory_gb,
+    include_rat = include_rat,
     ...
   )
 }
@@ -284,6 +293,7 @@ inspire_grid.matrix <- function(
   dsn = NULL,
   layer = NULL,
   max_memory_gb = NULL,
+  include_rat = FALSE,
   ...
 ) {
   inspire_grid_from_extent(
@@ -303,6 +313,7 @@ inspire_grid.matrix <- function(
     dsn = dsn,
     layer = layer,
     max_memory_gb = max_memory_gb,
+    include_rat = include_rat,
     ...
   )
 }
@@ -327,6 +338,7 @@ inspire_grid.character <- function(
   dsn = NULL, # Used
   layer = NULL, # Used
   max_memory_gb = NULL, # Ignored (Sink)
+  include_rat = FALSE, # Ignored (Sink)
   ...
 ) {
   # 1. Guardrails: Warn if specific ignored arguments are provided
@@ -417,6 +429,7 @@ inspire_grid_from_extent <- function(
   dsn = NULL,
   layer = NULL,
   max_memory_gb = NULL,
+  include_rat = FALSE,
   ...
 ) {
   # --- 1. Validate Arguments ---
@@ -484,6 +497,7 @@ inspire_grid_from_extent <- function(
     axis_order = axis_order,
     include_llc = include_llc,
     point_type = point_type,
+    include_rat = include_rat,
     ...
   )
   parallel_backend_args <- c(backend_args, list(quiet = quiet))
@@ -524,6 +538,7 @@ inspire_grid_from_extent <- function(
   }
 
   # --- 3. RASTER PATH (SEQUENTIAL ONLY) ---
+  # --- 3. RASTER PATH ---
   if (output_type == "spatraster") {
     if (!requireNamespace("terra", quietly = TRUE)) {
       stop(
@@ -535,11 +550,29 @@ inspire_grid_from_extent <- function(
     if (isTRUE(parallel) || (is.character(parallel) && parallel == "auto")) {
       if (!quiet) {
         message(
-          "Note: 'spatraster' output does not support parallel processing. Running sequentially."
+          "Note: 'spatraster' output is processed sequentially by terra (streaming)."
         )
       }
     }
 
+    # Case A: Streaming to Disk (File-backed)
+    if (!is.null(dsn)) {
+      # Validate extension
+      validate_disk_compatibility(output_type, dsn)
+
+      return(stream_grid_raster_terra(
+        grid_extent = grid_extent,
+        cellsize_m = cellsize_m,
+        crs = crs,
+        dsn = dsn,
+        layer = layer,
+        dot_args = backend_args,
+        quiet = quiet,
+        max_memory_gb = max_memory_gb
+      ))
+    }
+
+    # Case B: In-Memory Generation (Legacy/Small grids)
     # Collect arguments
     all_args <- c(
       list(grid_extent = grid_extent, cellsize_m = cellsize_m, crs = crs),
@@ -548,17 +581,6 @@ inspire_grid_from_extent <- function(
 
     # Generate in-memory
     r <- do.call(inspire_grid_from_extent_internal, all_args)
-
-    # Write to disk if requested
-    if (!is.null(dsn)) {
-      if (!quiet) {
-        message("Writing raster to ", dsn)
-      }
-      # Pass ellipsis (...) to writeRaster for options like compression
-      terra::writeRaster(r, filename = dsn, overwrite = TRUE, ...)
-      return(invisible(dsn))
-    }
-
     return(r)
   }
 

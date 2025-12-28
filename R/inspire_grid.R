@@ -541,7 +541,6 @@ inspire_grid_from_extent <- function(
   if (output_type == "spatraster") {
     if (!requireNamespace("terra", quietly = TRUE)) {
       stop(
-      stop(
         "Package 'terra' is required for 'spatraster' output.",
         call. = FALSE
       )

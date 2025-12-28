@@ -188,11 +188,3 @@ test_that("inspire_grid streaming errors for HDF5 with include_rat", {
     "supported"
   )
 })
-
-test_that("inspire_grid documentation mentions parallel limitations", {
-  # This is a static code check rather than a functional test,
-  # but we can verify the parameter docs via help if needed,
-  # though devtools::test is better for functional logic.
-  # We already verified the documentation strings manually.
-  expect_true(TRUE)
-})

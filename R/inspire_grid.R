@@ -349,11 +349,12 @@ inspire_grid.character <- function(
       isTRUE(use_convex_hull) ||
       buffer_m != 0 ||
       parallel != "auto" ||
-      !is.null(max_memory_gb)
+      !is.null(max_memory_gb) ||
+      isTRUE(include_rat)
   ) {
     warning(
-      "Arguments 'cellsize_m', 'clip_to_input', 'use_convex_hull', ",
-      "'buffer_m', 'parallel', and 'max_memory_gb' are ignored for INSPIRE ID reconstruction.",
+      "Arguments 'cellsize_m', 'clip_to_input', 'use_convex_hull', 'buffer_m', ",
+      "'parallel', 'max_memory_gb', and 'include_rat' are ignored for INSPIRE ID reconstruction.",
       call. = FALSE
     )
   }

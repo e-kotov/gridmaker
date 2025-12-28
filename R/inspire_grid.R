@@ -556,22 +556,10 @@ inspire_grid_from_extent <- function(
       # Validate extension
       validate_disk_compatibility(output_type, dsn)
 
-      # Determine which parallel backend to use for raster
+      # Only mirai is supported for parallel raster disk streaming
       use_mirai_raster <- use_mirai && n_mirai > 0
-      use_future_raster <- use_future && n_future > 1
 
-      # Warn if both backends are configured
-      if (use_mirai_raster && use_future_raster) {
-        warning(
-          "Both `mirai` and `future` backends are configured. ",
-          "Using `mirai` for raster generation (recommended: ~2-3x speedup). ",
-          "To use future, stop mirai daemons first with mirai::daemons(0).",
-          call. = FALSE
-        )
-        use_future_raster <- FALSE
-      }
-
-      # Dispatch to appropriate backend
+      # Dispatch to mirai or sequential
       if (use_mirai_raster && parallel != FALSE) {
         if (!quiet) {
           if (n_mirai > 8) {
@@ -595,32 +583,20 @@ inspire_grid_from_extent <- function(
           max_memory_gb = max_memory_gb,
           n_workers = NULL # Auto-detect from daemons
         ))
-      } else if (use_future_raster && parallel != FALSE) {
-        if (!quiet) {
-          if (n_future > 8) {
-            message(
-              "Note: Using >8 workers often yields diminishing returns due to I/O bottlenecks. Recommended: 4-8 workers."
-            )
-          }
-          message(sprintf(
-            "`future` backend detected (%d workers). Running raster in parallel (~1.5-2.5x speedup).",
-            n_future
-          ))
-        }
-        return(stream_raster_parallel_future(
-          grid_extent = grid_extent,
-          cellsize_m = cellsize_m,
-          crs = crs,
-          dsn = dsn,
-          layer = layer,
-          dot_args = backend_args,
-          quiet = quiet,
-          max_memory_gb = max_memory_gb
-        ))
       } else {
         # Sequential fallback
         if (!quiet && parallel == "auto") {
-          message("No parallel backend detected. Running raster sequentially.")
+          # Warn future users that it's not supported for raster disk output
+          if (use_future && n_future > 1) {
+            message(
+              "Note: The `future` backend is not supported for raster disk output. ",
+              "Use `mirai` for parallel raster streaming. Falling back to sequential."
+            )
+          } else {
+            message(
+              "No parallel backend detected. Running raster sequentially."
+            )
+          }
 
           # Suggest parallel backend if multiple cores are available
           cores <- tryCatch(
@@ -629,7 +605,7 @@ inspire_grid_from_extent <- function(
           )
           if (!is.na(cores) && cores >= 4) {
             message(sprintf(
-              "Tip: Your system has %d cores. Configure a parallel backend (mirai/future) for up to 2-3x speedup.",
+              "Tip: Your system has %d cores. Configure mirai::daemons(4) for up to 2-3x speedup.",
               cores
             ))
           }

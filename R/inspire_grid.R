@@ -538,9 +538,9 @@ inspire_grid_from_extent <- function(
   }
 
   # --- 3. RASTER PATH (SEQUENTIAL ONLY) ---
-  # --- 3. RASTER PATH ---
   if (output_type == "spatraster") {
     if (!requireNamespace("terra", quietly = TRUE)) {
+      stop(
       stop(
         "Package 'terra' is required for 'spatraster' output.",
         call. = FALSE

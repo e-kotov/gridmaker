@@ -195,8 +195,11 @@ stream_grid_raster_terra <- function(
         message("Applying mask (clipping to input)...")
       }
 
-      # We need a temp file for the masked output if we want to overwrite 'dsn'
-      temp_masked <- tempfile(fileext = ".tif")
+      # Use the same extension as the output file to preserve format
+      output_ext <- tools::file_ext(dsn)
+      temp_masked <- tempfile(
+        fileext = if (nzchar(output_ext)) paste0(".", output_ext) else ""
+      )
 
       # Load the raster we just created
       r_raw <- terra::rast(dsn)

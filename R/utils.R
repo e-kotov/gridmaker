@@ -389,7 +389,15 @@ validate_disk_compatibility <- function(output_type, dsn) {
     )
   }
 
-  # 2. Prevent SpatRaster -> Non-Raster Formats
+  # 2. Prevent Raster -&gt; Missing Extension
+  if (is_raster && !nzchar(ext)) {
+    stop(
+      "Output type 'spatraster' requires a file extension to determine the format.\n  Please specify a raster format extension, e.g., 'output.tif', 'output.nc', or 'output.kea'.",
+      call. = FALSE
+    )
+  }
+
+  # 3. Prevent SpatRaster -> Non-Raster Formats
   if (is_raster && !is_raster_format) {
     stop(
       sprintf(

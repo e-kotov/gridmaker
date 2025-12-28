@@ -280,6 +280,7 @@ instead of being returned as an object.
 \strong{Supported vector formats for chunked disk writes:}
 \itemize{
 \item \code{.gpkg} (GeoPackage) - \strong{Recommended} - Best balance of speed, compatibility, and modern features
+\item \code{.parquet}, \code{.geoparquet} (GeoParquet) - Modern columnar format, excellent for large grids (requires sf 1.0+/GDAL 3.5+)
 \item \code{.shp} (Shapefile) - Widely used, fast writes, but has limitations (10-char field names, 2GB limit)
 \item \code{.geojson}, \code{.json} (GeoJSON) - Web-friendly, works but slower for large grids
 \item \code{.geojsonl}, \code{.geojsonseq} (GeoJSONSeq) - Newline-delimited GeoJSON

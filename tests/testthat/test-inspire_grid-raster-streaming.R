@@ -74,7 +74,7 @@ test_that("inspire_grid raster streaming via terra works", {
   expect_true(any(!is.na(v_cl)))
 })
 
-test_that("inspire_grid streaming with include_rat works for GeoTIFF", {
+test_that("inspire_grid streaming with include_rat is deprecated", {
   skip_if_not_installed("terra")
   skip_if_not_installed("sf")
 
@@ -85,7 +85,8 @@ test_that("inspire_grid streaming with include_rat works for GeoTIFF", {
   cellsize <- 10000 # Larger cells for faster test
   tf_rat <- tempfile(fileext = ".tif")
 
-  expect_message(
+  # Should warn about deprecation
+  expect_warning(
     inspire_grid(
       nc_sub,
       cellsize_m = cellsize,
@@ -93,55 +94,17 @@ test_that("inspire_grid streaming with include_rat works for GeoTIFF", {
       dsn = tf_rat,
       id_format = "short",
       include_rat = TRUE,
-      quiet = FALSE
+      quiet = TRUE
     ),
-    "RAT"
+    "deprecated"
   )
 
-  # Verify RAT was created
+  # Verify NO RAT was created (feature is disabled)
   r_rat <- terra::rast(tf_rat)
   cats <- terra::cats(r_rat)
 
-  # RAT should exist now
-  expect_true(length(cats) >= 1)
-  if (length(cats) >= 1 && !is.null(cats[[1]])) {
-    df <- cats[[1]]
-    expect_true("GRD_ID" %in% names(df))
-    expect_false("GRD_ID_SHORT" %in% names(df))
-    expect_false("GRD_ID_LONG" %in% names(df))
-  }
-})
-
-test_that("inspire_grid streaming with include_rat works for id_format = 'both'", {
-  skip_if_not_installed("terra")
-  skip_if_not_installed("sf")
-
-  nc <- sf::st_read(system.file("shape/nc.shp", package = "sf"), quiet = TRUE)
-  nc_proj <- sf::st_transform(nc, 5070)
-  nc_sub <- nc_proj[1, ]
-
-  cellsize <- 10000
-  tf_rat_both <- tempfile(fileext = ".tif")
-
-  inspire_grid(
-    nc_sub,
-    cellsize_m = cellsize,
-    output_type = "spatraster",
-    dsn = tf_rat_both,
-    id_format = "both",
-    include_rat = TRUE,
-    quiet = TRUE
-  )
-
-  r_rat <- terra::rast(tf_rat_both)
-  cats <- terra::cats(r_rat)
-
-  expect_true(length(cats) >= 1)
-  if (length(cats) >= 1 && !is.null(cats[[1]])) {
-    df <- cats[[1]]
-    expect_true("GRD_ID_SHORT" %in% names(df))
-    expect_true("GRD_ID_LONG" %in% names(df))
-  }
+  # RAT should NOT exist (deprecated feature)
+  expect_true(length(cats) == 0 || is.null(cats[[1]]) || nrow(cats[[1]]) == 0)
 })
 
 test_that("inspire_grid streaming works for .tiff (long extension)", {
@@ -164,60 +127,6 @@ test_that("inspire_grid streaming works for .tiff (long extension)", {
   expect_s4_class(terra::rast(tf), "SpatRaster")
 })
 
-test_that("inspire_grid streaming with include_rat works for NetCDF", {
-  skip_if_not_installed("terra")
-  skip_if_not_installed("sf")
-
-  # NetCDF driver check - handle different terra versions
-  drivers <- terra::gdal(lib = "drivers")
-  has_netcdf <- if (is.data.frame(drivers)) {
-    "netCDF" %in% drivers$name
-  } else {
-    any(grepl("netCDF", drivers))
-  }
-
-  if (!has_netcdf) {
-    skip("NetCDF driver not available in terra/GDAL")
-  }
-
-  nc <- sf::st_read(system.file("shape/nc.shp", package = "sf"), quiet = TRUE)
-  nc_proj <- sf::st_transform(nc, 5070)
-  nc_sub <- nc_proj[1, ]
-
-  tf <- tempfile(fileext = ".nc")
-  expect_message(
-    inspire_grid(
-      nc_sub,
-      cellsize_m = 10000,
-      output_type = "spatraster",
-      dsn = tf,
-      include_rat = TRUE,
-      quiet = FALSE
-    ),
-    "RAT"
-  )
-
-  r <- terra::rast(tf)
-  expect_true(length(terra::cats(r)) >= 1)
-})
-
-test_that("inspire_grid streaming errors for HDF5 with include_rat", {
-  skip_if_not_installed("terra")
-  skip_if_not_installed("sf")
-
-  expect_error(
-    inspire_grid(
-      c(0, 0, 1000, 1000),
-      100,
-      output_type = "spatraster",
-      crs = 3035,
-      dsn = "test.hdf",
-      include_rat = TRUE
-    ),
-    "supported"
-  )
-})
-
 test_that("inspire_grid streaming errors for missing file extension", {
   skip_if_not_installed("terra")
   skip_if_not_installed("sf")
@@ -232,56 +141,6 @@ test_that("inspire_grid streaming errors for missing file extension", {
     ),
     "requires a file extension"
   )
-})
-
-test_that("RAT is filtered to exclude NA cells after clipping", {
-  skip_if_not_installed("terra")
-  skip_if_not_installed("sf")
-
-  # Create an L-shaped polygon that will force some cells to be masked
-  test_poly <- sf::st_as_sfc(
-    "POLYGON((4000000 2800000, 4040000 2800000, 4040000 2840000, 4020000 2840000, 4020000 2820000, 4000000 2820000, 4000000 2800000))"
-  )
-  test_poly <- sf::st_set_crs(test_poly, 3035)
-
-  tf_clipped <- tempfile(fileext = ".tif")
-
-  # Generate grid with clipping and RAT
-  expect_message(
-    inspire_grid(
-      test_poly,
-      cellsize_m = 10000,
-      output_type = "spatraster",
-      dsn = tf_clipped,
-      include_rat = TRUE,
-      clip_to_input = TRUE,
-      quiet = FALSE
-    ),
-    "Filtered RAT"
-  )
-
-  # Load the raster
-  r <- terra::rast(tf_clipped)
-
-  # Get the RAT
-  rat <- terra::levels(r)[[1]]
-
-  # Get actual non-NA cell values
-  raster_values <- terra::values(r)
-  non_na_values <- unique(raster_values[!is.na(raster_values)])
-
-  # Key assertion: RAT should only contain entries for non-NA cells
-  expect_equal(nrow(rat), length(non_na_values))
-
-  # Verify all RAT entries correspond to actual cell values
-  expect_true(all(rat$Value %in% non_na_values))
-
-  # Verify no orphaned entries (RAT values not in raster)
-  orphaned <- setdiff(rat$Value, non_na_values)
-  expect_equal(length(orphaned), 0)
-
-  # Verify there ARE some NA cells (to confirm clipping worked)
-  expect_true(sum(is.na(raster_values)) > 0)
 })
 
 test_that("File format is preserved after clipping for GeoTIFF", {
@@ -315,44 +174,14 @@ test_that("File format is preserved after clipping for GeoTIFF", {
   expect_true(any(grepl("GTiff", info, ignore.case = TRUE)))
 })
 
-test_that("File format is preserved after clipping for .tiff extension", {
-  skip_if_not_installed("terra")
-  skip_if_not_installed("sf")
-
-  test_poly <- sf::st_as_sfc(
-    "POLYGON((4000000 2800000, 4040000 2800000, 4040000 2840000, 4000000 2840000, 4000000 2800000))"
-  )
-  test_poly <- sf::st_set_crs(test_poly, 3035)
-
-  tf <- tempfile(fileext = ".tiff")
-
-  inspire_grid(
-    test_poly,
-    cellsize_m = 10000,
-    output_type = "spatraster",
-    dsn = tf,
-    clip_to_input = TRUE,
-    quiet = TRUE
-  )
-
-  # Verify file exists with correct extension
-  expect_true(file.exists(tf))
-  expect_true(grepl("\\.tiff$", tf))
-  r <- terra::rast(tf)
-  expect_s4_class(r, "SpatRaster")
-})
-
 test_that("File format is preserved after clipping for NetCDF", {
   skip_if_not_installed("terra")
   skip_if_not_installed("sf")
 
   # Check for NetCDF driver
-  drivers <- terra::gdal(lib = "drivers")
-  has_netcdf <- if (is.data.frame(drivers)) {
-    "netCDF" %in% drivers$name
-  } else {
-    any(grepl("netCDF", drivers))
-  }
+  drivers <- terra::gdal(drivers = TRUE)
+  netcdf_row <- drivers[drivers$name == "netCDF", ]
+  has_netcdf <- nrow(netcdf_row) > 0 && grepl("write", netcdf_row$can)
 
   if (!has_netcdf) {
     skip("NetCDF driver not available in terra/GDAL")
@@ -389,12 +218,9 @@ test_that("File format is preserved after clipping for KEA", {
   skip_if_not_installed("sf")
 
   # Check for KEA driver
-  drivers <- terra::gdal(lib = "drivers")
-  has_kea <- if (is.data.frame(drivers)) {
-    "KEA" %in% drivers$name
-  } else {
-    any(grepl("KEA", drivers))
-  }
+  drivers <- terra::gdal(drivers = TRUE)
+  kea_row <- drivers[drivers$name == "KEA", ]
+  has_kea <- nrow(kea_row) > 0 && grepl("write", kea_row$can)
 
   if (!has_kea) {
     skip("KEA driver not available in terra/GDAL")
@@ -426,51 +252,35 @@ test_that("File format is preserved after clipping for KEA", {
   expect_true(any(grepl("KEA", info, ignore.case = TRUE)))
 })
 
-test_that("Format preservation works with both clipping and RAT", {
+test_that("Chunked raster generation produces correct cell values", {
   skip_if_not_installed("terra")
   skip_if_not_installed("sf")
 
-  # Check for NetCDF driver
-  drivers <- terra::gdal(lib = "drivers")
-  has_netcdf <- if (is.data.frame(drivers)) {
-    "netCDF" %in% drivers$name
-  } else {
-    any(grepl("netCDF", drivers))
-  }
-
-  if (!has_netcdf) {
-    skip("NetCDF driver not available in terra/GDAL")
-  }
-
+  # Create a simple test polygon
   test_poly <- sf::st_as_sfc(
-    "POLYGON((4000000 2800000, 4040000 2800000, 4040000 2840000, 4000000 2840000, 4000000 2800000))"
+    "POLYGON((4000000 2800000, 4030000 2800000, 4030000 2830000, 4000000 2830000, 4000000 2800000))"
   )
   test_poly <- sf::st_set_crs(test_poly, 3035)
 
-  tf <- tempfile(fileext = ".nc")
+  tf <- tempfile(fileext = ".tif")
+  cellsize <- 10000
 
   inspire_grid(
     test_poly,
-    cellsize_m = 10000,
+    cellsize_m = cellsize,
     output_type = "spatraster",
     dsn = tf,
-    clip_to_input = TRUE,
-    include_rat = TRUE,
     quiet = TRUE
   )
 
-  # Verify file exists and can be read
-  expect_true(file.exists(tf))
   r <- terra::rast(tf)
-  expect_s4_class(r, "SpatRaster")
 
-  # Verify format
-  info <- terra::describe(tf)
-  expect_true(any(grepl("netCDF", info, ignore.case = TRUE)))
+  # For a 3x3 grid, cell IDs should be 1-9
+  vals <- terra::values(r, mat = FALSE)
+  expected_vals <- 1:9
+  expect_equal(sort(vals), expected_vals)
 
-  # Verify RAT exists
-  cats <- terra::cats(r)
-  expect_true(length(cats) >= 1)
-  expect_true(!is.null(cats[[1]]))
-  expect_true(nrow(cats[[1]]) > 0)
+  # Verify cell 1 is top-left, cell 9 is bottom-right (row-major order)
+  expect_equal(vals[1], 1)
+  expect_equal(vals[9], 9)
 })

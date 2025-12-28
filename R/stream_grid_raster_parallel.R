@@ -6,28 +6,28 @@
 #' writes remain sequential for file integrity.
 #'
 #' @section Performance Benchmarks:
-#' Benchmarks on ~500k cell grids show significant speedups over sequential:
+#' Benchmarks on ~10M cell grids show meaningful speedups over sequential:
 #'
 #' \strong{mirai backend} (best overall):
 #' \itemize{
-#'   \item TIF: ~40-65x faster with 2-4 workers
-#'   \item NC: ~15-25x faster with 2-4 workers
-#'   \item IMG: ~40-45x faster with 2-4 workers
+#'   \item TIF: ~1.7-2.3x faster (32 workers optimal)
+#'   \item NC: ~1.9-2.9x faster (16 workers optimal)
+#'   \item IMG: ~1.8-2.5x faster (32 workers optimal)
 #' }
 #'
 #' \strong{future backend}:
 #' \itemize{
-#'   \item TIF: ~25-40x faster with 2 workers
-#'   \item NC: ~10-15x faster with 2 workers
-#'   \item IMG: ~15-22x faster with 2 workers
+#'   \item TIF: ~1.5-2.0x faster (estimated)
+#'   \item NC: ~1.5-2.0x faster (estimated)
+#'   \item IMG: ~1.5-2.0x faster (estimated)
 #' }
 #'
 #' @section Backend Selection:
 #' \itemize{
 #'   \item \strong{mirai} is recommended for all formats due to lower overhead
-#'     from persistent daemons (compute time ~10ms vs ~60ms for future)
-#'   \item 2-4 workers provide optimal performance; 8+ workers show diminishing
-#'     returns due to I/O bottleneck
+#'     from persistent daemons.
+#'   \item Speedups generally plateau around 2-3x regardless of worker count.
+#'   \item Optimal worker count is typically 4-8; adding more workers yields diminishing returns.
 #'   \item For small grids (<100k cells), sequential may be faster due to
 #'     parallel startup overhead
 #' }
@@ -64,7 +64,7 @@ NULL
 #' Stream raster grid using mirai parallel backend
 #'
 #' Parallel compute with mirai daemons, sequential write to disk.
-#' Achieves ~40-65x speedup over sequential for TIF format.
+#' Achieves ~2-3x speedup over sequential for TIF format.
 #'
 #' @inheritParams stream_grid_raster_terra
 #' @param n_workers Number of mirai daemons to use (default: auto-detect)
@@ -238,7 +238,7 @@ stream_raster_parallel_mirai <- function(
 #' Stream raster grid using future parallel backend
 #'
 #' Parallel compute with future, sequential write to disk.
-#' Achieves ~15-40x speedup over sequential depending on format.
+#' Achieves ~1.5-2.5x speedup over sequential depending on format.
 #'
 #' @inheritParams stream_grid_raster_terra
 #' @return Invisible path to output file

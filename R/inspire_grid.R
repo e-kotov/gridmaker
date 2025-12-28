@@ -47,8 +47,8 @@
 #'   }
 #'   For parallelism, you must configure a backend *before* calling this
 #'   function, for example: `mirai::daemons(8)` or `future::plan("multisession", workers = 8)`.
-#'   **Performance tip:** Benchmarks show 8 workers provide optimal performance for most
-#'   grid sizes. Using >32 workers typically decreases performance due to overhead.
+#'   **Performance tip:** Benchmarks show 4-8 workers provide optimal performance for most
+#'   grid sizes. Using >8 workers typically yields diminishing returns due to I/O bottlenecks.
 #'   The function automatically limits active workers for small grids to minimize overhead:
 #'   <50k cells use max 4 workers, <500k cells use max 8 workers, <2M cells use max 16 workers.
 #'   This automatic limiting can be overridden by setting `options(gridmaker.tile_multiplier)`.
@@ -539,10 +539,10 @@ inspire_grid_from_extent <- function(
   }
 
   # --- 3. RASTER PATH (PARALLEL OR SEQUENTIAL) ---
-  # Performance: Parallel raster streaming achieves 15-65x speedup over sequential
-  # - mirai: ~40-65x faster (best), uses persistent daemons
-  # - future: ~15-40x faster, higher startup overhead
-  # - 2-4 workers optimal; >8 workers shows diminishing returns (I/O bound)
+  # Performance: Parallel raster streaming achieves ~2-3x speedup over sequential
+  # - mirai: ~2-3x faster (best), uses persistent daemons
+  # - future: ~1.5-2.0x faster, higher startup overhead
+  # - 4-8 workers optimal; >8 workers shows diminishing returns (I/O bound)
   if (output_type == "spatraster") {
     if (!requireNamespace("terra", quietly = TRUE)) {
       stop(
@@ -564,7 +564,7 @@ inspire_grid_from_extent <- function(
       if (use_mirai_raster && use_future_raster) {
         warning(
           "Both `mirai` and `future` backends are configured. ",
-          "Using `mirai` for raster generation (recommended: ~40-65x speedup vs ~15-40x for future). ",
+          "Using `mirai` for raster generation (recommended: ~2-3x speedup). ",
           "To use future, stop mirai daemons first with mirai::daemons(0).",
           call. = FALSE
         )
@@ -574,8 +574,13 @@ inspire_grid_from_extent <- function(
       # Dispatch to appropriate backend
       if (use_mirai_raster && parallel != FALSE) {
         if (!quiet) {
+          if (n_mirai > 8) {
+            message(
+              "Note: Using >8 workers often yields diminishing returns due to I/O bottlenecks. Recommended: 4-8 workers."
+            )
+          }
           message(sprintf(
-            "`mirai` backend detected (%d daemons). Running raster in parallel (~40-65x speedup).",
+            "`mirai` backend detected (%d daemons). Running raster in parallel (~2-3x speedup).",
             n_mirai
           ))
         }
@@ -592,8 +597,13 @@ inspire_grid_from_extent <- function(
         ))
       } else if (use_future_raster && parallel != FALSE) {
         if (!quiet) {
+          if (n_future > 8) {
+            message(
+              "Note: Using >8 workers often yields diminishing returns due to I/O bottlenecks. Recommended: 4-8 workers."
+            )
+          }
           message(sprintf(
-            "`future` backend detected (%d workers). Running raster in parallel (~15-40x speedup).",
+            "`future` backend detected (%d workers). Running raster in parallel (~1.5-2.5x speedup).",
             n_future
           ))
         }
@@ -610,10 +620,19 @@ inspire_grid_from_extent <- function(
       } else {
         # Sequential fallback
         if (!quiet && parallel == "auto") {
-          message(
-            "No parallel backend detected. Running raster sequentially. ",
-            "For 15-65x speedup, configure mirai::daemons(4) or future::plan('multisession', workers = 4)."
+          message("No parallel backend detected. Running raster sequentially.")
+
+          # Suggest parallel backend if multiple cores are available
+          cores <- tryCatch(
+            parallel::detectCores(logical = FALSE),
+            error = function(e) 1
           )
+          if (!is.na(cores) && cores >= 4) {
+            message(sprintf(
+              "Tip: Your system has %d cores. Configure a parallel backend (mirai/future) for up to 2-3x speedup.",
+              cores
+            ))
+          }
         }
         return(stream_grid_raster_terra(
           grid_extent = grid_extent,
@@ -650,9 +669,15 @@ inspire_grid_from_extent <- function(
     # Use the highly efficient mirai stream if available
     if (use_mirai) {
       if (!quiet) {
-        message(
-          "`mirai` backend detected. Running in parallel (streaming to disk)."
-        )
+        if (n_mirai > 8) {
+          message(
+            "Note: Using >8 workers often yields diminishing returns due to I/O bottlenecks. Recommended: 4-8 workers."
+          )
+        }
+        message(sprintf(
+          "`mirai` backend detected (%d daemons). Running in parallel (streaming to disk).",
+          n_mirai
+        ))
       }
       return(stream_grid_mirai(
         grid_extent = grid_extent,
@@ -667,9 +692,28 @@ inspire_grid_from_extent <- function(
     } else {
       # Otherwise, use the safe, sequential streaming method
       if (!quiet) {
-        message(
-          "No parallel backend detected. Running in sequential mode (streaming to disk)."
+        if (use_future) {
+          message(
+            "Note: The `future` backend is not supported for vector disk output (streaming). ",
+            "Falling back to sequential mode. Use `mirai` for parallel disk writing."
+          )
+        } else {
+          message(
+            "No parallel backend detected. Running in sequential mode (streaming to disk)."
+          )
+        }
+
+        # Suggest parallel backend if multiple cores are available
+        cores <- tryCatch(
+          parallel::detectCores(logical = FALSE),
+          error = function(e) 1
         )
+        if (!is.na(cores) && cores >= 4) {
+          message(sprintf(
+            "Tip: Your system has %d cores. Configure a parallel backend (mirai/future) for up to 2-3x speedup.",
+            cores
+          ))
+        }
       }
       return(stream_grid_sequential(
         grid_extent = grid_extent,
@@ -688,7 +732,15 @@ inspire_grid_from_extent <- function(
   if (run_mode == "parallel") {
     if (use_mirai) {
       if (!quiet) {
-        message("`mirai` backend detected. Running in parallel (in-memory).")
+        if (n_mirai > 8) {
+          message(
+            "Note: Using >8 workers often yields diminishing returns. Recommended: 4-8 workers."
+          )
+        }
+        message(sprintf(
+          "`mirai` backend detected (%d daemons). Running in parallel (in-memory).",
+          n_mirai
+        ))
       }
       return(run_parallel_mirai(
         grid_extent,
@@ -698,7 +750,15 @@ inspire_grid_from_extent <- function(
       ))
     } else if (use_future) {
       if (!quiet) {
-        message("`future` backend detected. Running in parallel (in-memory).")
+        if (n_future > 8) {
+          message(
+            "Note: Using >8 workers often yields diminishing returns. Recommended: 4-8 workers."
+          )
+        }
+        message(sprintf(
+          "`future` backend detected (%d workers). Running in parallel (in-memory).",
+          n_future
+        ))
       }
       return(run_parallel_future(
         grid_extent,
@@ -713,8 +773,20 @@ inspire_grid_from_extent <- function(
   if (!quiet) {
     if (parallel == "auto") {
       message(
-        "No parallel backend detected. Running in sequential mode. See ?inspire_grid for details how to enable parallel processing to speed up large jobs."
+        "No parallel backend detected. Running in sequential mode."
       )
+
+      # Suggest parallel backend if multiple cores are available
+      cores <- tryCatch(
+        parallel::detectCores(logical = FALSE),
+        error = function(e) 1
+      )
+      if (!is.na(cores) && cores >= 4) {
+        message(sprintf(
+          "Tip: Your system has %d cores. Configure a parallel backend for faster grid generation.",
+          cores
+        ))
+      }
     } else {
       message("Running in sequential mode.")
     }

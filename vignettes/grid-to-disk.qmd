@@ -132,6 +132,58 @@ The storage of Raster Attribute Tables depends on the file format:
 - **HDF5**: RAT is currently not supported for this format.
 :::
 
+### Parallel Generation
+
+For large raster grids, you can significantly speed up the process by using a parallel backend. The `mirai` backend is highly recommended for its efficiency.
+
+**Performance Benefits:**
+- **mirai**: ~2-3x speedup over sequential execution
+- **future**: ~1.5-2x speedup
+
+To use parallel generation, simply configure the parallel backend before calling `inspire_grid()`. The function will automatically detect the backend and switch to parallel mode.
+
+**Option 1: Using `mirai` (Recommended)**
+
+```r
+library(mirai)
+
+# Start 4 persistent workers (daemons)
+# Benchmarks show 4-8 workers provides optimal performance
+# (>8 workers often yields diminishing returns)
+daemons(4)
+
+# Function automatically detects workers and runs in parallel
+inspire_grid(
+  x = spain_boundary,
+  cellsize_m = 100,
+  output_type = "spatraster",
+  dsn = "spain_grid_mirai.tif"
+)
+
+# Clean up
+daemons(0)
+```
+
+**Option 2: Using `future`**
+
+```r
+library(future)
+library(future.apply)
+
+# Set up a multisession plan
+plan(multisession, workers = 4)
+
+inspire_grid(
+  x = spain_boundary,
+  cellsize_m = 100,
+  output_type = "spatraster",
+  dsn = "spain_grid_future.tif"
+)
+
+# Reset plan
+plan(sequential)
+```
+
 
 ## Read the grid from disk
 
@@ -288,7 +340,7 @@ These formats drop the geometry column and write only the attribute data (grid I
 
 4. **File overwriting**: Existing output files will be overwritten with a warning.
 
-5. **Sequential vs parallel**: The disk-based approach currently runs sequentially to ensure proper streaming. Future versions may support parallel chunking.
+5. **Sequential vs parallel**: The disk-based approach supports parallel chunking using the `mirai` backend (~2-3x speedup). The `future` backend is currently supported for **raster output only**; vector output with `future` will run sequentially.
 
 ::: callout-note
 For original Eurostat's command line utility to create GISCO grids, see [https://github.com/eurostat/GridMaker](https://github.com/eurostat/GridMaker).

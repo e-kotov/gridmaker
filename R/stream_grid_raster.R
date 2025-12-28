@@ -265,6 +265,24 @@ stream_grid_raster_terra <- function(
       rat_df <- data.frame(Value = seq_len(n_cells), GRD_ID = id_long)
     }
 
+    # Filter RAT to exclude entries for NA cells (after clipping)
+    # This ensures the RAT only contains entries for valid raster cells
+    raster_values <- terra::values(r_final)
+    valid_values <- unique(raster_values[!is.na(raster_values)])
+    if (length(valid_values) < n_cells) {
+      rat_df <- rat_df[rat_df$Value %in% valid_values, ]
+      if (!quiet) {
+        message(
+          "  Filtered RAT: ",
+          nrow(rat_df),
+          " entries ",
+          "(removed ",
+          n_cells - nrow(rat_df),
+          " entries for masked cells)"
+        )
+      }
+    }
+
     # Format-specific persistence
     if (ext %in% c("nc", "kea")) {
       # NetCDF/KEA: Native support via levels() + writeRaster

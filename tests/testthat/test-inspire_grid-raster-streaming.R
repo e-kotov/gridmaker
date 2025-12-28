@@ -188,3 +188,53 @@ test_that("inspire_grid streaming errors for HDF5 with include_rat", {
     "supported"
   )
 })
+
+test_that("RAT is filtered to exclude NA cells after clipping", {
+  skip_if_not_installed("terra")
+  skip_if_not_installed("sf")
+
+  # Create an L-shaped polygon that will force some cells to be masked
+  test_poly <- sf::st_as_sfc(
+    "POLYGON((4000000 2800000, 4040000 2800000, 4040000 2840000, 4020000 2840000, 4020000 2820000, 4000000 2820000, 4000000 2800000))"
+  )
+  test_poly <- sf::st_set_crs(test_poly, 3035)
+
+  tf_clipped <- tempfile(fileext = ".tif")
+
+  # Generate grid with clipping and RAT
+  expect_message(
+    inspire_grid(
+      test_poly,
+      cellsize_m = 10000,
+      output_type = "spatraster",
+      dsn = tf_clipped,
+      include_rat = TRUE,
+      clip_to_input = TRUE,
+      quiet = FALSE
+    ),
+    "Filtered RAT"
+  )
+
+  # Load the raster
+  r <- terra::rast(tf_clipped)
+
+  # Get the RAT
+  rat <- terra::levels(r)[[1]]
+
+  # Get actual non-NA cell values
+  raster_values <- terra::values(r)
+  non_na_values <- unique(raster_values[!is.na(raster_values)])
+
+  # Key assertion: RAT should only contain entries for non-NA cells
+  expect_equal(nrow(rat), length(non_na_values))
+
+  # Verify all RAT entries correspond to actual cell values
+  expect_true(all(rat$Value %in% non_na_values))
+
+  # Verify no orphaned entries (RAT values not in raster)
+  orphaned <- setdiff(rat$Value, non_na_values)
+  expect_equal(length(orphaned), 0)
+
+  # Verify there ARE some NA cells (to confirm clipping worked)
+  expect_true(sum(is.na(raster_values)) > 0)
+})

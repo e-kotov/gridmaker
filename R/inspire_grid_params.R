@@ -54,6 +54,14 @@
 #'   When writing to spatial files via \code{dsn}, these are passed to \code{\link[sf]{st_write}}.
 #'   For \code{output_type = "spatraster"} writing, these are passed to \code{\link[terra]{writeRaster}}.
 #'   For streaming backends (`mirai` or sequential), this can include \code{max_cells_per_chunk} to control memory usage.
+#'   For raster generation, you can pass \code{cores} to control the number of CPU cores used (passed via dot args).
+#' @param cores Integer. Number of CPU cores to use for raster generation when
+#'   `output_type = "spatraster"`. Can also be set globally via
+#'   `options(gridmaker.terra_cores = N)`. Default is `1` (single-threaded).
+#'   **Note:** Parallel processing with terra may not improve performance for simple
+#'   grid generation. The `cores` argument is passed to `terra::app()` for chunked processing.
+#'   Empirical benchmarking is recommended before using in production. See the benchmark
+#'   script `benchmark_raster_parallel.R` in the package root for testing.
 #' @param max_memory_gb A numeric value. Maximum memory in gigabytes to use for grid creation. Default is `NULL`, in which case there is an automatic limit based on **available free system memory** (not total system RAM).
 #' @param include_rat Logical. If `TRUE`, generate a Raster Attribute Table (RAT)
 #'   mapping numeric cell IDs to INSPIRE grid ID strings. Default is `FALSE`.

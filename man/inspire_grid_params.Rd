@@ -58,7 +58,16 @@ not specified, it defaults to the file's base name.}
 When writing to text files (e.g., .csv, .tsv) via \code{dsn}, these arguments are passed to \code{\link[readr]{write_delim}} (e.g., \code{na = "NA"}, \code{quote = "all"}).
 When writing to spatial files via \code{dsn}, these are passed to \code{\link[sf]{st_write}}.
 For \code{output_type = "spatraster"} writing, these are passed to \code{\link[terra]{writeRaster}}.
-For streaming backends (\code{mirai} or sequential), this can include \code{max_cells_per_chunk} to control memory usage.}
+For streaming backends (\code{mirai} or sequential), this can include \code{max_cells_per_chunk} to control memory usage.
+For raster generation, you can pass \code{cores} to control the number of CPU cores used (passed via dot args).}
+
+\item{cores}{Integer. Number of CPU cores to use for raster generation when
+\code{output_type = "spatraster"}. Can also be set globally via
+\code{options(gridmaker.terra_cores = N)}. Default is \code{1} (single-threaded).
+\strong{Note:} Parallel processing with terra may not improve performance for simple
+grid generation. The \code{cores} argument is passed to \code{terra::app()} for chunked processing.
+Empirical benchmarking is recommended before using in production. See the benchmark
+script \code{benchmark_raster_parallel.R} in the package root for testing.}
 
 \item{max_memory_gb}{A numeric value. Maximum memory in gigabytes to use for grid creation. Default is \code{NULL}, in which case there is an automatic limit based on \strong{available free system memory} (not total system RAM).}
 

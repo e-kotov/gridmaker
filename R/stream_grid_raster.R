@@ -15,7 +15,8 @@ stream_grid_raster_terra <- function(
   layer,
   dot_args,
   quiet = FALSE,
-  max_memory_gb = NULL
+  max_memory_gb = NULL,
+  cores = NULL
 ) {
   # --- 1. SETUP ---
   # Configure terra options for this session
@@ -32,6 +33,20 @@ stream_grid_raster_terra <- function(
     if (is.null(old_opts$memfrac) || old_opts$memfrac > 0.6) {
       terra::terraOptions(memfrac = 0.5)
     }
+  }
+
+  # Determine cores to use
+  # Priority: function argument > dot_args > global option > default (1)
+  if (is.null(cores)) {
+    cores <- dot_args$cores
+    dot_args$cores <- NULL # Remove to avoid passing twice
+  }
+  if (is.null(cores)) {
+    cores <- getOption("gridmaker.terra_cores", default = 1L)
+  }
+  cores <- as.integer(cores)
+  if (cores < 1) {
+    cores <- 1L
   }
 
   if (!quiet) {
@@ -157,6 +172,7 @@ stream_grid_raster_terra <- function(
     fun = generator_fun,
     filename = dsn,
     overwrite = TRUE,
+    cores = cores,
     wopt = list(
       datatype = "INT4S", # 4-byte signed integer (supports up to ~2 billion cells)
       gdal = gdal_opts

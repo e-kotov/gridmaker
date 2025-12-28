@@ -322,7 +322,8 @@ for large grids requiring labels.
 When writing to text files (e.g., .csv, .tsv) via \code{dsn}, these arguments are passed to \code{\link[readr]{write_delim}} (e.g., \code{na = "NA"}, \code{quote = "all"}).
 When writing to spatial files via \code{dsn}, these are passed to \code{\link[sf]{st_write}}.
 For \code{output_type = "spatraster"} writing, these are passed to \code{\link[terra]{writeRaster}}.
-For streaming backends (\code{mirai} or sequential), this can include \code{max_cells_per_chunk} to control memory usage.}
+For streaming backends (\code{mirai} or sequential), this can include \code{max_cells_per_chunk} to control memory usage.
+For raster generation, you can pass \code{cores} to control the number of CPU cores used (passed via dot args).}
 
 \item{grid_extent}{The spatial object defining the extent. Can be an \code{sf} object,
 \code{sfc} geometry collection, \code{bbox}, \code{numeric} vector (as c(xmin, ymin, xmax, ymax)),

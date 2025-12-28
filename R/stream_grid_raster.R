@@ -290,7 +290,7 @@ stream_grid_raster_terra <- function(
         message("Writing RAT natively (", toupper(ext), ")...")
       }
       levels(r_final) <- rat_df
-      names(r_final) <- "grid_id"
+      names(r_final) <- names(rat_df)[2]
 
       # Write to temp then replace (can't overwrite source)
       temp_out <- tempfile(fileext = paste0(".", ext))
@@ -307,7 +307,7 @@ stream_grid_raster_terra <- function(
       }
 
       levels(r_final) <- rat_df
-      names(r_final) <- "grid_id"
+      names(r_final) <- names(rat_df)[2]
 
       # Write to temp then replace
       temp_out <- tempfile(fileext = ".tif")
@@ -333,7 +333,7 @@ stream_grid_raster_terra <- function(
         message("Attempting RAT for format: ", ext)
       }
       levels(r_final) <- rat_df
-      names(r_final) <- "grid_id"
+      names(r_final) <- names(rat_df)[2]
 
       temp_out <- tempfile(fileext = paste0(".", ext))
       terra::writeRaster(r_final, temp_out, overwrite = TRUE)

@@ -106,12 +106,41 @@ test_that("inspire_grid streaming with include_rat works for GeoTIFF", {
   expect_true(length(cats) >= 1)
   if (length(cats) >= 1 && !is.null(cats[[1]])) {
     df <- cats[[1]]
-    expect_true(
-      "grid_id" %in%
-        names(df) ||
-        "GRD_ID" %in% names(df) ||
-        "GRD_ID_SHORT" %in% names(df)
-    )
+    expect_true("GRD_ID" %in% names(df))
+    expect_false("GRD_ID_SHORT" %in% names(df))
+    expect_false("GRD_ID_LONG" %in% names(df))
+  }
+})
+
+test_that("inspire_grid streaming with include_rat works for id_format = 'both'", {
+  skip_if_not_installed("terra")
+  skip_if_not_installed("sf")
+
+  nc <- sf::st_read(system.file("shape/nc.shp", package = "sf"), quiet = TRUE)
+  nc_proj <- sf::st_transform(nc, 5070)
+  nc_sub <- nc_proj[1, ]
+
+  cellsize <- 10000
+  tf_rat_both <- tempfile(fileext = ".tif")
+
+  inspire_grid(
+    nc_sub,
+    cellsize_m = cellsize,
+    output_type = "spatraster",
+    dsn = tf_rat_both,
+    id_format = "both",
+    include_rat = TRUE,
+    quiet = TRUE
+  )
+
+  r_rat <- terra::rast(tf_rat_both)
+  cats <- terra::cats(r_rat)
+
+  expect_true(length(cats) >= 1)
+  if (length(cats) >= 1 && !is.null(cats[[1]])) {
+    df <- cats[[1]]
+    expect_true("GRD_ID_SHORT" %in% names(df))
+    expect_true("GRD_ID_LONG" %in% names(df))
   }
 })
 

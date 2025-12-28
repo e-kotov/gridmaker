@@ -312,10 +312,10 @@ human-readable labels.
 \item \strong{GeoTIFF (.tif):} RAT stored in \code{.tif.aux.xml} sidecar file (XML).
 \strong{Warning:} This sidecar can be \strong{larger than the TIFF itself} for large
 grids. For chunked/streaming writes, requires a second pass (slower).
-Consider NetCDF or KEA formats for large grids with labels.
-\item \strong{NetCDF (.nc), KEA (.kea):} RAT embedded natively. \strong{Recommended}
+Consider KEA or Erdas Imagine formats for large grids with labels.
+\item \strong{KEA (.kea), Erdas Imagine (.img):} RAT embedded natively. \strong{Recommended}
 for large grids requiring labels.
-\item \strong{HDF5 (.hdf):} RAT \strong{not supported}. An error is raised if
+\item \strong{NetCDF (.nc), HDF5 (.hdf):} RAT \strong{not supported}. An error is raised if
 \code{include_rat = TRUE}.
 }}
 

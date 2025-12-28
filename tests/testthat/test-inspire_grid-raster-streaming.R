@@ -252,6 +252,84 @@ test_that("File format is preserved after clipping for KEA", {
   expect_true(any(grepl("KEA", info, ignore.case = TRUE)))
 })
 
+test_that("File format is preserved after clipping for Erdas Imagine", {
+  skip_if_not_installed("terra")
+  skip_if_not_installed("sf")
+
+  # Check for HFA (Erdas Imagine) driver
+  drivers <- terra::gdal(drivers = TRUE)
+  hfa_row <- drivers[drivers$name == "HFA", ]
+  has_hfa <- nrow(hfa_row) > 0 && grepl("write", hfa_row$can)
+
+  if (!has_hfa) {
+    skip("HFA (Erdas Imagine) driver not available in terra/GDAL")
+  }
+
+  test_poly <- sf::st_as_sfc(
+    "POLYGON((4000000 2800000, 4040000 2800000, 4040000 2840000, 4000000 2840000, 4000000 2800000))"
+  )
+  test_poly <- sf::st_set_crs(test_poly, 3035)
+
+  tf <- tempfile(fileext = ".img")
+
+  inspire_grid(
+    test_poly,
+    cellsize_m = 10000,
+    output_type = "spatraster",
+    dsn = tf,
+    clip_to_input = TRUE,
+    quiet = TRUE
+  )
+
+  # Verify file exists and can be read
+  expect_true(file.exists(tf))
+  r <- terra::rast(tf)
+  expect_s4_class(r, "SpatRaster")
+
+  # Verify format by checking GDAL driver
+  info <- terra::describe(tf)
+  expect_true(any(grepl("HFA", info, ignore.case = TRUE)))
+})
+
+test_that("File format is preserved after clipping for HDF5", {
+  skip_if_not_installed("terra")
+  skip_if_not_installed("sf")
+
+  # Check for HDF5 driver
+  drivers <- terra::gdal(drivers = TRUE)
+  hdf5_row <- drivers[drivers$name == "HDF5", ]
+  has_hdf5 <- nrow(hdf5_row) > 0 && grepl("write", hdf5_row$can)
+
+  if (!has_hdf5) {
+    skip("HDF5 driver not available in terra/GDAL")
+  }
+
+  test_poly <- sf::st_as_sfc(
+    "POLYGON((4000000 2800000, 4040000 2800000, 4040000 2840000, 4000000 2840000, 4000000 2800000))"
+  )
+  test_poly <- sf::st_set_crs(test_poly, 3035)
+
+  tf <- tempfile(fileext = ".hdf")
+
+  inspire_grid(
+    test_poly,
+    cellsize_m = 10000,
+    output_type = "spatraster",
+    dsn = tf,
+    clip_to_input = TRUE,
+    quiet = TRUE
+  )
+
+  # Verify file exists and can be read
+  expect_true(file.exists(tf))
+  r <- terra::rast(tf)
+  expect_s4_class(r, "SpatRaster")
+
+  # Verify format by checking GDAL driver
+  info <- terra::describe(tf)
+  expect_true(any(grepl("HDF5", info, ignore.case = TRUE)))
+})
+
 test_that("Chunked raster generation produces correct cell values", {
   skip_if_not_installed("terra")
   skip_if_not_installed("sf")

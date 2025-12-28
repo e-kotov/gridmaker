@@ -69,10 +69,10 @@
 #'     \item **GeoTIFF (.tif):** RAT stored in `.tif.aux.xml` sidecar file (XML).
 #'       **Warning:** This sidecar can be **larger than the TIFF itself** for large
 #'       grids. For chunked/streaming writes, requires a second pass (slower).
-#'       Consider NetCDF or KEA formats for large grids with labels.
-#'     \item **NetCDF (.nc), KEA (.kea):** RAT embedded natively. **Recommended**
+#'       Consider KEA or Erdas Imagine formats for large grids with labels.
+#'     \item **KEA (.kea), Erdas Imagine (.img):** RAT embedded natively. **Recommended**
 #'       for large grids requiring labels.
-#'     \item **HDF5 (.hdf):** RAT **not supported**. An error is raised if
+#'     \item **NetCDF (.nc), HDF5 (.hdf):** RAT **not supported**. An error is raised if
 #'       `include_rat = TRUE`.
 #'   }
 #'

@@ -198,11 +198,156 @@ test_that("validate_disk_compatibility validates formats correctly", {
   expect_true(validate_disk_compatibility("sf_polygons", "test.geojsonl"))
   expect_true(validate_disk_compatibility("sf_polygons", "test.geojsonseq"))
 
-  # Warning: Truly untested format (e.g., MapInfo TAB)
+  # Warning: Unknown format (e.g., MapInfo TAB - not in our driver mapping)
   expect_warning(
     validate_disk_compatibility("sf_polygons", "test.tab"),
-    "has not been tested for append support"
+    "Unknown vector format"
   )
+})
+
+# --- Vector format write tests with driver availability checks ---
+
+test_that("Vector format write works for GeoPackage", {
+  skip_if_not_installed("sf")
+
+  drivers <- sf::st_drivers()
+  gpkg_row <- drivers[drivers$name == "GPKG", ]
+  if (nrow(gpkg_row) == 0 || !gpkg_row$write) {
+    skip("GPKG driver not available with write capability")
+  }
+
+  tf <- tempfile(fileext = ".gpkg")
+  on.exit(unlink(tf), add = TRUE)
+
+  inspire_grid_from_extent(
+    grid_extent = c(0, 0, 20000, 20000),
+    cellsize_m = 10000,
+    crs = 3035,
+    output_type = "sf_polygons",
+    dsn = tf,
+    quiet = TRUE
+  )
+
+  expect_true(file.exists(tf))
+  sf_data <- sf::st_read(tf, quiet = TRUE)
+  expect_s3_class(sf_data, "sf")
+  expect_equal(nrow(sf_data), 4)
+})
+
+test_that("Vector format write works for Shapefile", {
+  skip_if_not_installed("sf")
+
+  drivers <- sf::st_drivers()
+  shp_row <- drivers[drivers$name == "ESRI Shapefile", ]
+  if (nrow(shp_row) == 0 || !shp_row$write) {
+    skip("ESRI Shapefile driver not available with write capability")
+  }
+
+  tf <- tempfile(fileext = ".shp")
+  on.exit(
+    unlink(c(
+      tf,
+      sub("\\.shp$", ".shx", tf),
+      sub("\\.shp$", ".dbf", tf),
+      sub("\\.shp$", ".prj", tf)
+    )),
+    add = TRUE
+  )
+
+  inspire_grid_from_extent(
+    grid_extent = c(0, 0, 20000, 20000),
+    cellsize_m = 10000,
+    crs = 3035,
+    output_type = "sf_polygons",
+    dsn = tf,
+    quiet = TRUE
+  )
+
+  expect_true(file.exists(tf))
+  sf_data <- sf::st_read(tf, quiet = TRUE)
+  expect_s3_class(sf_data, "sf")
+  expect_equal(nrow(sf_data), 4)
+})
+
+test_that("Vector format write works for GeoJSON", {
+  skip_if_not_installed("sf")
+
+  drivers <- sf::st_drivers()
+  geojson_row <- drivers[drivers$name == "GeoJSON", ]
+  if (nrow(geojson_row) == 0 || !geojson_row$write) {
+    skip("GeoJSON driver not available with write capability")
+  }
+
+  tf <- tempfile(fileext = ".geojson")
+  on.exit(unlink(tf), add = TRUE)
+
+  inspire_grid_from_extent(
+    grid_extent = c(0, 0, 20000, 20000),
+    cellsize_m = 10000,
+    crs = 3035,
+    output_type = "sf_polygons",
+    dsn = tf,
+    quiet = TRUE
+  )
+
+  expect_true(file.exists(tf))
+  sf_data <- sf::st_read(tf, quiet = TRUE)
+  expect_s3_class(sf_data, "sf")
+  expect_equal(nrow(sf_data), 4)
+})
+
+test_that("Vector format write works for FlatGeobuf", {
+  skip_if_not_installed("sf")
+
+  drivers <- sf::st_drivers()
+  fgb_row <- drivers[drivers$name == "FlatGeobuf", ]
+  if (nrow(fgb_row) == 0 || !fgb_row$write) {
+    skip("FlatGeobuf driver not available with write capability")
+  }
+
+  tf <- tempfile(fileext = ".fgb")
+  on.exit(unlink(tf), add = TRUE)
+
+  inspire_grid_from_extent(
+    grid_extent = c(0, 0, 20000, 20000),
+    cellsize_m = 10000,
+    crs = 3035,
+    output_type = "sf_polygons",
+    dsn = tf,
+    quiet = TRUE
+  )
+
+  expect_true(file.exists(tf))
+  sf_data <- sf::st_read(tf, quiet = TRUE)
+  expect_s3_class(sf_data, "sf")
+  expect_equal(nrow(sf_data), 4)
+})
+
+test_that("Vector format write works for GeoParquet", {
+  skip_if_not_installed("sf")
+
+  drivers <- sf::st_drivers()
+  parquet_row <- drivers[drivers$name == "Parquet", ]
+  if (nrow(parquet_row) == 0 || !parquet_row$write) {
+    skip("Parquet driver not available with write capability")
+  }
+
+  tf <- tempfile(fileext = ".parquet")
+  on.exit(unlink(tf), add = TRUE)
+
+  inspire_grid_from_extent(
+    grid_extent = c(0, 0, 20000, 20000),
+    cellsize_m = 10000,
+    crs = 3035,
+    output_type = "sf_polygons",
+    dsn = tf,
+    quiet = TRUE
+  )
+
+  expect_true(file.exists(tf))
+  sf_data <- sf::st_read(tf, quiet = TRUE)
+  expect_s3_class(sf_data, "sf")
+  expect_equal(nrow(sf_data), 4)
 })
 
 

@@ -339,6 +339,82 @@ regex_match <- function(text, pattern, i = NULL, ...) {
   return(rows_per_chunk)
 }
 
+#' Map file extension to GDAL driver name
+#' @keywords internal
+#' @noRd
+.ext_to_driver <- function(ext, type = c("raster", "vector")) {
+  type <- match.arg(type)
+
+  # Raster extension to driver mapping (documented formats only)
+  # See inspire_grid_params.R for supported formats
+  raster_map <- list(
+    tif = "GTiff",
+    tiff = "GTiff",
+    nc = "netCDF",
+    img = "HFA",
+    kea = "KEA",
+    hdf = "HDF5"
+  )
+
+  # Vector extension to driver mapping (documented formats only)
+  vector_map <- list(
+    gpkg = "GPKG",
+    sqlite = "SQLite",
+    shp = "ESRI Shapefile",
+    geojson = "GeoJSON",
+    json = "GeoJSON",
+    fgb = "FlatGeobuf",
+    gdb = "OpenFileGDB",
+    geojsonl = "GeoJSONSeq",
+    geojsonseq = "GeoJSONSeq",
+    parquet = "Parquet",
+    geoparquet = "Parquet"
+  )
+
+  map <- if (type == "raster") raster_map else vector_map
+  driver <- map[[tolower(ext)]]
+  return(driver)
+}
+
+#' Check if GDAL driver is available with write capability
+#' @keywords internal
+#' @noRd
+.check_driver_available <- function(driver_name, type = c("raster", "vector")) {
+  type <- match.arg(type)
+
+  if (type == "raster") {
+    # Check terra's GDAL drivers
+    if (!requireNamespace("terra", quietly = TRUE)) {
+      return(list(available = FALSE, reason = "terra_missing"))
+    }
+    drivers <- terra::gdal(drivers = TRUE)
+    drv_row <- drivers[drivers$name == driver_name, ]
+    if (nrow(drv_row) == 0) {
+      return(list(available = FALSE, reason = "driver_missing"))
+    }
+    # Check write capability (terra uses 'can' column with "read/write" or just "read")
+    can_write <- grepl("write", drv_row$can, ignore.case = TRUE)
+    if (!can_write) {
+      return(list(available = FALSE, reason = "no_write"))
+    }
+    return(list(available = TRUE, reason = NULL))
+  } else {
+    # Check sf's GDAL drivers
+    if (!requireNamespace("sf", quietly = TRUE)) {
+      return(list(available = FALSE, reason = "sf_missing"))
+    }
+    drivers <- sf::st_drivers()
+    drv_row <- drivers[drivers$name == driver_name, ]
+    if (nrow(drv_row) == 0) {
+      return(list(available = FALSE, reason = "driver_missing"))
+    }
+    if (!drv_row$write) {
+      return(list(available = FALSE, reason = "no_write"))
+    }
+    return(list(available = TRUE, reason = NULL))
+  }
+}
+
 #' Validate if output_type and DSN extension are compatible
 #' @keywords internal
 #' @noRd
@@ -352,18 +428,8 @@ validate_disk_compatibility <- function(output_type, dsn) {
   is_spatial_vector <- output_type %in% c("sf_polygons", "sf_points")
   is_dataframe <- output_type == "dataframe"
   is_raster <- output_type == "spatraster"
-  is_raster_format <- ext %in%
-    c("tif", "tiff", "nc", "img", "asc", "grd", "hdf", "hdf5")
 
   # Vector formats that support append (required for chunked disk writes)
-  # Empirically tested and confirmed to work:
-  # - GeoPackage (.gpkg) and SQLite (.sqlite) - excellent append support
-  # - GeoParquet (.parquet, .geoparquet) - modern columnar format, supports append (sf 1.0+/GDAL 3.5+)
-  # - Shapefile (.shp) - supports append (but has other limitations like field name length)
-  # - GeoJSON (.geojson, .json) - supports append
-  # - FlatGeobuf (.fgb) - cloud-optimized, supports append
-  # - OpenFileGDB (.gdb) - ESRI FileGDB, supports append
-  # - GeoJSONSeq (.geojsonl, .geojsonseq) - newline-delimited GeoJSON, supports append
   append_safe_vector_formats <- c(
     "gpkg",
     "sqlite",
@@ -381,8 +447,19 @@ validate_disk_compatibility <- function(output_type, dsn) {
   # Formats explicitly confirmed to NOT support append
   no_append_formats <- c("kml", "gml")
 
-  # 1. Prevent Dataframe -> Spatial Vector Format (e.g. gpkg, shp)
-  if (is_dataframe && !is_text && !is_raster_format) {
+  # --- 1. Handle text outputs (csv, tsv, txt) ---
+  if (is_text) {
+    if (!requireNamespace("readr", quietly = TRUE)) {
+      stop(
+        "Package 'readr' is required to write to .csv/.tsv/.txt files. Please install it.",
+        call. = FALSE
+      )
+    }
+    return(TRUE)
+  }
+
+  # --- 2. Handle dataframe outputs ---
+  if (is_dataframe) {
     stop(
       sprintf(
         "Output type 'dataframe' cannot be written to file extension '.%s'.\n  Please use '.csv', '.tsv', or '.txt' for dataframes, or change output_type to 'sf_polygons'/'sf_points'.",
@@ -392,29 +469,47 @@ validate_disk_compatibility <- function(output_type, dsn) {
     )
   }
 
-  # 2. Prevent Raster -&gt; Missing Extension
-  if (is_raster && !nzchar(ext)) {
-    stop(
-      "Output type 'spatraster' requires a file extension to determine the format.\n  Please specify a raster format extension, e.g., 'output.tif', 'output.nc', or 'output.kea'.",
-      call. = FALSE
-    )
+  # --- 3. Handle raster outputs (spatraster) ---
+  if (is_raster) {
+    if (!nzchar(ext)) {
+      stop(
+        "Output type 'spatraster' requires a file extension to determine the format.\n  Please specify a raster format extension, e.g., 'output.tif', 'output.nc', or 'output.kea'.",
+        call. = FALSE
+      )
+    }
+
+    driver_name <- .ext_to_driver(ext, "raster")
+    if (is.null(driver_name)) {
+      stop(
+        sprintf(
+          "Unsupported raster format: '.%s'.\n  Supported extensions: .tif, .tiff, .nc, .img, .asc, .grd, .hdf, .hdf5, .kea",
+          ext
+        ),
+        call. = FALSE
+      )
+    }
+
+    check <- .check_driver_available(driver_name, "raster")
+    if (!check$available) {
+      .stop_driver_unavailable(ext, driver_name, check$reason, "terra")
+    }
+    return(TRUE)
   }
 
-  # 3. Prevent SpatRaster -> Non-Raster Formats
-  if (is_raster && !is_raster_format) {
-    stop(
-      sprintf(
-        "Output type 'spatraster' cannot be written to file extension '.%s'.\n  Please use raster formats like '.tif', '.nc', '.asc', '.img', or '.grd'.",
-        ext
-      ),
-      call. = FALSE
-    )
-  }
+  # --- 4. Handle vector outputs (sf_polygons, sf_points) ---
+  if (is_spatial_vector) {
+    driver_name <- .ext_to_driver(ext, "vector")
 
-  # 3. Validate vector format supports append (required for chunked disk writes)
-  if (is_spatial_vector && !is_text) {
+    if (!is.null(driver_name)) {
+      # Known format - check driver availability
+      check <- .check_driver_available(driver_name, "vector")
+      if (!check$available) {
+        .stop_driver_unavailable(ext, driver_name, check$reason, "sf")
+      }
+    }
+
+    # Validate append support
     if (ext %in% no_append_formats) {
-      # Explicitly unsupported formats
       stop(
         sprintf(
           "Output type '%s' cannot be written to '.%s' format.\n  The '.%s' format does not support appending to existing files.\n  Supported vector formats: %s\n  Or generate the grid in memory (dsn = NULL) and save manually.",
@@ -425,8 +520,7 @@ validate_disk_compatibility <- function(output_type, dsn) {
         ),
         call. = FALSE
       )
-    } else if (!ext %in% append_safe_vector_formats) {
-      # Unknown/untested formats - provide a warning but more permissive
+    } else if (!ext %in% append_safe_vector_formats && !is.null(driver_name)) {
       warning(
         sprintf(
           "Output type '%s' with '.%s' format has not been tested for append support.\n  Tested formats: %s\n  The operation may fail if this format does not support appending.",
@@ -437,20 +531,76 @@ validate_disk_compatibility <- function(output_type, dsn) {
         call. = FALSE,
         immediate. = TRUE
       )
-    }
-  }
-
-  # 4. Check for readr availability if text output is requested
-  if (is_text) {
-    if (!requireNamespace("readr", quietly = TRUE)) {
-      stop(
-        "Package 'readr' is required to write to .csv/.tsv/.txt files. Please install it.",
-        call. = FALSE
+    } else if (is.null(driver_name)) {
+      warning(
+        sprintf(
+          "Unknown vector format '.%s'. The operation may fail.\n  Tested formats: %s",
+          ext,
+          paste0(".", append_safe_vector_formats, collapse = ", ")
+        ),
+        call. = FALSE,
+        immediate. = TRUE
       )
     }
   }
 
   return(TRUE)
+}
+
+#' Stop with helpful error message for unavailable GDAL driver
+#' @keywords internal
+#' @noRd
+.stop_driver_unavailable <- function(ext, driver_name, reason, pkg) {
+  base_msg <- sprintf(
+    "Cannot write to '.%s' format: GDAL driver '%s' is not available with write capability.",
+    ext,
+    driver_name
+  )
+
+  if (reason == "terra_missing") {
+    stop(
+      paste0(
+        base_msg,
+        "\n  The 'terra' package is required for raster output. Please install it:\n  install.packages('terra')"
+      ),
+      call. = FALSE
+    )
+  } else if (reason == "sf_missing") {
+    stop(
+      paste0(
+        base_msg,
+        "\n  The 'sf' package is required for vector output. Please install it:\n  install.packages('sf')"
+      ),
+      call. = FALSE
+    )
+  } else if (reason == "driver_missing") {
+    stop(
+      paste0(
+        base_msg,
+        sprintf(
+          "\n  The '%s' driver is not included in your GDAL installation.\n  To use this format, reinstall '%s' with a GDAL version that includes the '%s' driver.\n  On some systems, you may need to install GDAL from source with appropriate build flags.",
+          driver_name,
+          pkg,
+          driver_name
+        )
+      ),
+      call. = FALSE
+    )
+  } else if (reason == "no_write") {
+    stop(
+      paste0(
+        base_msg,
+        sprintf(
+          "\n  The '%s' driver is installed but does not have write capability.\n  This may require rebuilding '%s' with a different GDAL configuration.\n  Check 'terra::gdal(drivers = TRUE)' or 'sf::st_drivers()' for available drivers.",
+          driver_name,
+          pkg
+        )
+      ),
+      call. = FALSE
+    )
+  } else {
+    stop(base_msg, call. = FALSE)
+  }
 }
 
 #' Count trailing zeros

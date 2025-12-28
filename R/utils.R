@@ -358,6 +358,7 @@ validate_disk_compatibility <- function(output_type, dsn) {
   # Vector formats that support append (required for chunked disk writes)
   # Empirically tested and confirmed to work:
   # - GeoPackage (.gpkg) and SQLite (.sqlite) - excellent append support
+  # - GeoParquet (.parquet, .geoparquet) - modern columnar format, supports append (sf 1.0+/GDAL 3.5+)
   # - Shapefile (.shp) - supports append (but has other limitations like field name length)
   # - GeoJSON (.geojson, .json) - supports append
   # - FlatGeobuf (.fgb) - cloud-optimized, supports append
@@ -372,7 +373,9 @@ validate_disk_compatibility <- function(output_type, dsn) {
     "fgb",
     "gdb",
     "geojsonl",
-    "geojsonseq"
+    "geojsonseq",
+    "parquet",
+    "geoparquet"
   )
 
   # Formats explicitly confirmed to NOT support append
@@ -503,13 +506,30 @@ write_grid_chunk <- function(chunk, dsn, layer, append, quiet, ...) {
   } else {
     # --- Spatial Output (sf) ---
     # sf::st_write accepts '...' for driver specific options
-    sf::st_write(
-      chunk,
-      dsn = dsn,
-      layer = layer,
-      append = append,
-      quiet = TRUE,
-      ...
-    )
+
+    # Determine if we need to specify the Parquet driver explicitly
+    # (GDAL doesn't auto-detect .parquet extension)
+    is_parquet <- ext %in% c("parquet", "geoparquet")
+
+    if (is_parquet) {
+      sf::st_write(
+        chunk,
+        dsn = dsn,
+        layer = layer,
+        driver = "Parquet",
+        append = append,
+        quiet = TRUE,
+        ...
+      )
+    } else {
+      sf::st_write(
+        chunk,
+        dsn = dsn,
+        layer = layer,
+        append = append,
+        quiet = TRUE,
+        ...
+      )
+    }
   }
 }

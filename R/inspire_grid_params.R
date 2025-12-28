@@ -34,6 +34,7 @@
 #'   **Supported vector formats for chunked disk writes:**
 #'   \itemize{
 #'     \item `.gpkg` (GeoPackage) - **Recommended** - Best balance of speed, compatibility, and modern features
+#'     \item `.parquet`, `.geoparquet` (GeoParquet) - Modern columnar format, excellent for large grids (requires sf 1.0+/GDAL 3.5+)
 #'     \item `.shp` (Shapefile) - Widely used, fast writes, but has limitations (10-char field names, 2GB limit)
 #'     \item `.geojson`, `.json` (GeoJSON) - Web-friendly, works but slower for large grids
 #'     \item `.geojsonl`, `.geojsonseq` (GeoJSONSeq) - Newline-delimited GeoJSON

@@ -238,6 +238,15 @@ GeoPackage offers the best balance of speed, cross-platform compatibility, and m
 - No file size limits
 - Built on SQLite, ensuring data integrity through transactions
 
+**GeoParquet (`.parquet`, `.geoparquet`)** - **Recommended for Large Grids**
+
+GeoParquet is a modern columnar format ideal for analytics and cloud workflows:
+- Highly efficient columnar storage (smaller files than GeoPackage)
+- Excellent for large grids and data lake architectures
+- Native support in modern tools (DuckDB, Arrow, pandas/geopandas)
+- Fast reads, especially for column-subset queries
+- Requires sf 1.0+ with GDAL 3.5+
+
 **Shapefile (`.shp`)** - Legacy Alternative
 
 Shapefile remains widely used in GIS and is supported:

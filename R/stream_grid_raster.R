@@ -116,6 +116,7 @@ stream_grid_raster_terra <- function(
   # terra::mask() is also disk-based and chunked.
 
   # Generation function
+  # Note: Captures xmin, ymax, cellsize_m, nrows, ncols from outer scope
   generator_fun <- function(xy) {
     # xy is a matrix/vector of coordinates [x, y]
     # For large chunks, it's a matrix

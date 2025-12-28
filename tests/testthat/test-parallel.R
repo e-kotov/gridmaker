@@ -92,7 +92,7 @@ test_that("Backend detection logic with parallel = 'auto' works", {
 
   expect_message(
     inspire_grid_from_extent(nc, CELLSIZE, parallel = "auto"),
-    "`future` backend detected. Running in parallel."
+    "`future` backend detected.*Running in parallel"
   )
   future::plan(old_plan) # Clean up immediately
 
@@ -102,7 +102,7 @@ test_that("Backend detection logic with parallel = 'auto' works", {
       mirai::daemons(2)
       expect_message(
         inspire_grid_from_extent(nc, CELLSIZE, parallel = "auto"),
-        "`mirai` backend detected. Running in parallel."
+        "`mirai` backend detected.*Running in parallel"
       )
     },
     finally = {

@@ -6,6 +6,12 @@ test_that("inspire_grid_from_extent streams correctly to disk with mirai backend
   skip_if_not_installed("mirai")
   # The `nc` object from setup.R requires `sf`
   skip_if_not_installed("sf")
+  # Skip on Windows with R < 4.2 due to later/promises event loop cleanup issues
+  # that cause the R process to crash during test completion
+  skip_if(
+    getRversion() < "4.2.0" && .Platform$OS.type == "windows",
+    "Mirai streaming tests skipped on Windows with R < 4.2 (event loop issues)"
+  )
 
   # 2. SETUP ----
   # Assumes `nc` and `CELLSIZE` are loaded from `tests/testthat/setup.R`

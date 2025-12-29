@@ -272,7 +272,7 @@ GeoJSON works for chunked writes but has significant performance limitations:
 The following formats have been tested and confirmed to support append operations:
 - **GeoJSONSeq** (`.geojsonl`, `.geojsonseq`) - Newline-delimited GeoJSON for streaming
 - **FlatGeobuf** (`.fgb`) - Cloud-optimized format for HTTP range requests
-- Additional formats (`.gdb`, `.sqlite`) - see `sf::st_drivers()` for full list
+- Additional formats (`.sqlite`) - see `sf::st_drivers()` for full list
 
 ::: callout-important
 ## Format Support

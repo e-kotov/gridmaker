@@ -44,7 +44,6 @@ instead of being returned as an object.
 \item \code{.geojsonl}, \code{.geojsonseq} (GeoJSONSeq) - Newline-delimited GeoJSON
 \item \code{.sqlite} (SQLite/SpatiaLite) - Database format (GeoPackage is built on SQLite)
 \item \code{.fgb} (FlatGeobuf) - Cloud-optimized format
-\item \code{.gdb} (OpenFileGDB) - ESRI FileGDB format
 \item \code{.csv}, \code{.tsv}, \code{.txt} (for dataframe output only)
 }
 

@@ -194,7 +194,6 @@ test_that("validate_disk_compatibility validates formats correctly", {
 
   # Success: Newly added tested formats
   expect_true(validate_disk_compatibility("sf_polygons", "test.fgb"))
-  expect_true(validate_disk_compatibility("sf_polygons", "test.gdb"))
   expect_true(validate_disk_compatibility("sf_polygons", "test.geojsonl"))
   expect_true(validate_disk_compatibility("sf_polygons", "test.geojsonseq"))
 

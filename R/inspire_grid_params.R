@@ -40,7 +40,6 @@
 #'     \item `.geojsonl`, `.geojsonseq` (GeoJSONSeq) - Newline-delimited GeoJSON
 #'     \item `.sqlite` (SQLite/SpatiaLite) - Database format (GeoPackage is built on SQLite)
 #'     \item `.fgb` (FlatGeobuf) - Cloud-optimized format
-#'     \item `.gdb` (OpenFileGDB) - ESRI FileGDB format
 #'     \item `.csv`, `.tsv`, `.txt` (for dataframe output only)
 #'   }
 #'

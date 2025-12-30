@@ -1,3 +1,10 @@
+# Skip entire file on Windows with R < 4.2 due to process crashes during I/O tests
+if (getRversion() < "4.2.0" && .Platform$OS.type == "windows") {
+  testthat::skip(
+    "Disk writing tests skipped on Windows with R < 4.2 due to process crashes"
+  )
+}
+
 test_that("inspire_grid_from_extent streams correctly to disk with mirai backend", {
   # 1. SKIP CONDITIONS ----
   # This test is multi-core and requires a specific backend.

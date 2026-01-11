@@ -38,6 +38,7 @@ inspire_grid(
   dsn = NULL,
   layer = NULL,
   max_memory_gb = NULL,
+  include_rat = FALSE,
   ...
 )
 
@@ -59,6 +60,7 @@ inspire_grid(
   dsn = NULL,
   layer = NULL,
   max_memory_gb = NULL,
+  include_rat = FALSE,
   ...
 )
 
@@ -80,6 +82,7 @@ inspire_grid(
   dsn = NULL,
   layer = NULL,
   max_memory_gb = NULL,
+  include_rat = FALSE,
   ...
 )
 
@@ -101,6 +104,7 @@ inspire_grid(
   dsn = NULL,
   layer = NULL,
   max_memory_gb = NULL,
+  include_rat = FALSE,
   ...
 )
 
@@ -122,6 +126,7 @@ inspire_grid(
   dsn = NULL,
   layer = NULL,
   max_memory_gb = NULL,
+  include_rat = FALSE,
   ...
 )
 
@@ -143,6 +148,7 @@ inspire_grid(
   dsn = NULL,
   layer = NULL,
   max_memory_gb = NULL,
+  include_rat = FALSE,
   ...
 )
 
@@ -164,6 +170,7 @@ inspire_grid(
   dsn = NULL,
   layer = NULL,
   max_memory_gb = NULL,
+  include_rat = FALSE,
   ...
 )
 
@@ -184,6 +191,7 @@ inspire_grid_from_extent(
   dsn = NULL,
   layer = NULL,
   max_memory_gb = NULL,
+  include_rat = FALSE,
   ...
 )
 
@@ -300,15 +308,27 @@ inspire_grid_from_ids(
   For parallelism, you must configure a backend *before* calling this
   function, for example: `mirai::daemons(8)` or
   `future::plan("multisession", workers = 8)`. **Performance tip:**
-  Benchmarks show 8 workers provide optimal performance for most grid
-  sizes. Using \>32 workers typically decreases performance due to
-  overhead. The function automatically limits active workers for small
-  grids to minimize overhead: \<50k cells use max 4 workers, \<500k
-  cells use max 8 workers, \<2M cells use max 16 workers. This automatic
-  limiting can be overridden by setting
-  `options(gridmaker.tile_multiplier)`. **Note:** Parallel processing is
-  not supported when `output_type = "spatraster"`. Raster output will
-  always run sequentially.
+  Benchmarks show 4-8 workers provide optimal performance for most grid
+  sizes. Using \>8 workers typically yields diminishing returns due to
+  I/O bottlenecks. The function automatically limits active workers for
+  small grids to minimize overhead: \<50k cells use max 4 workers,
+  \<500k cells use max 8 workers, \<2M cells use max 16 workers. This
+  automatic limiting can be overridden by setting
+  `options(gridmaker.tile_multiplier)`. **Note:** Parallel processing
+  support depends on the backend and output type:
+
+  - **`mirai` backend:** Supports parallel processing for all outputs,
+    including efficient disk streaming. This is the recommended modern
+    backend that also runs asynchronously, which allows it to pass
+    chunks of grid that are ready to the disk writer and therefore makes
+    streaming to disk efficient, as there is no need to all data in
+    memory first.
+
+  - **`future` backend:** Supports parallel processing **only** for
+    in-memory vector generation (`sf`, `dataframe`). It does not support
+    raster output or disk-based streaming (falls back to sequential),
+    because it would need to first accumualte all data in memory before
+    writing to disk, negating the benefits of streaming.
 
 - quiet:
 
@@ -331,6 +351,9 @@ inspire_grid_from_ids(
   - `.gpkg` (GeoPackage) - **Recommended** - Best balance of speed,
     compatibility, and modern features
 
+  - `.parquet`, `.geoparquet` (GeoParquet) - Modern columnar format,
+    excellent for large grids (requires sf 1.0+/GDAL 3.5+)
+
   - `.shp` (Shapefile) - Widely used, fast writes, but has limitations
     (10-char field names, 2GB limit)
 
@@ -343,8 +366,6 @@ inspire_grid_from_ids(
     on SQLite)
 
   - `.fgb` (FlatGeobuf) - Cloud-optimized format
-
-  - `.gdb` (OpenFileGDB) - ESRI FileGDB format
 
   - `.csv`, `.tsv`, `.txt` (for dataframe output only)
 
@@ -368,6 +389,30 @@ inspire_grid_from_ids(
   (High Performance Computing) systems where jobs are allocated a fixed
   amount of memory that is less than the total free memory of the
   allocated node.
+
+- include_rat:
+
+  Logical. If `TRUE`, generate a Raster Attribute Table (RAT) mapping
+  numeric cell IDs to INSPIRE grid ID strings. Default is `FALSE`.
+
+  **What is a RAT?** A Raster Attribute Table stores metadata (like
+  INSPIRE IDs) for each unique raster value. Without RAT, raster cells
+  contain only numeric IDs (1, 2, 3...). With RAT, software like QGIS/R
+  can display the IDs as human-readable labels.
+
+  **Format-specific behavior:**
+
+  - **GeoTIFF (.tif):** RAT stored in `.tif.aux.xml` sidecar file (XML).
+    **Warning:** This sidecar can be **larger than the TIFF itself** for
+    large grids. For chunked/streaming writes, requires a second pass
+    (slower). Consider KEA or Erdas Imagine formats for large grids with
+    labels.
+
+  - **KEA (.kea), Erdas Imagine (.img):** RAT embedded natively.
+    **Recommended** for large grids requiring labels.
+
+  - **NetCDF (.nc), HDF5 (.hdf):** RAT **not supported**. An error is
+    raised if `include_rat = TRUE`.
 
 - ...:
 
@@ -430,11 +475,13 @@ nc_grid <- inspire_grid_from_extent(
   output_type = "sf_polygons",
   clip_to_input = TRUE
 )
-#> No parallel backend detected. Running in sequential mode. See ?inspire_grid for details how to enable parallel processing to speed up large jobs.
+#> No parallel backend detected. Running in sequential mode.
+#> Tip: Your system has 4 cores. Configure a parallel backend for faster grid generation.
 
 # Or using the S3 generic
 nc_grid <- inspire_grid(nc, cellsize_m = cellsize_m, clip_to_input = TRUE)
-#> No parallel backend detected. Running in sequential mode. See ?inspire_grid for details how to enable parallel processing to speed up large jobs.
+#> No parallel backend detected. Running in sequential mode.
+#> Tip: Your system has 4 cores. Configure a parallel backend for faster grid generation.
 
 head(nc_grid, 3)
 #> Simple feature collection with 3 features and 4 fields

@@ -106,6 +106,7 @@ extent, see <code>inspire_grid_from_extent</code>.</p>
 <span>  dsn <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  layer <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  max_memory_gb <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  include_rat <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  <span class="va">...</span></span>
 <span><span class="op">)</span></span>
 <span></span>
@@ -127,6 +128,7 @@ extent, see <code>inspire_grid_from_extent</code>.</p>
 <span>  dsn <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  layer <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  max_memory_gb <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  include_rat <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  <span class="va">...</span></span>
 <span><span class="op">)</span></span>
 <span></span>
@@ -148,6 +150,7 @@ extent, see <code>inspire_grid_from_extent</code>.</p>
 <span>  dsn <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  layer <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  max_memory_gb <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  include_rat <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  <span class="va">...</span></span>
 <span><span class="op">)</span></span>
 <span></span>
@@ -169,6 +172,7 @@ extent, see <code>inspire_grid_from_extent</code>.</p>
 <span>  dsn <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  layer <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  max_memory_gb <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  include_rat <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  <span class="va">...</span></span>
 <span><span class="op">)</span></span>
 <span></span>
@@ -190,6 +194,7 @@ extent, see <code>inspire_grid_from_extent</code>.</p>
 <span>  dsn <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  layer <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  max_memory_gb <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  include_rat <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  <span class="va">...</span></span>
 <span><span class="op">)</span></span>
 <span></span>
@@ -211,6 +216,7 @@ extent, see <code>inspire_grid_from_extent</code>.</p>
 <span>  dsn <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  layer <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  max_memory_gb <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  include_rat <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  <span class="va">...</span></span>
 <span><span class="op">)</span></span>
 <span></span>
@@ -232,6 +238,7 @@ extent, see <code>inspire_grid_from_extent</code>.</p>
 <span>  dsn <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  layer <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  max_memory_gb <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  include_rat <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  <span class="va">...</span></span>
 <span><span class="op">)</span></span>
 <span></span>
@@ -252,6 +259,7 @@ extent, see <code>inspire_grid_from_extent</code>.</p>
 <span>  dsn <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  layer <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  max_memory_gb <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  include_rat <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  <span class="va">...</span></span>
 <span><span class="op">)</span></span>
 <span></span>
@@ -357,13 +365,14 @@ not configured.</p></li>
 sequential mode.</p></li>
 </ul><p>For parallelism, you must configure a backend <em>before</em> calling this
 function, for example: <code>mirai::daemons(8)</code> or <code>future::plan("multisession", workers = 8)</code>.
-<strong>Performance tip:</strong> Benchmarks show 8 workers provide optimal performance for most
-grid sizes. Using &gt;32 workers typically decreases performance due to overhead.
+<strong>Performance tip:</strong> Benchmarks show 4-8 workers provide optimal performance for most
+grid sizes. Using &gt;8 workers typically yields diminishing returns due to I/O bottlenecks.
 The function automatically limits active workers for small grids to minimize overhead:
 &lt;50k cells use max 4 workers, &lt;500k cells use max 8 workers, &lt;2M cells use max 16 workers.
 This automatic limiting can be overridden by setting <code>options(gridmaker.tile_multiplier)</code>.
-<strong>Note:</strong> Parallel processing is not supported when <code>output_type = "spatraster"</code>.
-Raster output will always run sequentially.</p></dd>
+<strong>Note:</strong> Parallel processing support depends on the backend and output type:</p><ul><li><p><strong><code>mirai</code> backend:</strong> Supports parallel processing for all outputs, including efficient disk streaming. This is the recommended modern backend that also runs asynchronously, which allows it to pass chunks of grid that are ready to the disk writer and therefore makes streaming to disk efficient, as there is no need to all data in memory first.</p></li>
+<li><p><strong><code>future</code> backend:</strong> Supports parallel processing <strong>only</strong> for in-memory vector generation (<code>sf</code>, <code>dataframe</code>). It does not support raster output or disk-based streaming (falls back to sequential), because it would need to first accumualte all data in memory before writing to disk, negating the benefits of streaming.</p></li>
+</ul></dd>
 
 
 <dt id="arg-quiet">quiet<a class="anchor" aria-label="anchor" href="#arg-quiet"></a></dt>
@@ -378,12 +387,12 @@ This can be a file path (e.g., <code>"path/to/grid.gpkg"</code> for vector data 
 If <code>dsn</code> is provided, the grid is written to the specified location
 instead of being returned as an object.</p>
 <p><strong>Supported vector formats for chunked disk writes:</strong></p><ul><li><p><code>.gpkg</code> (GeoPackage) - <strong>Recommended</strong> - Best balance of speed, compatibility, and modern features</p></li>
+<li><p><code>.parquet</code>, <code>.geoparquet</code> (GeoParquet) - Modern columnar format, excellent for large grids (requires sf 1.0+/GDAL 3.5+)</p></li>
 <li><p><code>.shp</code> (Shapefile) - Widely used, fast writes, but has limitations (10-char field names, 2GB limit)</p></li>
 <li><p><code>.geojson</code>, <code>.json</code> (GeoJSON) - Web-friendly, works but slower for large grids</p></li>
 <li><p><code>.geojsonl</code>, <code>.geojsonseq</code> (GeoJSONSeq) - Newline-delimited GeoJSON</p></li>
 <li><p><code>.sqlite</code> (SQLite/SpatiaLite) - Database format (GeoPackage is built on SQLite)</p></li>
 <li><p><code>.fgb</code> (FlatGeobuf) - Cloud-optimized format</p></li>
-<li><p><code>.gdb</code> (OpenFileGDB) - ESRI FileGDB format</p></li>
 <li><p><code>.csv</code>, <code>.tsv</code>, <code>.txt</code> (for dataframe output only)</p></li>
 </ul><p>Other formats not listed have not been tested and will generate a warning.</p></dd>
 
@@ -397,6 +406,24 @@ not specified, it defaults to the file's base name.</p></dd>
 
 <dt id="arg-max-memory-gb">max_memory_gb<a class="anchor" aria-label="anchor" href="#arg-max-memory-gb"></a></dt>
 <dd><p>A numeric value. Maximum memory in gigabytes to use for grid creation. Default is <code>NULL</code>, in which case there is an automatic limit based on <strong>available free system memory</strong> (not total system RAM). Using this argument allows manual override, which is recommended on certain HPC (High Performance Computing) systems where jobs are allocated a fixed amount of memory that is less than the total free memory of the allocated node.</p></dd>
+
+
+<dt id="arg-include-rat">include_rat<a class="anchor" aria-label="anchor" href="#arg-include-rat"></a></dt>
+<dd><p>Logical. If <code>TRUE</code>, generate a Raster Attribute Table (RAT)
+mapping numeric cell IDs to INSPIRE grid ID strings. Default is <code>FALSE</code>.</p>
+<p><strong>What is a RAT?</strong> A Raster Attribute Table stores metadata (like INSPIRE IDs)
+for each unique raster value. Without RAT, raster cells contain only numeric
+IDs (1, 2, 3...). With RAT, software like QGIS/R can display the IDs as
+human-readable labels.</p>
+<p><strong>Format-specific behavior:</strong></p><ul><li><p><strong>GeoTIFF (.tif):</strong> RAT stored in <code>.tif.aux.xml</code> sidecar file (XML).
+<strong>Warning:</strong> This sidecar can be <strong>larger than the TIFF itself</strong> for large
+grids. For chunked/streaming writes, requires a second pass (slower).
+Consider KEA or Erdas Imagine formats for large grids with labels.</p></li>
+<li><p><strong>KEA (.kea), Erdas Imagine (.img):</strong> RAT embedded natively. <strong>Recommended</strong>
+for large grids requiring labels.</p></li>
+<li><p><strong>NetCDF (.nc), HDF5 (.hdf):</strong> RAT <strong>not supported</strong>. An error is raised if
+<code>include_rat = TRUE</code>.</p></li>
+</ul></dd>
 
 
 <dt id="arg--">...<a class="anchor" aria-label="anchor" href="#arg--"></a></dt>
@@ -453,11 +480,13 @@ clipping to input geometries, parallel processing, and multiple output formats.<
 <span class="r-in"><span>  output_type <span class="op">=</span> <span class="st">"sf_polygons"</span>,</span></span>
 <span class="r-in"><span>  clip_to_input <span class="op">=</span> <span class="cn">TRUE</span></span></span>
 <span class="r-in"><span><span class="op">)</span></span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> No parallel backend detected. Running in sequential mode. See ?inspire_grid for details how to enable parallel processing to speed up large jobs.</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> No parallel backend detected. Running in sequential mode.</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Tip: Your system has 4 cores. Configure a parallel backend for faster grid generation.</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Or using the S3 generic</span></span></span>
 <span class="r-in"><span><span class="va">nc_grid</span> <span class="op">&lt;-</span> <span class="fu">inspire_grid</span><span class="op">(</span><span class="va">nc</span>, cellsize_m <span class="op">=</span> <span class="va">cellsize_m</span>, clip_to_input <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> No parallel backend detected. Running in sequential mode. See ?inspire_grid for details how to enable parallel processing to speed up large jobs.</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> No parallel backend detected. Running in sequential mode.</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Tip: Your system has 4 cores. Configure a parallel backend for faster grid generation.</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">nc_grid</span>, <span class="fl">3</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Simple feature collection with 3 features and 4 fields</span>

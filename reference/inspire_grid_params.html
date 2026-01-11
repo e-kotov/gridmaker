@@ -105,12 +105,12 @@ This can be a file path (e.g., <code>"path/to/grid.gpkg"</code> for vector data 
 If <code>dsn</code> is provided, the grid is written to the specified location
 instead of being returned as an object.</p>
 <p><strong>Supported vector formats for chunked disk writes:</strong></p><ul><li><p><code>.gpkg</code> (GeoPackage) - <strong>Recommended</strong> - Best balance of speed, compatibility, and modern features</p></li>
+<li><p><code>.parquet</code>, <code>.geoparquet</code> (GeoParquet) - Modern columnar format, excellent for large grids (requires sf 1.0+/GDAL 3.5+)</p></li>
 <li><p><code>.shp</code> (Shapefile) - Widely used, fast writes, but has limitations (10-char field names, 2GB limit)</p></li>
 <li><p><code>.geojson</code>, <code>.json</code> (GeoJSON) - Web-friendly, works but slower for large grids</p></li>
 <li><p><code>.geojsonl</code>, <code>.geojsonseq</code> (GeoJSONSeq) - Newline-delimited GeoJSON</p></li>
 <li><p><code>.sqlite</code> (SQLite/SpatiaLite) - Database format (GeoPackage is built on SQLite)</p></li>
 <li><p><code>.fgb</code> (FlatGeobuf) - Cloud-optimized format</p></li>
-<li><p><code>.gdb</code> (OpenFileGDB) - ESRI FileGDB format</p></li>
 <li><p><code>.csv</code>, <code>.tsv</code>, <code>.txt</code> (for dataframe output only)</p></li>
 </ul><p>Other formats not listed have not been tested and will generate a warning.</p></dd>
 
@@ -132,6 +132,24 @@ For streaming backends (<code>mirai</code> or sequential), this can include <cod
 
 <dt id="arg-max-memory-gb">max_memory_gb<a class="anchor" aria-label="anchor" href="#arg-max-memory-gb"></a></dt>
 <dd><p>A numeric value. Maximum memory in gigabytes to use for grid creation. Default is <code>NULL</code>, in which case there is an automatic limit based on <strong>available free system memory</strong> (not total system RAM).</p></dd>
+
+
+<dt id="arg-include-rat">include_rat<a class="anchor" aria-label="anchor" href="#arg-include-rat"></a></dt>
+<dd><p>Logical. If <code>TRUE</code>, generate a Raster Attribute Table (RAT)
+mapping numeric cell IDs to INSPIRE grid ID strings. Default is <code>FALSE</code>.</p>
+<p><strong>What is a RAT?</strong> A Raster Attribute Table stores metadata (like INSPIRE IDs)
+for each unique raster value. Without RAT, raster cells contain only numeric
+IDs (1, 2, 3...). With RAT, software like QGIS/R can display the IDs as
+human-readable labels.</p>
+<p><strong>Format-specific behavior:</strong></p><ul><li><p><strong>GeoTIFF (.tif):</strong> RAT stored in <code>.tif.aux.xml</code> sidecar file (XML).
+<strong>Warning:</strong> This sidecar can be <strong>larger than the TIFF itself</strong> for large
+grids. For chunked/streaming writes, requires a second pass (slower).
+Consider KEA or Erdas Imagine formats for large grids with labels.</p></li>
+<li><p><strong>KEA (.kea), Erdas Imagine (.img):</strong> RAT embedded natively. <strong>Recommended</strong>
+for large grids requiring labels.</p></li>
+<li><p><strong>NetCDF (.nc), HDF5 (.hdf):</strong> RAT <strong>not supported</strong>. An error is raised if
+<code>include_rat = TRUE</code>.</p></li>
+</ul></dd>
 
 </dl></div>
 

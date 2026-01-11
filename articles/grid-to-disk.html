@@ -110,8 +110,7 @@
 <div class="sourceCode cell-code" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># install.packages("giscoR")</span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://ropengov.github.io/giscoR/" class="external-link">giscoR</a></span><span class="op">)</span></span>
-<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://r-spatial.github.io/sf/" class="external-link">sf</a></span><span class="op">)</span></span>
-<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/jabiru/tictoc" class="external-link">tictoc</a></span><span class="op">)</span></span></code></pre></div>
+<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://r-spatial.github.io/sf/" class="external-link">sf</a></span><span class="op">)</span></span></code></pre></div>
 </div>
 </section><section class="level2"><h3 id="get-the-country-boundary">Get the country boundary<a class="anchor" aria-label="anchor" href="#get-the-country-boundary"></a>
 </h3>
@@ -137,16 +136,12 @@
 </ul>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb4"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/jabiru/tictoc" class="external-link">tictoc</a></span><span class="op">)</span></span>
-<span></span>
-<span><span class="fu">tic</span><span class="op">(</span><span class="op">)</span></span>
-<span><span class="va">spain_grid_100m</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/inspire_grid.html">inspire_grid</a></span><span class="op">(</span></span>
+<code class="sourceCode R"><span><span class="va">spain_grid_100m</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/inspire_grid.html">inspire_grid</a></span><span class="op">(</span></span>
 <span>  x <span class="op">=</span> <span class="va">spain_boundary</span>,</span>
 <span>  cellsize_m <span class="op">=</span> <span class="fl">100</span>,</span>
 <span>  output_type <span class="op">=</span> <span class="st">"sf_polygons"</span>,</span>
 <span>  dsn <span class="op">=</span> <span class="st">"spain_grid_100m.gpkg"</span></span>
-<span><span class="op">)</span></span>
-<span><span class="fu">toc</span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
+<span><span class="op">)</span></span></code></pre></div>
 </div>
 <div>
 <blockquote>
@@ -167,29 +162,81 @@
 </div>
 </section><section class="level2"><h3 id="create-grid-directly-to-geotiff-raster">Create grid directly to GeoTIFF (raster)<a class="anchor" aria-label="anchor" href="#create-grid-directly-to-geotiff-raster"></a>
 </h3>
-<div>
-<blockquote>
-<p><strong>Warning</strong></p>
-<p>Raster grid creation does not support chunked streaming to disk yet, so the raster will be created first in memory and then saved to disk. So this will not work on memory-constrained systems for very large grids. Future versions may support chunked raster writing.</p>
-</blockquote>
-</div>
-<p>Alternatively, you can create a raster grid directly to a GeoTIFF file using <code>SpatRaster</code> output:</p>
+<p>Raster grid creation also supports chunked streaming to disk via the <code>terra</code> backend. This follows a similar logic to vector output, where the grid is generated and written in blocks to minimize memory usage.</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb5"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu">tic</span><span class="op">(</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="co"># By default, rasters are written without a Raster Attribute Table (RAT)</span></span>
+<span><span class="co"># for maximum performance.</span></span>
 <span><span class="va">spain_grid_100m_raster</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/inspire_grid.html">inspire_grid</a></span><span class="op">(</span></span>
 <span>  x <span class="op">=</span> <span class="va">spain_boundary</span>,</span>
 <span>  cellsize_m <span class="op">=</span> <span class="fl">100</span>,</span>
 <span>  output_type <span class="op">=</span> <span class="st">"spatraster"</span>,</span>
 <span>  dsn <span class="op">=</span> <span class="st">"spain_grid_100m.tiff"</span></span>
-<span><span class="op">)</span></span>
-<span><span class="fu">toc</span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
+<span><span class="op">)</span></span></code></pre></div>
 </div>
-</section><section class="level2"><h3 id="read-the-grid-from-disk">Read the grid from disk<a class="anchor" aria-label="anchor" href="#read-the-grid-from-disk"></a>
+<section class="level3"><h4 id="raster-attribute-tables-rat">Raster Attribute Tables (RAT)<a class="anchor" aria-label="anchor" href="#raster-attribute-tables-rat"></a>
+</h4>
+<p>By default, raster outputs contain only numeric cell identifiers. If you need the human-readable INSPIRE IDs (e.g., <code>100mN1234E5678</code>), you can use <code>include_rat = TRUE</code>.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb6"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Opt-in for RAT generation (slower, creates larger files)</span></span>
+<span><span class="fu"><a href="../reference/inspire_grid.html">inspire_grid</a></span><span class="op">(</span></span>
+<span>  x <span class="op">=</span> <span class="va">spain_boundary</span>,</span>
+<span>  cellsize_m <span class="op">=</span> <span class="fl">100</span>,</span>
+<span>  output_type <span class="op">=</span> <span class="st">"spatraster"</span>,</span>
+<span>  dsn <span class="op">=</span> <span class="st">"spain_grid_100m_with_rat.tiff"</span>,</span>
+<span>  include_rat <span class="op">=</span> <span class="cn">TRUE</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+</div>
+<div>
+<blockquote>
+<p><strong>Format-Specific RAT Behavior</strong></p>
+<p>The storage of Raster Attribute Tables depends on the file format:</p>
+<ul>
+<li>
+<strong>GeoTIFF</strong> (<code>.tif</code>): RAT is stored in an external <code>.aux.xml</code> sidecar file. For large grids, this sidecar can become quite large.</li>
+<li>
+<strong>NetCDF</strong> (<code>.nc</code>) and <strong>KEA</strong> (<code>.kea</code>): RAT is embedded natively within the file. These are recommended if you require embedded metadata.</li>
+<li>
+<strong>HDF5</strong>: RAT is currently not supported for this format.</li>
+</ul>
+</blockquote>
+</div>
+</section><section class="level3"><h4 id="parallel-generation">Parallel Generation<a class="anchor" aria-label="anchor" href="#parallel-generation"></a>
+</h4>
+<p>For large raster grids, you can significantly speed up the process by using the <code>mirai</code> parallel backend.</p>
+<p><strong>Performance Benefits:</strong> - <strong>mirai</strong>: ~2-3x speedup over sequential execution (with async streaming)</p>
+<p>To use parallel generation, simply configure the <code>mirai</code> backend before calling <code><a href="../reference/inspire_grid.html">inspire_grid()</a></code>. The function will automatically detect the backend and switch to parallel mode.</p>
+<p><strong>Using <code>mirai</code></strong></p>
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://mirai.r-lib.org" class="external-link">mirai</a></span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Start 4 persistent workers (daemons)</span></span>
+<span><span class="co"># Benchmarks show 4-8 workers provides optimal performance</span></span>
+<span><span class="co"># (&gt;8 workers often yields diminishing returns)</span></span>
+<span><span class="fu"><a href="https://mirai.r-lib.org/reference/daemons.html" class="external-link">daemons</a></span><span class="op">(</span><span class="fl">4</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Function automatically detects workers and runs in parallel</span></span>
+<span><span class="fu"><a href="../reference/inspire_grid.html">inspire_grid</a></span><span class="op">(</span></span>
+<span>  x <span class="op">=</span> <span class="va">spain_boundary</span>,</span>
+<span>  cellsize_m <span class="op">=</span> <span class="fl">100</span>,</span>
+<span>  output_type <span class="op">=</span> <span class="st">"spatraster"</span>,</span>
+<span>  dsn <span class="op">=</span> <span class="st">"spain_grid_mirai.tif"</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Clean up</span></span>
+<span><span class="fu"><a href="https://mirai.r-lib.org/reference/daemons.html" class="external-link">daemons</a></span><span class="op">(</span><span class="fl">0</span><span class="op">)</span></span></code></pre></div>
+<div>
+<blockquote>
+<p><strong>Note on Parallel Backends</strong></p>
+<p>Only <code>mirai</code> is supported for parallel raster disk streaming. The <code>future</code> backend is supported for in-memory vector generation but not for raster disk output.</p>
+</blockquote>
+</div>
+</section></section><section class="level2"><h3 id="read-the-grid-from-disk">Read the grid from disk<a class="anchor" aria-label="anchor" href="#read-the-grid-from-disk"></a>
 </h3>
 <p>Once created, you can read the grid from disk in chunks or subsets to avoid loading everything into memory:</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb6"><pre class="downlit sourceCode r">
+<div class="sourceCode cell-code" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Read only the first 1000 features</span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://r-spatial.github.io/sf/" class="external-link">sf</a></span><span class="op">)</span></span>
 <span><span class="va">grid_subset</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://r-spatial.github.io/sf/reference/st_read.html" class="external-link">st_read</a></span><span class="op">(</span><span class="st">"spain_grid_100m.gpkg"</span>, query <span class="op">=</span> <span class="st">"SELECT * FROM grid LIMIT 1000"</span><span class="op">)</span></span>
@@ -210,7 +257,7 @@
 </blockquote>
 </div>
 <p>You can control memory usage manually using the <code>max_memory_gb</code> argument:</p>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Manually limit memory usage to 2 GB</span></span>
 <span><span class="va">spain_grid_100m</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/inspire_grid.html">inspire_grid</a></span><span class="op">(</span></span>
 <span>  x <span class="op">=</span> <span class="va">spain_boundary</span>,</span>
@@ -221,7 +268,7 @@
 <span><span class="op">)</span></span></code></pre></div>
 <p>If you provide <code>max_memory_gb</code>, the function will use this value instead of the automatic detection to calculate how many rows can fit into each chunk.</p>
 <p>The function will display information about the calculated chunk size:</p>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Sequentially generating and writing 382 chunks ( 40 rows/chunk)...</span></span>
 <span><span class="co">#   Note: Memory constraints limited chunk size (max 40 rows/chunk)</span></span></code></pre></div>
 <p>If you have more memory available, the function will use larger chunks for better performance. If memory is very constrained, it will use smaller chunks to ensure the process completes successfully.</p>
@@ -235,13 +282,15 @@
 </h4>
 <p><strong>GeoPackage (<code>.gpkg</code>)</strong> - <strong>Primary Recommendation</strong></p>
 <p>GeoPackage offers the best balance of speed, cross-platform compatibility, and modern features: - Single-file format (easy to manage and share) - OGC standard with wide software support - Good write performance (baseline reference speed) - No field name length restrictions - No file size limits - Built on SQLite, ensuring data integrity through transactions</p>
+<p><strong>GeoParquet (<code>.parquet</code>, <code>.geoparquet</code>)</strong> - <strong>Recommended for Large Grids</strong></p>
+<p>GeoParquet is a modern columnar format ideal for analytics and cloud workflows: - Highly efficient columnar storage (smaller files than GeoPackage) - Excellent for large grids and data lake architectures - Native support in modern tools (DuckDB, Arrow, pandas/geopandas) - Fast reads, especially for column-subset queries - Requires sf 1.0+ with GDAL 3.5+</p>
 <p><strong>Shapefile (<code>.shp</code>)</strong> - Legacy Alternative</p>
 <p>Shapefile remains widely used in GIS and is supported: - <strong>~20% faster writes</strong> than GeoPackage due to non-transactional writes - Universal compatibility with all GIS software - <strong>Limitations:</strong> - Field names limited to 10 characters - Maximum file size of 2 GB - Multi-file format (.shp, .shx, .dbf, .prj) - Lacks support for modern features (timestamps, mixed geometry types)</p>
 <p><strong>GeoJSON (<code>.geojson</code>, <code>.json</code>)</strong> - Web/API Use Only</p>
 <p>GeoJSON works for chunked writes but has significant performance limitations: - Human-readable JSON format - Web API standard - <strong>~40% the speed</strong> of GeoPackage (2-3x slower than database formats) - <strong>Not recommended for large grids</strong> - performance degrades significantly - Use only for small grids or when JSON format is specifically required</p>
 </section><section class="level3"><h4 id="other-supported-formats">Other Supported Formats<a class="anchor" aria-label="anchor" href="#other-supported-formats"></a>
 </h4>
-<p>The following formats have been tested and confirmed to support append operations: - <strong>GeoJSONSeq</strong> (<code>.geojsonl</code>, <code>.geojsonseq</code>) - Newline-delimited GeoJSON for streaming - <strong>FlatGeobuf</strong> (<code>.fgb</code>) - Cloud-optimized format for HTTP range requests - Additional formats (<code>.gdb</code>, <code>.sqlite</code>) - see <code><a href="https://r-spatial.github.io/sf/reference/st_drivers.html" class="external-link">sf::st_drivers()</a></code> for full list</p>
+<p>The following formats have been tested and confirmed to support append operations: - <strong>GeoJSONSeq</strong> (<code>.geojsonl</code>, <code>.geojsonseq</code>) - Newline-delimited GeoJSON for streaming - <strong>FlatGeobuf</strong> (<code>.fgb</code>) - Cloud-optimized format for HTTP range requests - Additional formats (<code>.sqlite</code>) - see <code><a href="https://r-spatial.github.io/sf/reference/st_drivers.html" class="external-link">sf::st_drivers()</a></code> for full list</p>
 <div>
 <blockquote>
 <p><strong>Format Support</strong></p>
@@ -299,12 +348,12 @@
 <li><p><strong>Monitor progress</strong>: The function displays a progress bar showing chunk processing status.</p></li>
 <li>
 <p><strong>Specify layer name</strong>: Use the <code>layer</code> parameter to set a custom layer name in GeoPackage files:</p>
-<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/inspire_grid.html">inspire_grid</a></span><span class="op">(</span>x <span class="op">=</span> <span class="va">boundary</span>, cellsize_m <span class="op">=</span> <span class="fl">100</span>,</span>
 <span>             dsn <span class="op">=</span> <span class="st">"grid.gpkg"</span>, layer <span class="op">=</span> <span class="st">"my_grid"</span><span class="op">)</span></span></code></pre></div>
 </li>
 <li><p><strong>File overwriting</strong>: Existing output files will be overwritten with a warning.</p></li>
-<li><p><strong>Sequential vs parallel</strong>: The disk-based approach currently runs sequentially to ensure proper streaming. Future versions may support parallel chunking.</p></li>
+<li><p><strong>Sequential vs parallel</strong>: The disk-based approach supports parallel streaming using the <code>mirai</code> backend (~2-3x speedup). Only <code>mirai</code> is supported for parallel disk output (both vector and raster); <code>future</code> is only supported for in-memory vector generation.</p></li>
 </ol>
 <div>
 <blockquote>

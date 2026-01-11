@@ -46,7 +46,6 @@ We will use `giscoR` package to get the boundary of Spain. If you don't have it 
 # install.packages("giscoR")
 library(giscoR)
 library(sf)
-library(tictoc)
 ```
 
 ## Get the country boundary
@@ -73,16 +72,12 @@ Now we can create a 100m grid and write it directly to a GeoPackage file. The fu
 - Keep memory usage low and constant
 
 ```{r}
-library(tictoc)
-
-tic()
 spain_grid_100m <- inspire_grid(
   x = spain_boundary,
   cellsize_m = 100,
   output_type = "sf_polygons",
   dsn = "spain_grid_100m.gpkg"
 )
-toc()
 ```
 
 ::: callout-note
@@ -100,22 +95,78 @@ The processing is done sequentially when no parallel backend is detected, stream
 
 ## Create grid directly to GeoTIFF (raster)
 
-::: callout-warning
-Raster grid creation does not support chunked streaming to disk yet, so the raster will be created first in memory and then saved to disk. So this will not work on memory-constrained systems for very large grids. Future versions may support chunked raster writing.
-:::
-
-Alternatively, you can create a raster grid directly to a GeoTIFF file using `SpatRaster` output:
+Raster grid creation also supports chunked streaming to disk via the `terra` backend. This follows a similar logic to vector output, where the grid is generated and written in blocks to minimize memory usage.
 
 ```{r}
-tic()
+# By default, rasters are written without a Raster Attribute Table (RAT)
+# for maximum performance.
 spain_grid_100m_raster <- inspire_grid(
   x = spain_boundary,
   cellsize_m = 100,
   output_type = "spatraster",
   dsn = "spain_grid_100m.tiff"
 )
-toc()
 ```
+
+### Raster Attribute Tables (RAT)
+
+By default, raster outputs contain only numeric cell identifiers. If you need the human-readable INSPIRE IDs (e.g., `100mN1234E5678`), you can use `include_rat = TRUE`.
+
+```{r}
+# Opt-in for RAT generation (slower, creates larger files)
+inspire_grid(
+  x = spain_boundary,
+  cellsize_m = 100,
+  output_type = "spatraster",
+  dsn = "spain_grid_100m_with_rat.tiff",
+  include_rat = TRUE
+)
+```
+
+::: callout-note
+## Format-Specific RAT Behavior
+The storage of Raster Attribute Tables depends on the file format:
+
+- **GeoTIFF** (`.tif`): RAT is stored in an external `.aux.xml` sidecar file. For large grids, this sidecar can become quite large.
+- **NetCDF** (`.nc`) and **KEA** (`.kea`): RAT is embedded natively within the file. These are recommended if you require embedded metadata.
+- **HDF5**: RAT is currently not supported for this format.
+:::
+
+### Parallel Generation
+
+For large raster grids, you can significantly speed up the process by using the `mirai` parallel backend.
+
+**Performance Benefits:**
+- **mirai**: ~2-3x speedup over sequential execution (with async streaming)
+
+To use parallel generation, simply configure the `mirai` backend before calling `inspire_grid()`. The function will automatically detect the backend and switch to parallel mode.
+
+**Using `mirai`**
+
+```r
+library(mirai)
+
+# Start 4 persistent workers (daemons)
+# Benchmarks show 4-8 workers provides optimal performance
+# (>8 workers often yields diminishing returns)
+daemons(4)
+
+# Function automatically detects workers and runs in parallel
+inspire_grid(
+  x = spain_boundary,
+  cellsize_m = 100,
+  output_type = "spatraster",
+  dsn = "spain_grid_mirai.tif"
+)
+
+# Clean up
+daemons(0)
+```
+
+::: callout-note
+## Note on Parallel Backends
+Only `mirai` is supported for parallel raster disk streaming. The `future` backend is supported for in-memory vector generation but not for raster disk output.
+:::
 
 
 ## Read the grid from disk
@@ -187,6 +238,15 @@ GeoPackage offers the best balance of speed, cross-platform compatibility, and m
 - No file size limits
 - Built on SQLite, ensuring data integrity through transactions
 
+**GeoParquet (`.parquet`, `.geoparquet`)** - **Recommended for Large Grids**
+
+GeoParquet is a modern columnar format ideal for analytics and cloud workflows:
+- Highly efficient columnar storage (smaller files than GeoPackage)
+- Excellent for large grids and data lake architectures
+- Native support in modern tools (DuckDB, Arrow, pandas/geopandas)
+- Fast reads, especially for column-subset queries
+- Requires sf 1.0+ with GDAL 3.5+
+
 **Shapefile (`.shp`)** - Legacy Alternative
 
 Shapefile remains widely used in GIS and is supported:
@@ -212,7 +272,7 @@ GeoJSON works for chunked writes but has significant performance limitations:
 The following formats have been tested and confirmed to support append operations:
 - **GeoJSONSeq** (`.geojsonl`, `.geojsonseq`) - Newline-delimited GeoJSON for streaming
 - **FlatGeobuf** (`.fgb`) - Cloud-optimized format for HTTP range requests
-- Additional formats (`.gdb`, `.sqlite`) - see `sf::st_drivers()` for full list
+- Additional formats (`.sqlite`) - see `sf::st_drivers()` for full list
 
 ::: callout-important
 ## Format Support
@@ -273,7 +333,7 @@ These formats drop the geometry column and write only the attribute data (grid I
 
 4. **File overwriting**: Existing output files will be overwritten with a warning.
 
-5. **Sequential vs parallel**: The disk-based approach currently runs sequentially to ensure proper streaming. Future versions may support parallel chunking.
+5. **Sequential vs parallel**: The disk-based approach supports parallel streaming using the `mirai` backend (~2-3x speedup). Only `mirai` is supported for parallel disk output (both vector and raster); `future` is only supported for in-memory vector generation.
 
 ::: callout-note
 For original Eurostat's command line utility to create GISCO grids, see [https://github.com/eurostat/GridMaker](https://github.com/eurostat/GridMaker).

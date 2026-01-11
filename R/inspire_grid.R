@@ -52,8 +52,11 @@
 #'   The function automatically limits active workers for small grids to minimize overhead:
 #'   <50k cells use max 4 workers, <500k cells use max 8 workers, <2M cells use max 16 workers.
 #'   This automatic limiting can be overridden by setting `options(gridmaker.tile_multiplier)`.
-#'   **Note:** Parallel processing is not supported when `output_type = "spatraster"`.
-#'   Raster output will always run sequentially.
+#'   **Note:** Parallel processing support depends on the backend and output type:
+#'   \itemize{
+#'     \item **`mirai` backend:** Supports parallel processing for all outputs, including efficient disk streaming. This is the recommended modern backend that also runs asynchronously, which allows it to pass chunks of grid that are ready to the disk writer and therefore makes streaming to disk efficient, as there is no need to all data in memory first.
+#'     \item **`future` backend:** Supports parallel processing **only** for in-memory vector generation (`sf`, `dataframe`). It does not support raster output or disk-based streaming (falls back to sequential), because it would need to first accumualte all data in memory before writing to disk, negating the benefits of streaming.
+#'   }
 #' @param max_memory_gb A numeric value. Maximum memory in gigabytes to use for grid creation. Default is `NULL`, in which case there is an automatic limit based on **available free system memory** (not total system RAM). Using this argument allows manual override, which is recommended on certain HPC (High Performance Computing) systems where jobs are allocated a fixed amount of memory that is less than the total free memory of the allocated node.
 #' @inheritParams inspire_grid_params
 #'
@@ -624,6 +627,13 @@ inspire_grid_from_extent <- function(
     }
 
     # Case B: In-Memory Generation (Legacy/Small grids)
+    if (!quiet && (use_mirai || use_future || isTRUE(parallel))) {
+      message(
+        "Note: In-memory raster generation does not support parallel processing. Running sequentially.\n",
+        "  (Parallel raster output is only supported when writing to disk with `mirai`)"
+      )
+    }
+
     # Collect arguments
     all_args <- c(
       list(grid_extent = grid_extent, cellsize_m = cellsize_m, crs = crs),

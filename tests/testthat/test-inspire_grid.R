@@ -621,3 +621,30 @@ test_that("API Safety: inspire_grid generic defaults do not pollute methods", {
     inspire_grid(ids, quiet = TRUE)
   )
 })
+
+test_that("Warning for ignored point_type", {
+  # Should warn when point_type is provided for polygons
+  expect_warning(
+    inspire_grid(
+      c(0, 0, 100, 100), 
+      cellsize_m = 50, 
+      crs = 3857, 
+      output_type = "sf_polygons",
+      point_type = "llc",
+      quiet = FALSE
+    ),
+    "Argument 'point_type'.*is ignored"
+  )
+  
+  # Should NOT warn for points
+  expect_silent(
+    inspire_grid(
+      c(0, 0, 100, 100), 
+      cellsize_m = 50, 
+      crs = 3857, 
+      output_type = "sf_points",
+      point_type = "llc", 
+      quiet = TRUE
+    )
+  )
+})

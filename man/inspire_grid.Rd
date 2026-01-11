@@ -265,8 +265,11 @@ grid sizes. Using >8 workers typically yields diminishing returns due to I/O bot
 The function automatically limits active workers for small grids to minimize overhead:
 <50k cells use max 4 workers, <500k cells use max 8 workers, <2M cells use max 16 workers.
 This automatic limiting can be overridden by setting \code{options(gridmaker.tile_multiplier)}.
-\strong{Note:} Parallel processing is not supported when \code{output_type = "spatraster"}.
-Raster output will always run sequentially.}
+\strong{Note:} Parallel processing support depends on the backend and output type:
+\itemize{
+\item \strong{\code{mirai} backend:} Supports parallel processing for all outputs, including efficient disk streaming. This is the recommended modern backend that also runs asynchronously, which allows it to pass chunks of grid that are ready to the disk writer and therefore makes streaming to disk efficient, as there is no need to all data in memory first.
+\item \strong{\code{future} backend:} Supports parallel processing \strong{only} for in-memory vector generation (\code{sf}, \code{dataframe}). It does not support raster output or disk-based streaming (falls back to sequential), because it would need to first accumualte all data in memory before writing to disk, negating the benefits of streaming.
+}}
 
 \item{quiet}{Logical value. If \code{TRUE}, all progress messages and progress bars are suppressed. Defaults to \code{FALSE}.}
 

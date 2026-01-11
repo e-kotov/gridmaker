@@ -38,7 +38,7 @@ run_parallel_mirai <- function(grid_extent, cellsize_m, crs, dot_args) {
   }
 
   # --- 2. CREATE TILES (DEFINITIVE CORRECT LOGIC) ---
-  full_bbox <- sf::st_bbox(grid_extent)
+  full_bbox <- .get_bbox_from_grid_extent(grid_extent, grid_crs)
   xmin <- floor(as.numeric(full_bbox["xmin"]) / cellsize_m) * cellsize_m
   ymin <- floor(as.numeric(full_bbox["ymin"]) / cellsize_m) * cellsize_m
   xmax <- ceiling(as.numeric(full_bbox["xmax"]) / cellsize_m) * cellsize_m

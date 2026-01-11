@@ -85,6 +85,17 @@ inspire_grid_from_extent_internal <- function(
     )
   }
 
+  if (output_type != "sf_points" && point_type != "centroid") {
+    warning(
+      sprintf(
+        "Argument 'point_type' ('%s') is ignored when output_type is '%s'.",
+        point_type,
+        output_type
+      ),
+      call. = FALSE
+    )
+  }
+
   # --- 3. PROCESS INPUT GEOMETRY ---
   input_sf <- NULL
   if (inherits(grid_extent, c("sf", "sfc"))) {

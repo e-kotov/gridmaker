@@ -3,7 +3,10 @@ test_that("inspire_grid_from_extent generates SpatRaster correctly", {
 
   # Setup simple extent (4 cells: 2x2)
   # 0,0 to 2000,2000 with 1000m resolution
-  bbox <- sf::st_bbox(c(xmin = 0, ymin = 0, xmax = 2000, ymax = 2000), crs = 3035)
+  bbox <- sf::st_bbox(
+    c(xmin = 0, ymin = 0, xmax = 2000, ymax = 2000),
+    crs = 3035
+  )
 
   # 1. Test In-Memory Generation
   r <- inspire_grid_from_extent(
@@ -28,7 +31,10 @@ test_that("inspire_grid_from_extent generates SpatRaster correctly", {
 test_that("inspire_grid_from_extent generates SpatRaster with different id_format options", {
   skip_if_not_installed("terra")
 
-  bbox <- sf::st_bbox(c(xmin = 0, ymin = 0, xmax = 2000, ymax = 2000), crs = 3035)
+  bbox <- sf::st_bbox(
+    c(xmin = 0, ymin = 0, xmax = 2000, ymax = 2000),
+    crs = 3035
+  )
 
   # Test "short" format
   r_short <- inspire_grid_from_extent(
@@ -83,7 +89,10 @@ test_that("inspire_grid_from_extent with spatraster handles clipping correctly",
   skip_if_not_installed("terra")
 
   # Define a bbox covering 4 cells (2x2 grid)
-  bbox <- sf::st_bbox(c(xmin = 0, ymin = 0, xmax = 2000, ymax = 2000), crs = 3035)
+  bbox <- sf::st_bbox(
+    c(xmin = 0, ymin = 0, xmax = 2000, ymax = 2000),
+    crs = 3035
+  )
 
   # Create a polygon covering only the bottom-left and bottom-right cells
   poly <- sf::st_as_sfc(
@@ -92,7 +101,7 @@ test_that("inspire_grid_from_extent with spatraster handles clipping correctly",
 
   # Generate raster without clipping first
   r_full <- inspire_grid_from_extent(
-    grid_extent = bbox,  # Use full bbox
+    grid_extent = bbox, # Use full bbox
     cellsize_m = 1000,
     output_type = "spatraster",
     clip_to_input = FALSE,
@@ -104,7 +113,7 @@ test_that("inspire_grid_from_extent with spatraster handles clipping correctly",
 
   # Now test clipping by providing a polygon with clip_to_input=TRUE
   r_clipped2 <- inspire_grid_from_extent(
-    grid_extent = poly,  # Polygon that's only half the height
+    grid_extent = poly, # Polygon that's only half the height
     cellsize_m = 1000,
     output_type = "spatraster",
     clip_to_input = TRUE,
@@ -122,7 +131,10 @@ test_that("inspire_grid_from_extent writes Raster to disk", {
   tmp_tif <- tempfile(fileext = ".tif")
   on.exit(unlink(tmp_tif), add = TRUE)
 
-  bbox <- sf::st_bbox(c(xmin = 0, ymin = 0, xmax = 2000, ymax = 2000), crs = 3035)
+  bbox <- sf::st_bbox(
+    c(xmin = 0, ymin = 0, xmax = 2000, ymax = 2000),
+    crs = 3035
+  )
 
   res <- inspire_grid_from_extent(
     grid_extent = bbox,
@@ -145,7 +157,10 @@ test_that("inspire_grid_from_extent writes Raster to disk", {
 test_that("spatraster output respects axis_order for short IDs", {
   skip_if_not_installed("terra")
 
-  bbox <- sf::st_bbox(c(xmin = 0, ymin = 0, xmax = 2000, ymax = 2000), crs = 3035)
+  bbox <- sf::st_bbox(
+    c(xmin = 0, ymin = 0, xmax = 2000, ymax = 2000),
+    crs = 3035
+  )
 
   # Test NE order (default)
   r_ne <- inspire_grid_from_extent(
@@ -172,10 +187,13 @@ test_that("spatraster output respects axis_order for short IDs", {
   expect_true("1kmE0N0" %in% cats_en$GRD_ID)
 })
 
-test_that("spatraster output suppresses parallel processing warning", {
+test_that("spatraster output is silent with quiet = TRUE", {
   skip_if_not_installed("terra")
 
-  bbox <- sf::st_bbox(c(xmin = 0, ymin = 0, xmax = 2000, ymax = 2000), crs = 3035)
+  bbox <- sf::st_bbox(
+    c(xmin = 0, ymin = 0, xmax = 2000, ymax = 2000),
+    crs = 3035
+  )
 
   # With quiet = TRUE, no message should be shown
   expect_silent(
@@ -187,24 +205,15 @@ test_that("spatraster output suppresses parallel processing warning", {
       quiet = TRUE
     )
   )
-
-  # With quiet = FALSE, should show message about sequential processing
-  expect_message(
-    inspire_grid_from_extent(
-      grid_extent = bbox,
-      cellsize_m = 1000,
-      output_type = "spatraster",
-      parallel = "auto",
-      quiet = FALSE
-    ),
-    regexp = "spatraster.*sequential"
-  )
 })
 
 test_that("spatraster output has correct CRS", {
   skip_if_not_installed("terra")
 
-  bbox <- sf::st_bbox(c(xmin = 0, ymin = 0, xmax = 2000, ymax = 2000), crs = 3035)
+  bbox <- sf::st_bbox(
+    c(xmin = 0, ymin = 0, xmax = 2000, ymax = 2000),
+    crs = 3035
+  )
 
   r <- inspire_grid_from_extent(
     grid_extent = bbox,
@@ -248,7 +257,15 @@ test_that("inspire_grid_from_extent with spatraster supports 'use_convex_hull' a
 
   # 1. Create a non-convex shape (L-shape)
   # A 2000x2000 box with the top-right 1000x1000 quadrant missing
-  p1 <- rbind(c(0, 0), c(2000, 0), c(2000, 1000), c(1000, 1000), c(1000, 2000), c(0, 2000), c(0, 0))
+  p1 <- rbind(
+    c(0, 0),
+    c(2000, 0),
+    c(2000, 1000),
+    c(1000, 1000),
+    c(1000, 2000),
+    c(0, 2000),
+    c(0, 0)
+  )
   poly <- sf::st_polygon(list(p1))
   poly_sfc <- sf::st_sfc(poly, crs = 3035)
 

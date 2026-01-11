@@ -29,6 +29,7 @@ inspire_grid(
   dsn = NULL,
   layer = NULL,
   max_memory_gb = NULL,
+  include_rat = FALSE,
   ...
 )
 
@@ -49,6 +50,7 @@ inspire_grid(
   dsn = NULL,
   layer = NULL,
   max_memory_gb = NULL,
+  include_rat = FALSE,
   ...
 )
 
@@ -69,6 +71,7 @@ inspire_grid(
   dsn = NULL,
   layer = NULL,
   max_memory_gb = NULL,
+  include_rat = FALSE,
   ...
 )
 
@@ -89,6 +92,7 @@ inspire_grid(
   dsn = NULL,
   layer = NULL,
   max_memory_gb = NULL,
+  include_rat = FALSE,
   ...
 )
 
@@ -109,6 +113,7 @@ inspire_grid(
   dsn = NULL,
   layer = NULL,
   max_memory_gb = NULL,
+  include_rat = FALSE,
   ...
 )
 
@@ -129,6 +134,7 @@ inspire_grid(
   dsn = NULL,
   layer = NULL,
   max_memory_gb = NULL,
+  include_rat = FALSE,
   ...
 )
 
@@ -149,6 +155,7 @@ inspire_grid(
   dsn = NULL,
   layer = NULL,
   max_memory_gb = NULL,
+  include_rat = FALSE,
   ...
 )
 
@@ -169,6 +176,7 @@ inspire_grid_from_extent(
   dsn = NULL,
   layer = NULL,
   max_memory_gb = NULL,
+  include_rat = FALSE,
   ...
 )
 
@@ -252,13 +260,16 @@ sequential mode.
 }
 For parallelism, you must configure a backend \emph{before} calling this
 function, for example: \code{mirai::daemons(8)} or \code{future::plan("multisession", workers = 8)}.
-\strong{Performance tip:} Benchmarks show 8 workers provide optimal performance for most
-grid sizes. Using >32 workers typically decreases performance due to overhead.
+\strong{Performance tip:} Benchmarks show 4-8 workers provide optimal performance for most
+grid sizes. Using >8 workers typically yields diminishing returns due to I/O bottlenecks.
 The function automatically limits active workers for small grids to minimize overhead:
 <50k cells use max 4 workers, <500k cells use max 8 workers, <2M cells use max 16 workers.
 This automatic limiting can be overridden by setting \code{options(gridmaker.tile_multiplier)}.
-\strong{Note:} Parallel processing is not supported when \code{output_type = "spatraster"}.
-Raster output will always run sequentially.}
+\strong{Note:} Parallel processing support depends on the backend and output type:
+\itemize{
+\item \strong{\code{mirai} backend:} Supports parallel processing for all outputs, including efficient disk streaming. This is the recommended modern backend that also runs asynchronously, which allows it to pass chunks of grid that are ready to the disk writer and therefore makes streaming to disk efficient, as there is no need to all data in memory first.
+\item \strong{\code{future} backend:} Supports parallel processing \strong{only} for in-memory vector generation (\code{sf}, \code{dataframe}). It does not support raster output or disk-based streaming (falls back to sequential), because it would need to first accumualte all data in memory before writing to disk, negating the benefits of streaming.
+}}
 
 \item{quiet}{Logical value. If \code{TRUE}, all progress messages and progress bars are suppressed. Defaults to \code{FALSE}.}
 
@@ -272,12 +283,12 @@ instead of being returned as an object.
 \strong{Supported vector formats for chunked disk writes:}
 \itemize{
 \item \code{.gpkg} (GeoPackage) - \strong{Recommended} - Best balance of speed, compatibility, and modern features
+\item \code{.parquet}, \code{.geoparquet} (GeoParquet) - Modern columnar format, excellent for large grids (requires sf 1.0+/GDAL 3.5+)
 \item \code{.shp} (Shapefile) - Widely used, fast writes, but has limitations (10-char field names, 2GB limit)
 \item \code{.geojson}, \code{.json} (GeoJSON) - Web-friendly, works but slower for large grids
 \item \code{.geojsonl}, \code{.geojsonseq} (GeoJSONSeq) - Newline-delimited GeoJSON
 \item \code{.sqlite} (SQLite/SpatiaLite) - Database format (GeoPackage is built on SQLite)
 \item \code{.fgb} (FlatGeobuf) - Cloud-optimized format
-\item \code{.gdb} (OpenFileGDB) - ESRI FileGDB format
 \item \code{.csv}, \code{.tsv}, \code{.txt} (for dataframe output only)
 }
 
@@ -289,6 +300,26 @@ file, this will be the layer name. If \code{dsn} is a file path and \code{layer}
 not specified, it defaults to the file's base name.}
 
 \item{max_memory_gb}{A numeric value. Maximum memory in gigabytes to use for grid creation. Default is \code{NULL}, in which case there is an automatic limit based on \strong{available free system memory} (not total system RAM). Using this argument allows manual override, which is recommended on certain HPC (High Performance Computing) systems where jobs are allocated a fixed amount of memory that is less than the total free memory of the allocated node.}
+
+\item{include_rat}{Logical. If \code{TRUE}, generate a Raster Attribute Table (RAT)
+mapping numeric cell IDs to INSPIRE grid ID strings. Default is \code{FALSE}.
+
+\strong{What is a RAT?} A Raster Attribute Table stores metadata (like INSPIRE IDs)
+for each unique raster value. Without RAT, raster cells contain only numeric
+IDs (1, 2, 3...). With RAT, software like QGIS/R can display the IDs as
+human-readable labels.
+
+\strong{Format-specific behavior:}
+\itemize{
+\item \strong{GeoTIFF (.tif):} RAT stored in \code{.tif.aux.xml} sidecar file (XML).
+\strong{Warning:} This sidecar can be \strong{larger than the TIFF itself} for large
+grids. For chunked/streaming writes, requires a second pass (slower).
+Consider KEA or Erdas Imagine formats for large grids with labels.
+\item \strong{KEA (.kea), Erdas Imagine (.img):} RAT embedded natively. \strong{Recommended}
+for large grids requiring labels.
+\item \strong{NetCDF (.nc), HDF5 (.hdf):} RAT \strong{not supported}. An error is raised if
+\code{include_rat = TRUE}.
+}}
 
 \item{...}{Additional arguments passed to backend handlers.
 When writing to text files (e.g., .csv, .tsv) via \code{dsn}, these arguments are passed to \code{\link[readr]{write_delim}} (e.g., \code{na = "NA"}, \code{quote = "all"}).

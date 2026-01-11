@@ -34,12 +34,12 @@
 #'   **Supported vector formats for chunked disk writes:**
 #'   \itemize{
 #'     \item `.gpkg` (GeoPackage) - **Recommended** - Best balance of speed, compatibility, and modern features
+#'     \item `.parquet`, `.geoparquet` (GeoParquet) - Modern columnar format, excellent for large grids (requires sf 1.0+/GDAL 3.5+)
 #'     \item `.shp` (Shapefile) - Widely used, fast writes, but has limitations (10-char field names, 2GB limit)
 #'     \item `.geojson`, `.json` (GeoJSON) - Web-friendly, works but slower for large grids
 #'     \item `.geojsonl`, `.geojsonseq` (GeoJSONSeq) - Newline-delimited GeoJSON
 #'     \item `.sqlite` (SQLite/SpatiaLite) - Database format (GeoPackage is built on SQLite)
 #'     \item `.fgb` (FlatGeobuf) - Cloud-optimized format
-#'     \item `.gdb` (OpenFileGDB) - ESRI FileGDB format
 #'     \item `.csv`, `.tsv`, `.txt` (for dataframe output only)
 #'   }
 #'
@@ -55,6 +55,25 @@
 #'   For \code{output_type = "spatraster"} writing, these are passed to \code{\link[terra]{writeRaster}}.
 #'   For streaming backends (`mirai` or sequential), this can include \code{max_cells_per_chunk} to control memory usage.
 #' @param max_memory_gb A numeric value. Maximum memory in gigabytes to use for grid creation. Default is `NULL`, in which case there is an automatic limit based on **available free system memory** (not total system RAM).
+#' @param include_rat Logical. If `TRUE`, generate a Raster Attribute Table (RAT)
+#'   mapping numeric cell IDs to INSPIRE grid ID strings. Default is `FALSE`.
+#'
+#'   **What is a RAT?** A Raster Attribute Table stores metadata (like INSPIRE IDs)
+#'   for each unique raster value. Without RAT, raster cells contain only numeric
+#'   IDs (1, 2, 3...). With RAT, software like QGIS/R can display the IDs as
+#'   human-readable labels.
+#'
+#'   **Format-specific behavior:**
+#'   \itemize{
+#'     \item **GeoTIFF (.tif):** RAT stored in `.tif.aux.xml` sidecar file (XML).
+#'       **Warning:** This sidecar can be **larger than the TIFF itself** for large
+#'       grids. For chunked/streaming writes, requires a second pass (slower).
+#'       Consider KEA or Erdas Imagine formats for large grids with labels.
+#'     \item **KEA (.kea), Erdas Imagine (.img):** RAT embedded natively. **Recommended**
+#'       for large grids requiring labels.
+#'     \item **NetCDF (.nc), HDF5 (.hdf):** RAT **not supported**. An error is raised if
+#'       `include_rat = TRUE`.
+#'   }
 #'
 #' @name inspire_grid_params
 #' @keywords internal

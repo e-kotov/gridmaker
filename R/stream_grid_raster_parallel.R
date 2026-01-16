@@ -41,7 +41,7 @@ NULL
 #' @keywords internal
 #' @noRd
 .compute_raster_chunk <- function(start_row, nrows, ncols) {
-  # Compute first and last cell ID for this linear chunk
+  # Compute first cell ID for this linear chunk
   # Cell IDs are 1-based, row-major
   first_cell <- (start_row - 1) * ncols + 1
 

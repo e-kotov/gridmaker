@@ -141,3 +141,14 @@ test_that("inspire_id_format throws an error for invalid axis_order", {
     regexp = "'arg' should be one of"
   )
 })
+test_that("inspire_id_format handles invalid units and missing units", {
+  # Current implementation should return NA for invalid units
+  invalid_ids <- c("100mmN1E1", "100mN1E1", "100N1E1")
+  
+  # For short to long conversion
+  results <- inspire_id_format(invalid_ids)
+  
+  expect_true(is.na(results[1])) # 100mm is invalid
+  expect_false(is.na(results[2])) # 100m is valid
+  expect_true(is.na(results[3])) # 100 is invalid (no unit)
+})

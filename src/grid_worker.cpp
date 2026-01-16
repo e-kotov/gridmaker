@@ -190,29 +190,6 @@ int count_trailing_zeros_cpp(double x) {
   return n;
 }
 
-// Helper: Parse cellsize string (e.g. "1km", "100m") to meters
-double parse_res_to_m(std::string res_str) {
-  if (res_str.empty())
-    return NA_REAL;
-
-  double mul = 1.0;
-  if (res_str.length() > 2 && res_str.substr(res_str.length() - 2) == "km") {
-    mul = 1000.0;
-    try {
-      return std::stod(res_str.substr(0, res_str.length() - 2)) * mul;
-    } catch (...) {
-      return NA_REAL;
-    }
-  } else if (res_str.length() > 1 && res_str.back() == 'm') {
-    try {
-      return std::stod(res_str.substr(0, res_str.length() - 1));
-    } catch (...) {
-      return NA_REAL;
-    }
-  }
-  return NA_REAL;
-}
-
 //' Parse INSPIRE IDs to Coordinates (C++ Kernel)
 //'
 //' @param inspire Character vector of IDs

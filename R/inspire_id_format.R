@@ -92,12 +92,14 @@ inspire_id_format <- function(ids, crs = 3035, axis_order = "NE") {
     y_short <- parsed$y / divisors
     x_short <- parsed$x / divisors
 
-    if (axis_order == "NE") {
+    out <- if (axis_order == "NE") {
       sprintf("%sN%.0fE%.0f", res_str, y_short, x_short)
     } else {
       # "EN"
       sprintf("%sE%.0fN%.0f", res_str, x_short, y_short)
     }
+    out[is.na(parsed$cellsize)] <- NA_character_
+    out
   } else {
     # --- CONVERT SHORT TO LONG (Vectorized) ---
     # The 'axis_order' argument is ignored; we detect both NE and EN formats.
@@ -124,9 +126,29 @@ inspire_id_format <- function(ids, crs = 3035, axis_order = "NE") {
       }
     }
 
+    # Strict parsing of units to avoid errors like "100mm" -> 100
     is_km <- endsWith(parsed$res_str, "km")
-    numeric_res <- as.numeric(gsub("k?m", "", parsed$res_str))
-    cellsize_m <- ifelse(is_km, numeric_res * 1000, numeric_res)
+    is_m <- endsWith(parsed$res_str, "m")
+    
+    numeric_res <- rep(NA_real_, length(parsed$res_str))
+    
+    # Handle 'km' suffix
+    km_idx <- which(is_km)
+    if (length(km_idx) > 0) {
+      # Remove last 2 chars ("km")
+      val_str <- substr(parsed$res_str[km_idx], 1, nchar(parsed$res_str[km_idx]) - 2)
+      numeric_res[km_idx] <- as.numeric(val_str) * 1000
+    }
+    
+    # Handle 'm' suffix (excluding those that are 'km')
+    m_idx <- which(is_m & !is_km)
+    if (length(m_idx) > 0) {
+      # Remove last 1 char ("m")
+      val_str <- substr(parsed$res_str[m_idx], 1, nchar(parsed$res_str[m_idx]) - 1)
+      numeric_res[m_idx] <- as.numeric(val_str)
+    }
+    
+    cellsize_m <- numeric_res
 
     # Use robust multiplier logic
     multipliers <- vapply(cellsize_m, function(cs) {
@@ -136,6 +158,8 @@ inspire_id_format <- function(ids, crs = 3035, axis_order = "NE") {
     y_long <- parsed$y * multipliers
     x_long <- parsed$x * multipliers
 
-    sprintf("CRS%.0fRES%.0fmN%.0fE%.0f", crs, cellsize_m, y_long, x_long)
+    out <- sprintf("CRS%.0fRES%.0fmN%.0fE%.0f", crs, cellsize_m, y_long, x_long)
+    out[is.na(cellsize_m)] <- NA_character_
+    out
   }
 }

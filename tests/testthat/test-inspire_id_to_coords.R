@@ -102,7 +102,20 @@ test_that("inspire_id_to_coords handles edge cases: malformed, NA, and empty inp
     inspire_id_to_coords(ids_have_empty),
     "Input 'inspire' contains empty strings"
   )
+  # fail on input containing invalid units
+  ids_have_mm <- c("100mmN1E1")
+  expect_error(
+    inspire_id_to_coords(ids_have_mm),
+    "One or more INSPIRE IDs had a malformed format"
+  )
+  
+  ids_have_no_unit <- c("100N1E1")
+  expect_error(
+    inspire_id_to_coords(ids_have_no_unit),
+    "One or more INSPIRE IDs had a malformed format"
+  )
 })
+
 
 test_that("inspire_id_to_coords warns on multiple CRSs", {
   # This only applies to long-form IDs where CRS is parsed

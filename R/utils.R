@@ -445,29 +445,7 @@ validate_disk_compatibility <- function(output_type, dsn) {
   # Formats explicitly confirmed to NOT support append
   no_append_formats <- c("kml", "gml")
 
-  # --- 1. Handle text outputs (csv, tsv, txt) ---
-  if (is_text) {
-    if (!requireNamespace("readr", quietly = TRUE)) {
-      stop(
-        "Package 'readr' is required to write to .csv/.tsv/.txt files. Please install it.",
-        call. = FALSE
-      )
-    }
-    return(TRUE)
-  }
-
-  # --- 2. Handle dataframe outputs ---
-  if (is_dataframe) {
-    stop(
-      sprintf(
-        "Output type 'dataframe' cannot be written to file extension '.%s'.\n  Please use '.csv', '.tsv', or '.txt' for dataframes, or change output_type to 'sf_polygons'/'sf_points'.",
-        ext
-      ),
-      call. = FALSE
-    )
-  }
-
-  # --- 3. Handle raster outputs (spatraster) ---
+  # --- 1. Handle raster outputs (spatraster) ---
   if (is_raster) {
     if (!nzchar(ext)) {
       stop(
@@ -492,6 +470,28 @@ validate_disk_compatibility <- function(output_type, dsn) {
       .stop_driver_unavailable(ext, driver_name, check$reason, "terra")
     }
     return(TRUE)
+  }
+
+  # --- 2. Handle text outputs (csv, tsv, txt) ---
+  if (is_text) {
+    if (!requireNamespace("readr", quietly = TRUE)) {
+      stop(
+        "Package 'readr' is required to write to .csv/.tsv/.txt files. Please install it.",
+        call. = FALSE
+      )
+    }
+    return(TRUE)
+  }
+
+  # --- 3. Handle dataframe outputs ---
+  if (is_dataframe) {
+    stop(
+      sprintf(
+        "Output type 'dataframe' cannot be written to file extension '.%s'.\n  Please use '.csv', '.tsv', or '.txt' for dataframes, or change output_type to 'sf_polygons'/'sf_points'.",
+        ext
+      ),
+      call. = FALSE
+    )
   }
 
   # --- 4. Handle vector outputs (sf_polygons, sf_points) ---

@@ -13,6 +13,7 @@ inspire_grid_from_extent_internal <- function(
   axis_order = c("NE", "EN"),
   include_llc = TRUE,
   point_type = c("centroid", "llc"),
+  vector_grid_backend = getOption("gridmaker.vector_grid_backend", "cpp"),
   ...
 ) {
   # --- 1. PRE-CHECKS AND HELPERS ---
@@ -34,23 +35,7 @@ inspire_grid_from_extent_internal <- function(
     )
   }
 
-  make_ids <- function(x_llc, y_llc, cs, axis_order, epsg = 3035) {
-    nzeros <- .tz_count(cs)
-    div <- as.integer(10^nzeros)
-    size_lbl <- if (cs >= 1000) paste0(cs / 1000, "km") else paste0(cs, "m")
 
-    # Long IDs are strictly N...E according to INSPIRE spec, so we don't change this.
-    id_long <- sprintf("CRS%sRES%smN%.0fE%.0f", epsg, cs, y_llc, x_llc)
-
-    # Short IDs support swapping order
-    id_short <- if (axis_order == "NE") {
-      sprintf("%sN%.0fE%.0f", size_lbl, y_llc / div, x_llc / div)
-    } else {
-      sprintf("%sE%.0fN%.0f", size_lbl, x_llc / div, y_llc / div)
-    }
-
-    list(long = id_long, short = id_short)
-  }
 
   # --- 2. VALIDATE INPUTS & DETERMINE CRS ---
   cellsize_m <- suppressWarnings(as.numeric(cellsize_m))
@@ -216,32 +201,39 @@ inspire_grid_from_extent_internal <- function(
       x_llc <- rep(x_llc_seq, times = nrows)
       y_llc <- rep(y_llc_seq, each = ncols)
 
-      # Generate ID strings (using existing helper)
-      ids_list <- make_ids(
-        x_llc,
-        y_llc,
-        cellsize_m,
+      # Use C++ kernel for ID generation
+      nzeros <- .tz_count(cellsize_m)
+      div <- 10^nzeros
+      size_lbl <- if (cellsize_m >= 1000) paste0(cellsize_m / 1000, "km") else paste0(cellsize_m, "m")
+
+      ids_list <- generate_ids_rcpp(
+        x_llc = x_llc,
+        y_llc = y_llc,
+        cellsize = as.double(cellsize_m),
+        epsg = as.integer(grid_crs$epsg %||% 3035),
+        size_lbl = size_lbl,
+        divider = as.double(div),
         axis_order = axis_order,
-        epsg = grid_crs$epsg %||% 3035
+        id_format = id_format
       )
 
       # Determine which ID format to use for the label
       # Rasters typically hold one label per cell
       final_ids <- if (id_format == "short") {
-        ids_list$short
+        ids_list$id_short
       } else if (id_format == "long") {
-        ids_list$long
+        ids_list$id_long
       } else if (id_format == "both") {
         # For "both", we use short as the primary label and include long in RAT
-        ids_list$short
+        ids_list$id_short
       }
 
       # Create Attribute Table (RAT)
       if (id_format == "both") {
         levels_df <- data.frame(
           id = seq_len(terra::ncell(r)),
-          GRD_ID_SHORT = ids_list$short,
-          GRD_ID_LONG = ids_list$long,
+          GRD_ID_SHORT = ids_list$id_short,
+          GRD_ID_LONG = ids_list$id_long,
           stringsAsFactors = FALSE
         )
       } else {
@@ -275,6 +267,96 @@ inspire_grid_from_extent_internal <- function(
   }
 
   # --- 7. GENERATE GRID POINTS ---
+  # --- OPTIONAL C++ BACKEND ---
+  # Only supported for sf_polygons and when backend="cpp" option is set
+  if (
+    output_type == "sf_polygons" && 
+    isTRUE(vector_grid_backend == "cpp")
+  ) {
+    # Generate sequences
+    x_coords <- seq.int(from = xmin, to = xmax - 1, by = cellsize_m)
+    y_coords <- seq.int(from = ymin, to = ymax - 1, by = cellsize_m)
+    
+    # Expand grid VECTORS efficiently (flat N-length vectors)
+    # expand.grid order: x varies fastest
+    n_x <- length(x_coords)
+    n_y <- length(y_coords)
+    
+    if (n_x > 0 && n_y > 0) {
+      x_llc <- rep(x_coords, times = n_y)
+      y_llc <- rep(y_coords, each = n_x) 
+      
+      # Call C++ Wrapper
+      # If clipping, SKIP ID generation initially (huge speedup)
+      should_generate_ids_now <- !(clip_to_input && !is.null(clipping_target))
+      
+      out_obj <- as_inspire_grid_cpp(
+        x_llc, 
+        y_llc, 
+        cellsize_m, 
+        grid_crs, 
+        axis_order, 
+        id_format,
+        include_llc = include_llc,
+        generate_ids = should_generate_ids_now
+      )
+      
+      # Clipping (if requested)
+      if (clip_to_input && !is.null(clipping_target)) {
+        # Intersect full grid with target
+        intersects_list <- sf::st_intersects(out_obj, clipping_target)
+        keep_indices <- lengths(intersects_list) > 0
+        
+        # Subset output object
+        out_obj <- out_obj[keep_indices, ]
+        row.names(out_obj) <- NULL
+        
+        # Subset LLC coordinates to match kept indices for ID generation
+        x_llc <- x_llc[keep_indices]
+        y_llc <- y_llc[keep_indices]
+        
+        # Post-Clip ID Generation
+        if (nrow(out_obj) > 0 && id_format != "none") {
+            # Helper to generate IDs for the subset using C++
+            nzeros <- .tz_count(cellsize_m)
+            div <- 10^nzeros
+            size_lbl <- if (cellsize_m >= 1000) paste0(cellsize_m / 1000, "km") else paste0(cellsize_m, "m")
+            
+            # Using the new exported ID generator
+            ids <- generate_ids_rcpp(
+                x_llc = x_llc,
+                y_llc = y_llc,
+                cellsize = as.double(cellsize_m),
+                epsg = as.integer(grid_crs$epsg %||% 3035),
+                size_lbl = size_lbl,
+                divider = as.double(div),
+                axis_order = axis_order,
+                id_format = id_format
+            )
+            
+            if (id_format == "both") {
+                out_obj$GRD_ID_LONG <- ids$id_long
+                out_obj$GRD_ID_SHORT <- ids$id_short
+            } else if (id_format == "long") {
+                out_obj$GRD_ID <- ids$id_long
+            } else if (id_format == "short") {
+                out_obj$GRD_ID <- ids$id_short
+            }
+        }
+      }
+      
+      # Clean up columns and reorder
+      out_obj <- clean_and_order_grid(
+        out_obj, 
+        output_type, 
+        point_type, 
+        include_llc
+      )
+      
+      return(out_obj)
+    }
+  }
+
   x_coords <- seq.int(from = xmin, to = xmax - 1, by = cellsize_m)
   y_coords <- seq.int(from = ymin, to = ymax - 1, by = cellsize_m)
   if (length(x_coords) == 0 || length(y_coords) == 0) {
@@ -300,20 +382,29 @@ inspire_grid_from_extent_internal <- function(
 
   # --- 9. ADD ID ---
   if (nrow(out_obj) > 0 && id_format != "none") {
-    ids <- make_ids(
-      out_obj$X_LLC,
-      out_obj$Y_LLC,
-      cellsize_m,
+    # Use C++ kernel for ID generation
+    nzeros <- .tz_count(cellsize_m)
+    div <- 10^nzeros
+    size_lbl <- if (cellsize_m >= 1000) paste0(cellsize_m / 1000, "km") else paste0(cellsize_m, "m")
+
+    ids <- generate_ids_rcpp(
+      x_llc = out_obj$X_LLC,
+      y_llc = out_obj$Y_LLC,
+      cellsize = as.double(cellsize_m),
+      epsg = as.integer(grid_crs$epsg %||% 3035),
+      size_lbl = size_lbl,
+      divider = as.double(div),
       axis_order = axis_order,
-      epsg = grid_crs$epsg %||% 3035
+      id_format = id_format
     )
+
     if (id_format == "long") {
-      out_obj$GRD_ID <- ids$long
+      out_obj$GRD_ID <- ids$id_long
     } else if (id_format == "short") {
-      out_obj$GRD_ID <- ids$short
+      out_obj$GRD_ID <- ids$id_short
     } else if (id_format == "both") {
-      out_obj$GRD_ID_LONG <- ids$long
-      out_obj$GRD_ID_SHORT <- ids$short
+      out_obj$GRD_ID_LONG <- ids$id_long
+      out_obj$GRD_ID_SHORT <- ids$id_short
     }
   }
 

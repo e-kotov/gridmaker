@@ -49,6 +49,7 @@ inspire_grid_from_ids <- function(
   quiet = getOption("gridmaker.quiet", FALSE),
   dsn = NULL,
   layer = NULL,
+  vector_grid_backend = getOption("gridmaker.vector_grid_backend", "cpp"),
   ...
 ) {
   if (!is.logical(quiet) || length(quiet) != 1) {
@@ -67,9 +68,10 @@ inspire_grid_from_ids <- function(
       include_llc = include_llc,
       id_format = id_format,
       axis_order = axis_order,
-      dsn = dsn,
-      layer = layer,
-      quiet = quiet
+       dsn = dsn,
+       layer = layer,
+       quiet = quiet,
+       vector_grid_backend = vector_grid_backend
     ),
     dots
   )

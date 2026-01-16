@@ -58,6 +58,9 @@
 #'     \item **`future` backend:** Supports parallel processing **only** for in-memory vector generation (`sf`, `dataframe`). It does not support raster output or disk-based streaming (falls back to sequential), because it would need to first accumualte all data in memory before writing to disk, negating the benefits of streaming.
 #'   }
 #' @param max_memory_gb A numeric value. Maximum memory in gigabytes to use for grid creation. Default is `NULL`, in which case there is an automatic limit based on **available free system memory** (not total system RAM). Using this argument allows manual override, which is recommended on certain HPC (High Performance Computing) systems where jobs are allocated a fixed amount of memory that is less than the total free memory of the allocated node.
+#' @param vector_grid_backend Character string. Specifies the backend to use for memory-efficient `sf_polygons` generation.
+#'   Options are `"cpp"` (default, recommended) for the optimized C++ backend, or `"sfheaders"` for the legacy R backend.
+#'   This can also be controlled globally via `options(gridmaker.vector_grid_backend = "cpp")`.
 #' @inheritParams inspire_grid_params
 #'
 #' @return If \code{dsn} is \code{NULL} (the default), an \code{sf} object, \code{data.frame},
@@ -82,6 +85,7 @@ inspire_grid <- function(
   dsn = NULL,
   layer = NULL,
   max_memory_gb = NULL,
+  vector_grid_backend = getOption("gridmaker.vector_grid_backend", "cpp"),
   include_rat = FALSE,
   ...
 ) {
@@ -120,6 +124,7 @@ inspire_grid.sf <- function(
   dsn = NULL,
   layer = NULL,
   max_memory_gb = NULL,
+  vector_grid_backend = getOption("gridmaker.vector_grid_backend", "cpp"),
   include_rat = FALSE,
   ...
 ) {
@@ -140,6 +145,7 @@ inspire_grid.sf <- function(
     dsn = dsn,
     layer = layer,
     max_memory_gb = max_memory_gb,
+    vector_grid_backend = vector_grid_backend,
     include_rat = include_rat,
     ...
   )
@@ -164,6 +170,7 @@ inspire_grid.sfc <- function(
   dsn = NULL,
   layer = NULL,
   max_memory_gb = NULL,
+  vector_grid_backend = getOption("gridmaker.vector_grid_backend", "cpp"),
   include_rat = FALSE,
   ...
 ) {
@@ -184,6 +191,7 @@ inspire_grid.sfc <- function(
     dsn = dsn,
     layer = layer,
     max_memory_gb = max_memory_gb,
+    vector_grid_backend = vector_grid_backend,
     include_rat = include_rat,
     ...
   )
@@ -208,6 +216,7 @@ inspire_grid.bbox <- function(
   dsn = NULL,
   layer = NULL,
   max_memory_gb = NULL,
+  vector_grid_backend = getOption("gridmaker.vector_grid_backend", "cpp"),
   include_rat = FALSE,
   ...
 ) {
@@ -228,6 +237,7 @@ inspire_grid.bbox <- function(
     dsn = dsn,
     layer = layer,
     max_memory_gb = max_memory_gb,
+    vector_grid_backend = vector_grid_backend,
     include_rat = include_rat,
     ...
   )
@@ -252,6 +262,7 @@ inspire_grid.numeric <- function(
   dsn = NULL,
   layer = NULL,
   max_memory_gb = NULL,
+  vector_grid_backend = getOption("gridmaker.vector_grid_backend", "cpp"),
   include_rat = FALSE,
   ...
 ) {
@@ -272,6 +283,7 @@ inspire_grid.numeric <- function(
     dsn = dsn,
     layer = layer,
     max_memory_gb = max_memory_gb,
+    vector_grid_backend = vector_grid_backend,
     include_rat = include_rat,
     ...
   )
@@ -296,6 +308,7 @@ inspire_grid.matrix <- function(
   dsn = NULL,
   layer = NULL,
   max_memory_gb = NULL,
+  vector_grid_backend = getOption("gridmaker.vector_grid_backend", "cpp"),
   include_rat = FALSE,
   ...
 ) {
@@ -316,6 +329,7 @@ inspire_grid.matrix <- function(
     dsn = dsn,
     layer = layer,
     max_memory_gb = max_memory_gb,
+    vector_grid_backend = vector_grid_backend,
     include_rat = include_rat,
     ...
   )
@@ -341,6 +355,7 @@ inspire_grid.character <- function(
   dsn = NULL, # Used
   layer = NULL, # Used
   max_memory_gb = NULL, # Ignored (Sink)
+  vector_grid_backend = getOption("gridmaker.vector_grid_backend", "cpp"), # Ignored (Sink)
   include_rat = FALSE, # Ignored (Sink)
   ...
 ) {
@@ -353,11 +368,14 @@ inspire_grid.character <- function(
       buffer_m != 0 ||
       parallel != "auto" ||
       !is.null(max_memory_gb) ||
+      !isTRUE(
+        vector_grid_backend == getOption("gridmaker.vector_grid_backend", "cpp")
+      ) ||
       isTRUE(include_rat)
   ) {
     warning(
       "Arguments 'cellsize_m', 'clip_to_input', 'use_convex_hull', 'buffer_m', ",
-      "'parallel', 'max_memory_gb', and 'include_rat' are ignored for INSPIRE ID reconstruction.",
+      "'parallel', 'max_memory_gb', 'vector_grid_backend', and 'include_rat' are ignored for INSPIRE ID reconstruction.",
       call. = FALSE
     )
   }
@@ -433,6 +451,7 @@ inspire_grid_from_extent <- function(
   dsn = NULL,
   layer = NULL,
   max_memory_gb = NULL,
+  vector_grid_backend = getOption("gridmaker.vector_grid_backend", "cpp"),
   include_rat = FALSE,
   ...
 ) {
@@ -501,6 +520,7 @@ inspire_grid_from_extent <- function(
     axis_order = axis_order,
     include_llc = include_llc,
     point_type = point_type,
+    vector_grid_backend = vector_grid_backend,
     include_rat = include_rat,
     ...
   )

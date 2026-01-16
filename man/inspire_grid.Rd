@@ -29,6 +29,7 @@ inspire_grid(
   dsn = NULL,
   layer = NULL,
   max_memory_gb = NULL,
+  vector_grid_backend = getOption("gridmaker.vector_grid_backend", "cpp"),
   include_rat = FALSE,
   ...
 )
@@ -50,6 +51,7 @@ inspire_grid(
   dsn = NULL,
   layer = NULL,
   max_memory_gb = NULL,
+  vector_grid_backend = getOption("gridmaker.vector_grid_backend", "cpp"),
   include_rat = FALSE,
   ...
 )
@@ -71,6 +73,7 @@ inspire_grid(
   dsn = NULL,
   layer = NULL,
   max_memory_gb = NULL,
+  vector_grid_backend = getOption("gridmaker.vector_grid_backend", "cpp"),
   include_rat = FALSE,
   ...
 )
@@ -92,6 +95,7 @@ inspire_grid(
   dsn = NULL,
   layer = NULL,
   max_memory_gb = NULL,
+  vector_grid_backend = getOption("gridmaker.vector_grid_backend", "cpp"),
   include_rat = FALSE,
   ...
 )
@@ -113,6 +117,7 @@ inspire_grid(
   dsn = NULL,
   layer = NULL,
   max_memory_gb = NULL,
+  vector_grid_backend = getOption("gridmaker.vector_grid_backend", "cpp"),
   include_rat = FALSE,
   ...
 )
@@ -134,6 +139,7 @@ inspire_grid(
   dsn = NULL,
   layer = NULL,
   max_memory_gb = NULL,
+  vector_grid_backend = getOption("gridmaker.vector_grid_backend", "cpp"),
   include_rat = FALSE,
   ...
 )
@@ -155,6 +161,7 @@ inspire_grid(
   dsn = NULL,
   layer = NULL,
   max_memory_gb = NULL,
+  vector_grid_backend = getOption("gridmaker.vector_grid_backend", "cpp"),
   include_rat = FALSE,
   ...
 )
@@ -176,6 +183,7 @@ inspire_grid_from_extent(
   dsn = NULL,
   layer = NULL,
   max_memory_gb = NULL,
+  vector_grid_backend = getOption("gridmaker.vector_grid_backend", "cpp"),
   include_rat = FALSE,
   ...
 )
@@ -190,6 +198,7 @@ inspire_grid_from_ids(
   quiet = getOption("gridmaker.quiet", FALSE),
   dsn = NULL,
   layer = NULL,
+  vector_grid_backend = getOption("gridmaker.vector_grid_backend", "cpp"),
   ...
 )
 }
@@ -300,6 +309,10 @@ file, this will be the layer name. If \code{dsn} is a file path and \code{layer}
 not specified, it defaults to the file's base name.}
 
 \item{max_memory_gb}{A numeric value. Maximum memory in gigabytes to use for grid creation. Default is \code{NULL}, in which case there is an automatic limit based on \strong{available free system memory} (not total system RAM). Using this argument allows manual override, which is recommended on certain HPC (High Performance Computing) systems where jobs are allocated a fixed amount of memory that is less than the total free memory of the allocated node.}
+
+\item{vector_grid_backend}{Character string. Specifies the backend to use for memory-efficient \code{sf_polygons} generation.
+Options are \code{"cpp"} (default, recommended) for the optimized C++ backend, or \code{"sfheaders"} for the legacy R backend.
+This can also be controlled globally via \code{options(gridmaker.vector_grid_backend = "cpp")}.}
 
 \item{include_rat}{Logical. If \code{TRUE}, generate a Raster Attribute Table (RAT)
 mapping numeric cell IDs to INSPIRE grid ID strings. Default is \code{FALSE}.

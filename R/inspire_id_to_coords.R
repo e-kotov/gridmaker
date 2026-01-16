@@ -13,6 +13,9 @@ inspire_id_to_coords <- function(inspire, as_sf = FALSE, crs = NULL) {
   if (!is.character(inspire)) stop("Input 'inspire' must be a character vector.", call. = FALSE)
   if (length(inspire) == 0) stop("Input 'inspire' cannot be an empty vector.", call. = FALSE)
   if (any(is.na(inspire))) stop("Input 'inspire' contains NA values.", call. = FALSE)
+  if (any(nchar(trimws(inspire)) == 0L)) {
+    stop("Input 'inspire' contains empty strings, which are not valid INSPIRE IDs.", call. = FALSE)
+  }
 
   # 2. Parse all ID formats into a standardized data frame
   is_long <- startsWith(inspire, "CRS")

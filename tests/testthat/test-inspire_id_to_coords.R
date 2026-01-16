@@ -96,6 +96,12 @@ test_that("inspire_id_to_coords handles edge cases: malformed, NA, and empty inp
     inspire_id_to_coords(character(0)),
     "Input 'inspire' cannot be an empty vector"
   )
+  # fail on input containing empty strings
+  ids_have_empty <- c("1kmN100E200", "")
+  expect_error(
+    inspire_id_to_coords(ids_have_empty),
+    "Input 'inspire' contains empty strings"
+  )
 })
 
 test_that("inspire_id_to_coords warns on multiple CRSs", {

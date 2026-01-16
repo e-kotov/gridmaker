@@ -21,6 +21,7 @@ using namespace Rcpp;
 //' @param divider Divisor for short ID coordinates
 //' @param axis_order "NE" or "EN"
 //' @param id_format "both", "long", "short", "none"
+//' @param generate_ids Logical. If FALSE, only geometry is generated.
 //'
 //' @return List containing geometry and IDs
 //' @export

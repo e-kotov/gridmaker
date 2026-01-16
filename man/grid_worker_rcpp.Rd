@@ -32,6 +32,8 @@ grid_worker_rcpp(
 \item{axis_order}{"NE" or "EN"}
 
 \item{id_format}{"both", "long", "short", "none"}
+
+\item{generate_ids}{Logical. If FALSE, only geometry is generated.}
 }
 \value{
 List containing geometry and IDs

@@ -174,9 +174,11 @@ determine_final_crs <- function(parsed_df, user_crs) {
 }
 
 res_to_m <- function(res) {
-  is_km <- grepl("(?<=[0-9])km", res, perl = TRUE)
-  numbers <- as.numeric(regex_match(res, "^[0-9]+", i = 1))
-  numbers <- ifelse(is_km, numbers * 1000, numbers)
+  is_km <- endsWith(res, "km")
+  numbers <- as.numeric(sub("k?m$", "", res))
+  # which() handles NAs safely (drops them)
+  idx_km <- which(is_km)
+  numbers[idx_km] <- numbers[idx_km] * 1000
   numbers
 }
 

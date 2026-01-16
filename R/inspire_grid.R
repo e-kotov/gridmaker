@@ -473,6 +473,25 @@ inspire_grid_from_extent <- function(
     )
   }
 
+  # Validate cellsize_m is a positive integer
+  # We do this early to fail fast before spinning up parallel workers
+  if (!is.numeric(cellsize_m) || length(cellsize_m) != 1 || is.na(cellsize_m)) {
+      stop("Argument 'cellsize_m' must be a single numeric value.", call. = FALSE)
+  }
+  if (cellsize_m <= 0) {
+      stop("Argument 'cellsize_m' must be positive.", call. = FALSE)
+  }
+  # Check for integer-likeness (tolerance for floating point arithmetic)
+  if (abs(cellsize_m - round(cellsize_m)) > 1e-8) {
+      stop(
+          sprintf(
+              "Argument 'cellsize_m' must be an integer (metres). You provided %s.",
+              cellsize_m
+          ),
+          call. = FALSE
+      )
+  }
+
   # If dsn is provided but layer is not, derive from dsn
   if (!is.null(dsn) && is.null(layer)) {
     layer <- tools::file_path_sans_ext(basename(dsn))

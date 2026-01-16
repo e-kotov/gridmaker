@@ -32,6 +32,23 @@ List grid_worker_rcpp(NumericVector x_llc, NumericVector y_llc, double cellsize,
                       bool generate_ids = true) {
   int n = x_llc.size();
 
+  // Validation
+  if (y_llc.size() != n) {
+    stop("x_llc and y_llc must be the same length.");
+  }
+  if (is_true(any(is_na(x_llc))) || is_true(any(is_na(y_llc)))) {
+    stop("Coordinates cannot contain NA values.");
+  }
+  if (NumericVector::is_na(cellsize) || cellsize <= 0) {
+    stop("cellsize must be a positive number.");
+  }
+
+  // Logic identifying if we need EPSG for validation only
+  bool do_long = generate_ids && (id_format == "both" || id_format == "long");
+  if (do_long && IntegerVector::is_na(epsg)) {
+    stop("epsg must be a valid integer code when generating long-format IDs.");
+  }
+
   // Allocate Outputs
   List geometries(n);
   CharacterVector ids_long;
@@ -56,7 +73,6 @@ List grid_worker_rcpp(NumericVector x_llc, NumericVector y_llc, double cellsize,
   template_mat(4, 1) = 0;
 
   // Format optimization
-  bool do_long = generate_ids && (id_format == "both" || id_format == "long");
   bool do_short = generate_ids && (id_format == "both" || id_format == "short");
   bool is_ne = (axis_order == "NE");
 
@@ -136,10 +152,26 @@ List generate_ids_rcpp(NumericVector x_llc, NumericVector y_llc,
                        double divider, std::string axis_order,
                        std::string id_format) {
   int n = x_llc.size();
+
+  // Validation
+  if (y_llc.size() != n) {
+    stop("x_llc and y_llc must be the same length.");
+  }
+  if (is_true(any(is_na(x_llc))) || is_true(any(is_na(y_llc)))) {
+    stop("Coordinates cannot contain NA values.");
+  }
+  if (NumericVector::is_na(cellsize) || cellsize <= 0) {
+    stop("cellsize must be a positive number.");
+  }
+
+  bool do_long = (id_format == "both" || id_format == "long");
+  if (do_long && IntegerVector::is_na(epsg)) {
+    stop("epsg must be a valid integer code when generating long-format IDs.");
+  }
+
   CharacterVector ids_long(n);
   CharacterVector ids_short(n);
 
-  bool do_long = (id_format == "both" || id_format == "long");
   bool do_short = (id_format == "both" || id_format == "short");
   bool is_ne = (axis_order == "NE");
 

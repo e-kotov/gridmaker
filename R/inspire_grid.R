@@ -355,7 +355,7 @@ inspire_grid.character <- function(
   dsn = NULL, # Used
   layer = NULL, # Used
   max_memory_gb = NULL, # Ignored (Sink)
-  vector_grid_backend = c("cpp", "sfheaders"), # Ignored (Sink)
+  vector_grid_backend = getOption("gridmaker.vector_grid_backend", "cpp"), # Ignored (Sink)
   include_rat = FALSE, # Ignored (Sink)
   ...
 ) {

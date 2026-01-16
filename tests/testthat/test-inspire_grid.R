@@ -649,3 +649,20 @@ test_that("Warning for ignored point_type", {
     )
   )
 })
+
+test_that("inspire_grid.character respects global options for ignored backend", {
+  # This ensures that setting the global option to something other than the default "cpp"
+  # does NOT trigger the "Arguments ... are ignored" warning in inspire_grid.character
+  # due to a mismatch in default values.
+
+  ids <- c("CRS3035RES1000mN3000000E4000000")
+
+  withr::with_options(
+    list(gridmaker.vector_grid_backend = "sfheaders"),
+    {
+      expect_silent(
+        inspire_grid(ids, quiet = TRUE)
+      )
+    }
+  )
+})

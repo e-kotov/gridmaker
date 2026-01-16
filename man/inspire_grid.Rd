@@ -198,7 +198,7 @@ inspire_grid_from_ids(
   quiet = getOption("gridmaker.quiet", FALSE),
   dsn = NULL,
   layer = NULL,
-  vector_grid_backend = getOption("gridmaker.vector_grid_backend", "cpp"),
+  vector_grid_backend = getOption("gridmaker.vector_grid_backend", c("cpp", "sfheaders")),
   ...
 )
 }

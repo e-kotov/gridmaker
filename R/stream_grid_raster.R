@@ -127,17 +127,7 @@ stream_grid_raster_terra <- function(
     )
 
     cells <- first_cell:last_cell
-    coords <- terra::xyFromCell(r_template, cells)
-
-    x_vals <- coords[, 1]
-    y_vals <- coords[, 2]
-
-    # Compute grid cell IDs (linear addressing, row-major order)
-    # Column: floor((x - xmin) / cellsize) + 1
-    # Row: floor((ymax - y) / cellsize) + 1 (Y axis is inverted)
-    col_idx <- floor((x_vals - xmin) / cellsize_m) + 1
-    row_idx <- floor((ymax - y_vals) / cellsize_m) + 1
-    cell_ids <- (row_idx - 1) * ncols + col_idx
+    cell_ids <- cells
 
     # Write chunk values
     terra::writeValues(

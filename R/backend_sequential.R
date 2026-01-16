@@ -199,12 +199,22 @@ inspire_grid_from_extent_internal <- function(
 
     # 3. Generate IDs and Assign as Levels (Factor Raster)
     if (id_format != "none") {
-      # xyFromCell returns centroids
-      coords <- terra::xyFromCell(r, seq_len(terra::ncell(r)))
+      # xyFromCell returns centroids. For large rasters, this is memory-intensive.
+      # We replicate the logic using efficient vector generation.
+      # Rows (Y) are outer loop (slowest changing), Columns (X) are inner loop (fastest).
+      
+      nrows <- terra::nrow(r)
+      ncols <- terra::ncol(r)
 
-      # Calculate LLC for make_ids
-      x_llc <- coords[, 1] - (cellsize_m / 2)
-      y_llc <- coords[, 2] - (cellsize_m / 2)
+      # Calculate LLC for make_ids directly
+      # X LLC: seq from xmin
+      x_llc_seq <- seq.int(from = xmin, by = cellsize_m, length.out = ncols)
+      # Y LLC: seq from ymax - cellsize (top-left Y LLC) down to ymin
+      y_llc_seq <- seq.int(from = ymax - cellsize_m, by = -cellsize_m, length.out = nrows)
+      
+      # Create full vectors
+      x_llc <- rep(x_llc_seq, times = nrows)
+      y_llc <- rep(y_llc_seq, each = ncols)
 
       # Generate ID strings (using existing helper)
       ids_list <- make_ids(

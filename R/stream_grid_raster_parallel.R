@@ -41,14 +41,15 @@ NULL
 #' @keywords internal
 #' @noRd
 .compute_raster_chunk <- function(start_row, nrows, ncols) {
-  # Generate row/col indices for the chunk
-  # Generate continuous sequence of cell IDs directly (row-major order)
-  # Optimization: Avoid allocating large row/col vectors
-  start_id <- (start_row - 1) * ncols + 1
-  end_id <- start_id + (nrows * ncols) - 1
-  cell_ids <- start_id:end_id
+  # Compute first cell ID for this linear chunk
+  # Cell IDs are 1-based, row-major
+  first_cell <- (start_row - 1) * ncols + 1
 
-  list(values = as.integer(cell_ids), start = start_row, nrows = nrows)
+  # Create sequence directly
+  # Since we are processing full rows, the cell IDs are contiguous
+  values <- seq.int(from = first_cell, by = 1L, length.out = nrows * ncols)
+
+  list(values = values, start = start_row, nrows = nrows)
 }
 
 

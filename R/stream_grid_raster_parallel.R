@@ -42,11 +42,11 @@ NULL
 #' @noRd
 .compute_raster_chunk <- function(start_row, nrows, ncols) {
   # Generate row/col indices for the chunk
-  rows <- rep(start_row:(start_row + nrows - 1), each = ncols)
-  cols <- rep(1:ncols, times = nrows)
-
-  # Compute linear cell IDs (row-major order)
-  cell_ids <- (rows - 1) * ncols + cols
+  # Generate continuous sequence of cell IDs directly (row-major order)
+  # Optimization: Avoid allocating large row/col vectors
+  start_id <- (start_row - 1) * ncols + 1
+  end_id <- start_id + (nrows * ncols) - 1
+  cell_ids <- start_id:end_id
 
   list(values = as.integer(cell_ids), start = start_row, nrows = nrows)
 }
@@ -249,9 +249,11 @@ stream_raster_parallel_mirai <- function(
         nrows_chunk <- chunk_def$nrows
         ncols_chunk <- chunk_def$ncols
 
-        rows <- rep(start_row:(start_row + nrows_chunk - 1), each = ncols_chunk)
-        cols <- rep(1:ncols_chunk, times = nrows_chunk)
-        cell_ids <- (rows - 1) * ncols_chunk + cols
+        # Generate continuous sequence of cell IDs directly (row-major order)
+        # Optimization: Avoid allocating large row/col vectors
+        start_id <- (start_row - 1) * ncols_chunk + 1
+        end_id <- start_id + (nrows_chunk * ncols_chunk) - 1
+        cell_ids <- start_id:end_id
 
         list(
           chunk_idx = chunk_idx,

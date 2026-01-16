@@ -125,7 +125,6 @@ test_that("Warning for in-memory parallel raster generation", {
       mirai::daemons(2, dispatcher = FALSE)
 
       # Should warn that it's falling back to sequential
-      # Should warn that it's falling back to sequential
       expect_message(
         inspire_grid(
           c(0, 0, 100, 100),

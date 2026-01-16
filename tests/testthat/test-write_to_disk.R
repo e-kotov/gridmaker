@@ -133,7 +133,7 @@ test_that("inspire_grid_from_extent handles `layer` argument correctly for disk 
         "defaulting to 'default'"
       )
     ),
-    file = nullfile()
+    file = if (.Platform$OS.type == "windows") "NUL" else "/dev/null"
   )
 
   expect_true(file.exists(dsn_default))

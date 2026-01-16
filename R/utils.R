@@ -271,7 +271,6 @@ regex_match <- function(text, pattern, i = NULL, ...) {
   n2 <- 20
 
   # Create sample 1
-  # Create sample 1
   sample_extent_1 <- sf::st_bbox(
     c(xmin = 0, ymin = 0, xmax = n1 * cellsize_m, ymax = cellsize_m),
     crs = grid_crs

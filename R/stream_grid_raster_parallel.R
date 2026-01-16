@@ -102,7 +102,7 @@ stream_raster_parallel_mirai <- function(
 
   if (!is.null(max_memory_gb)) {
     terra::terraOptions(memmax = max_memory_gb)
-  } else if (old_opts$memfrac > 0.6) {
+  } else if (isTRUE(old_opts$memfrac > 0.6)) {
     terra::terraOptions(memfrac = 0.5)
   }
 

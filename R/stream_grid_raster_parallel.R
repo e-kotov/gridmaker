@@ -44,7 +44,6 @@ NULL
   # Compute first and last cell ID for this linear chunk
   # Cell IDs are 1-based, row-major
   first_cell <- (start_row - 1) * ncols + 1
-  last_cell <- (start_row + nrows - 1) * ncols + ncols # or just first_cell + nrows * ncols - 1
 
   # Create sequence directly
   # Since we are processing full rows, the cell IDs are contiguous

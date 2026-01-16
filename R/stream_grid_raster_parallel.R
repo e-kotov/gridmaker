@@ -41,14 +41,16 @@ NULL
 #' @keywords internal
 #' @noRd
 .compute_raster_chunk <- function(start_row, nrows, ncols) {
-  # Generate row/col indices for the chunk
-  rows <- rep(start_row:(start_row + nrows - 1), each = ncols)
-  cols <- rep(1:ncols, times = nrows)
+  # Compute first and last cell ID for this linear chunk
+  # Cell IDs are 1-based, row-major
+  first_cell <- (start_row - 1) * ncols + 1
+  last_cell <- (start_row + nrows - 1) * ncols + ncols # or just first_cell + nrows * ncols - 1
 
-  # Compute linear cell IDs (row-major order)
-  cell_ids <- (rows - 1) * ncols + cols
+  # Create sequence directly
+  # Since we are processing full rows, the cell IDs are contiguous
+  values <- seq.int(from = first_cell, by = 1L, length.out = nrows * ncols)
 
-  list(values = as.integer(cell_ids), start = start_row, nrows = nrows)
+  list(values = values, start = start_row, nrows = nrows)
 }
 
 

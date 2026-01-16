@@ -175,7 +175,10 @@ List generate_ids_rcpp(NumericVector x_llc, NumericVector y_llc,
 }
 
 // Helper: Count trailing zeros (integer based)
-int tz_count_cpp(double x) {
+// Note: This duplicates the logic of .tz_count() in R/utils.R, but is kept
+// separate for performance. Calling R functions from within this C++ parser
+// would add significant overhead during vectorized ID parsing.
+int count_trailing_zeros_cpp(double x) {
   long long val = (long long)x;
   int n = 0;
   if (val == 0)
@@ -292,7 +295,7 @@ DataFrame parse_inspire_ids_rcpp(CharacterVector inspire, LogicalVector is_long,
       long long val2 = strtoll(end, &end, 10);
 
       // Calculate multiplier
-      double multiplier = std::pow(10.0, tz_count_cpp(cs));
+      double multiplier = std::pow(10.0, count_trailing_zeros_cpp(cs));
       double v1 = (double)val1 * multiplier;
       double v2 = (double)val2 * multiplier;
 

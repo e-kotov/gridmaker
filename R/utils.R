@@ -122,15 +122,20 @@ regex_match <- function(text, pattern, i = NULL, ...) {
     c(xmin = 0, ymin = 0, xmax = n1 * cellsize_m, ymax = cellsize_m),
     crs = grid_crs
   )
-  sample_grid_1 <- inspire_grid_from_extent_internal(
+  
+  # Construct args to avoid passing ignored point_type (which warns)
+  args1 <- list(
     grid_extent = sample_extent_1,
     cellsize_m = cellsize_m,
     output_type = output_type,
     id_format = id_format,
     axis_order = "NE",
-    include_llc = include_llc,
-    point_type = point_type
+    include_llc = include_llc
   )
+  if (output_type == "sf_points") {
+    args1$point_type <- point_type
+  }
+  sample_grid_1 <- do.call(inspire_grid_from_extent_internal, args1)
   size1 <- as.numeric(utils::object.size(sample_grid_1))
 
   # Create the second, larger sample grid.
@@ -138,15 +143,19 @@ regex_match <- function(text, pattern, i = NULL, ...) {
     c(xmin = 0, ymin = 0, xmax = n2 * cellsize_m, ymax = cellsize_m),
     crs = grid_crs
   )
-  sample_grid_2 <- inspire_grid_from_extent_internal(
+  
+  args2 <- list(
     grid_extent = sample_extent_2,
     cellsize_m = cellsize_m,
     output_type = output_type,
     id_format = id_format,
     axis_order = "NE",
-    include_llc = include_llc,
-    point_type = point_type
+    include_llc = include_llc
   )
+  if (output_type == "sf_points") {
+    args2$point_type <- point_type
+  }
+  sample_grid_2 <- do.call(inspire_grid_from_extent_internal, args2)
   size2 <- as.numeric(utils::object.size(sample_grid_2))
 
   # Calculate the memory cost per additional cell (the slope).
@@ -262,19 +271,29 @@ regex_match <- function(text, pattern, i = NULL, ...) {
   n2 <- 20
 
   # Create sample 1
+  # Create sample 1
   sample_extent_1 <- sf::st_bbox(
     c(xmin = 0, ymin = 0, xmax = n1 * cellsize_m, ymax = cellsize_m),
     crs = grid_crs
   )
-  sample_grid_1 <- inspire_grid_from_extent_internal(
+  
+  # Prepare safe arguments
+  out_type <- dot_args$output_type %||% "sf_polygons"
+  pt_type <- dot_args$point_type %||% "centroid"
+  
+  args1 <- list(
     grid_extent = sample_extent_1,
     cellsize_m = cellsize_m,
-    output_type = dot_args$output_type %||% "sf_polygons",
+    output_type = out_type,
     id_format = dot_args$id_format %||% "both",
     axis_order = dot_args$axis_order %||% "NE",
-    include_llc = dot_args$include_llc %||% TRUE,
-    point_type = dot_args$point_type %||% "centroid"
+    include_llc = dot_args$include_llc %||% TRUE
   )
+  if (out_type == "sf_points") {
+    args1$point_type <- pt_type
+  }
+  
+  sample_grid_1 <- do.call(inspire_grid_from_extent_internal, args1)
   size1 <- as.numeric(utils::object.size(sample_grid_1))
 
   # Create sample 2
@@ -282,15 +301,11 @@ regex_match <- function(text, pattern, i = NULL, ...) {
     c(xmin = 0, ymin = 0, xmax = n2 * cellsize_m, ymax = cellsize_m),
     crs = grid_crs
   )
-  sample_grid_2 <- inspire_grid_from_extent_internal(
-    grid_extent = sample_extent_2,
-    cellsize_m = cellsize_m,
-    output_type = dot_args$output_type %||% "sf_polygons",
-    id_format = dot_args$id_format %||% "both",
-    axis_order = dot_args$axis_order %||% "NE",
-    include_llc = dot_args$include_llc %||% TRUE,
-    point_type = dot_args$point_type %||% "centroid"
-  )
+  
+  args2 <- args1
+  args2$grid_extent <- sample_extent_2
+  
+  sample_grid_2 <- do.call(inspire_grid_from_extent_internal, args2)
   size2 <- as.numeric(utils::object.size(sample_grid_2))
 
   # Calculate marginal bytes per cell

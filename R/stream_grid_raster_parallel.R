@@ -88,16 +88,22 @@ stream_raster_parallel_mirai <- function(
   }
 
   # --- 1. SETUP ---
-  old_opts <- terra::terraOptions()
-  on.exit(suppressWarnings(do.call(terra::terraOptions, old_opts)), add = TRUE)
+  # Save and restore terra options on exit
+  old_opts <- terra::terraOptions(print = FALSE)
+  on.exit({
+    # Only restore options that are safe to restore
+    restore_opts <- old_opts[names(old_opts) %in%
+      c("memfrac", "memmax", "memmin", "todisk", "tempdir")]
+    do.call(terra::terraOptions, restore_opts)
+  }, add = TRUE)
+
+  # Configure for streaming (always write to disk)
+  terra::terraOptions(todisk = TRUE)
 
   if (!is.null(max_memory_gb)) {
-    terra::terraOptions(memmax = max_memory_gb, todisk = TRUE)
-  } else {
-    terra::terraOptions(todisk = TRUE)
-    if (is.null(old_opts$memfrac) || old_opts$memfrac > 0.6) {
-      terra::terraOptions(memfrac = 0.5)
-    }
+    terra::terraOptions(memmax = max_memory_gb)
+  } else if (old_opts$memfrac > 0.6) {
+    terra::terraOptions(memfrac = 0.5)
   }
 
   # RAT deprecation warning

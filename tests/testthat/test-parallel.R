@@ -83,7 +83,7 @@ test_that("Backend detection logic with parallel = 'auto' works", {
 
   # Scenario 1: No backend configured, should run sequentially
   expect_message(
-    inspire_grid_from_extent(nc, CELLSIZE, parallel = "auto"),
+    inspire_grid_from_extent(nc, CELLSIZE, parallel = "auto", quiet = FALSE),
     "No parallel backend detected. Running in sequential mode."
   )
 
@@ -94,7 +94,7 @@ test_that("Backend detection logic with parallel = 'auto' works", {
     future::plan("multisession", workers = 2)
 
     expect_message(
-      inspire_grid_from_extent(nc, CELLSIZE, parallel = "auto"),
+      inspire_grid_from_extent(nc, CELLSIZE, parallel = "auto", quiet = FALSE),
       "`future` backend detected.*Running in parallel"
     )
     future::plan("sequential")
@@ -105,7 +105,7 @@ test_that("Backend detection logic with parallel = 'auto' works", {
     {
       mirai::daemons(2)
       expect_message(
-        inspire_grid_from_extent(nc, CELLSIZE, parallel = "auto"),
+        inspire_grid_from_extent(nc, CELLSIZE, parallel = "auto", quiet = FALSE),
         "`mirai` backend detected.*Running in parallel"
       )
     },
@@ -124,6 +124,7 @@ test_that("Warning for in-memory parallel raster generation", {
     {
       mirai::daemons(2, dispatcher = FALSE)
 
+      # Should warn that it's falling back to sequential
       # Should warn that it's falling back to sequential
       expect_message(
         inspire_grid(

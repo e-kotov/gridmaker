@@ -46,7 +46,7 @@ inspire_grid_from_ids <- function(
   include_llc = TRUE,
   id_format = c("both", "long", "short"),
   axis_order = c("NE", "EN"),
-  quiet = FALSE,
+  quiet = getOption("gridmaker.quiet", FALSE),
   dsn = NULL,
   layer = NULL,
   ...

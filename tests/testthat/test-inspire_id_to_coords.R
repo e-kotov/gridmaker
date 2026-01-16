@@ -130,3 +130,29 @@ test_that("inspire_id_to_coords warns on multiple CRSs", {
     "INSPIRE identifiers contain more than one CRS"
   )
 })
+
+test_that("inspire_id_to_coords rejects IDs with trailing junk (strict validation)", {
+  # Long format with trailing junk
+  expect_error(
+    inspire_id_to_coords("CRS3035RES1000mN2684000E4334000_extra"),
+    "One or more INSPIRE IDs had a malformed format"
+  )
+  
+  # Short format with trailing junk
+  expect_error(
+    inspire_id_to_coords("1kmN2684E4334_extra"),
+    "One or more INSPIRE IDs had a malformed format"
+  )
+  
+  # Incomplete long format (missing E component)
+  expect_error(
+    inspire_id_to_coords("CRS3035RES1000mN2684000"),
+    "One or more INSPIRE IDs had a malformed format"
+  )
+  
+  # Incomplete short format (missing second axis)
+  expect_error(
+    inspire_id_to_coords("1kmN2684"),
+    "One or more INSPIRE IDs had a malformed format"
+  )
+})

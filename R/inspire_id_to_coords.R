@@ -28,13 +28,14 @@ inspire_id_to_coords <- function(inspire, as_sf = FALSE, crs = NULL) {
   }
   parsed <- parse_inspire_ids(inspire, is_long, is_short)
 
-  # 3. Stop if any IDs were malformed (indicated by NA in cellsize)
-  if (any(is.na(parsed$cellsize))) {
+  # 3. Stop if any IDs were malformed (indicated by NA in any critical field)
+  if (any(is.na(parsed$cellsize)) || any(is.na(parsed$x)) || any(is.na(parsed$y))) {
     stop(
       "One or more INSPIRE IDs had a malformed format and could not be parsed.",
       call. = FALSE
     )
   }
+
 
   # 4. Determine the final CRS based on user input and parsed data
   final_crs_obj <- determine_final_crs(parsed, user_crs = crs)

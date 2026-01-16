@@ -236,7 +236,16 @@ DataFrame parse_inspire_ids_rcpp(CharacterVector inspire, LogicalVector is_long,
 
             // Expect "E"
             if (end[0] == 'E') {
-              x[i] = (double)strtoll(end + 1, NULL, 10);
+              x[i] = (double)strtoll(end + 1, &end, 10);
+
+              // STRICT CHECK: Verify we've consumed the entire string
+              if (*end != '\0') {
+                // Trailing junk found - mark as invalid
+                cellsize[i] = NA_REAL;
+                crs[i] = NA_INTEGER;
+                x[i] = NA_REAL;
+                y[i] = NA_REAL;
+              }
             }
           }
         }
@@ -270,6 +279,13 @@ DataFrame parse_inspire_ids_rcpp(CharacterVector inspire, LogicalVector is_long,
       char axis2 = end[0];
       end++;
       long long val2 = strtoll(end, &end, 10);
+
+      // STRICT CHECK: Verify we've consumed the entire string
+      if (*end != '\0') {
+        // Trailing junk found - mark as invalid
+        cellsize[i] = NA_REAL;
+        continue;
+      }
 
       // Calculate multiplier
       double multiplier = std::pow(10.0, count_trailing_zeros_cpp(cs));

@@ -85,7 +85,7 @@ inspire_grid <- function(
   dsn = NULL,
   layer = NULL,
   max_memory_gb = NULL,
-  vector_grid_backend = getOption("gridmaker.vector_grid_backend", c("cpp", "sfheaders")),
+  vector_grid_backend = getOption("gridmaker.vector_grid_backend", "cpp"),
   include_rat = FALSE,
   ...
 ) {
@@ -124,7 +124,7 @@ inspire_grid.sf <- function(
   dsn = NULL,
   layer = NULL,
   max_memory_gb = NULL,
-  vector_grid_backend = getOption("gridmaker.vector_grid_backend", c("cpp", "sfheaders")),
+  vector_grid_backend = getOption("gridmaker.vector_grid_backend", "cpp"),
   include_rat = FALSE,
   ...
 ) {
@@ -170,7 +170,7 @@ inspire_grid.sfc <- function(
   dsn = NULL,
   layer = NULL,
   max_memory_gb = NULL,
-  vector_grid_backend = getOption("gridmaker.vector_grid_backend", c("cpp", "sfheaders")),
+  vector_grid_backend = getOption("gridmaker.vector_grid_backend", "cpp"),
   include_rat = FALSE,
   ...
 ) {
@@ -216,7 +216,7 @@ inspire_grid.bbox <- function(
   dsn = NULL,
   layer = NULL,
   max_memory_gb = NULL,
-  vector_grid_backend = getOption("gridmaker.vector_grid_backend", c("cpp", "sfheaders")),
+  vector_grid_backend = getOption("gridmaker.vector_grid_backend", "cpp"),
   include_rat = FALSE,
   ...
 ) {
@@ -262,7 +262,7 @@ inspire_grid.numeric <- function(
   dsn = NULL,
   layer = NULL,
   max_memory_gb = NULL,
-  vector_grid_backend = getOption("gridmaker.vector_grid_backend", c("cpp", "sfheaders")),
+  vector_grid_backend = getOption("gridmaker.vector_grid_backend", "cpp"),
   include_rat = FALSE,
   ...
 ) {
@@ -308,7 +308,7 @@ inspire_grid.matrix <- function(
   dsn = NULL,
   layer = NULL,
   max_memory_gb = NULL,
-  vector_grid_backend = getOption("gridmaker.vector_grid_backend", c("cpp", "sfheaders")),
+  vector_grid_backend = getOption("gridmaker.vector_grid_backend", "cpp"),
   include_rat = FALSE,
   ...
 ) {
@@ -369,7 +369,7 @@ inspire_grid.character <- function(
       parallel != "auto" ||
       !is.null(max_memory_gb) ||
       !isTRUE(
-        vector_grid_backend[1] == getOption("gridmaker.vector_grid_backend", c("cpp", "sfheaders"))[1]
+        vector_grid_backend[1] == getOption("gridmaker.vector_grid_backend", "cpp")[1]
       ) ||
       isTRUE(include_rat)
   ) {
@@ -451,12 +451,12 @@ inspire_grid_from_extent <- function(
   dsn = NULL,
   layer = NULL,
   max_memory_gb = NULL,
-  vector_grid_backend = c("cpp", "sfheaders"),
+  vector_grid_backend = getOption("gridmaker.vector_grid_backend", "cpp"),
   include_rat = FALSE,
   ...
 ) {
   # --- 1. Validate Arguments ---
-  vector_grid_backend <- match.arg(vector_grid_backend)
+  vector_grid_backend <- match.arg(vector_grid_backend, c("cpp", "sfheaders"))
   if (is.null(cellsize_m)) {
     stop("Argument 'cellsize_m' is missing, with no default", call. = FALSE)
   }

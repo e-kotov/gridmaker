@@ -183,11 +183,11 @@ test_that("Function handles errors and edge cases", {
   # Invalid cell size
   expect_error(
     inspire_grid_from_extent(nc, 0, crs = TARGET_CRS),
-    "cellsize_m must be a positive integer"
+    "Argument 'cellsize_m' must be positive"
   )
   expect_error(
     inspire_grid_from_extent(nc, -100, crs = TARGET_CRS),
-    "cellsize_m must be a positive integer"
+    "Argument 'cellsize_m' must be positive"
   )
 
   # Invalid CRS (geographic)

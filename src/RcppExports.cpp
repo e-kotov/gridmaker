@@ -60,11 +60,25 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// convert_inspire_ids_rcpp
+CharacterVector convert_inspire_ids_rcpp(CharacterVector ids, int crs, std::string axis_order);
+RcppExport SEXP _gridmaker_convert_inspire_ids_rcpp(SEXP idsSEXP, SEXP crsSEXP, SEXP axis_orderSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< CharacterVector >::type ids(idsSEXP);
+    Rcpp::traits::input_parameter< int >::type crs(crsSEXP);
+    Rcpp::traits::input_parameter< std::string >::type axis_order(axis_orderSEXP);
+    rcpp_result_gen = Rcpp::wrap(convert_inspire_ids_rcpp(ids, crs, axis_order));
+    return rcpp_result_gen;
+END_RCPP
+}
 
 static const R_CallMethodDef CallEntries[] = {
     {"_gridmaker_grid_worker_rcpp", (DL_FUNC) &_gridmaker_grid_worker_rcpp, 9},
     {"_gridmaker_generate_ids_rcpp", (DL_FUNC) &_gridmaker_generate_ids_rcpp, 8},
     {"_gridmaker_parse_inspire_ids_rcpp", (DL_FUNC) &_gridmaker_parse_inspire_ids_rcpp, 3},
+    {"_gridmaker_convert_inspire_ids_rcpp", (DL_FUNC) &_gridmaker_convert_inspire_ids_rcpp, 3},
     {NULL, NULL, 0}
 };
 

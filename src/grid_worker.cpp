@@ -345,3 +345,160 @@ DataFrame parse_inspire_ids_rcpp(CharacterVector inspire, LogicalVector is_long,
 
   return ret;
 }
+
+//' Convert INSPIRE IDs between long and short formats (C++ Kernel)
+//'
+//' @param ids Character vector of IDs to convert.
+//' @param crs Integer EPSG code (used when converting short to long).
+//' @param axis_order String "NE" or "EN" (used when converting long to short).
+//' @return Character vector of converted IDs.
+//' @export
+// [[Rcpp::export]]
+CharacterVector convert_inspire_ids_rcpp(CharacterVector ids, int crs,
+                                         std::string axis_order) {
+  int n = ids.size();
+  CharacterVector out(n);
+  char buffer[128];
+  bool is_ne = (axis_order == "NE");
+
+  for (int i = 0; i < n; i++) {
+    if (CharacterVector::is_na(ids[i])) {
+      out[i] = NA_STRING;
+      continue;
+    }
+
+    // Use low-level const char* for speed
+    SEXP s_sexp = STRING_ELT(ids, i);
+    const char *s = CHAR(s_sexp);
+
+    // Detect format
+    bool is_long = (s[0] == 'C' && s[1] == 'R' && s[2] == 'S');
+
+    if (is_long) {
+      // --- LONG TO SHORT ---
+      // Format: CRS{epsg}RES{res}mN{y}E{x}
+      char *end;
+      const char *res_start = strstr(s, "RES");
+      if (!res_start) {
+        out[i] = NA_STRING;
+        continue;
+      }
+
+      double cellsize = strtod(res_start + 3, &end);
+
+      // Parse coordinates
+      // Expect "mN" or "mE" (strictly "mN" based on standard long format, but
+      // let's point to N/E)
+      char *n_pos = strchr(end, 'N');
+      char *e_pos = strchr(end, 'E');
+
+      if (!n_pos || !e_pos) {
+        out[i] = NA_STRING;
+        continue;
+      }
+
+      double y, x;
+
+      // Handle the case where 'E' might be interpreted as exponent by strtod
+      // We need to isolate the numbers.
+
+      // Determine which axis comes first
+      if (n_pos < e_pos) {
+        // Format ...N...E...
+        // Parse Y (between N and E)
+        std::string y_str(n_pos + 1, e_pos - (n_pos + 1));
+        y = strtod(y_str.c_str(), NULL);
+
+        // Parse X (after E)
+        x = strtod(e_pos + 1, &end);
+      } else {
+        // Format ...E...N...
+        // Parse X (between E and N)
+        std::string x_str(e_pos + 1, n_pos - (e_pos + 1));
+        x = strtod(x_str.c_str(), NULL);
+
+        // Parse Y (after N)
+        y = strtod(n_pos + 1, &end);
+      }
+
+      // Calculate divisors
+      double divisor = std::pow(10.0, count_trailing_zeros_cpp(cellsize));
+
+      // Format Short ID
+      long long y_short = (long long)(y / divisor);
+      long long x_short = (long long)(x / divisor);
+
+      // Retrieve cellsize label
+      // 1000 -> 1km, 100 -> 100m
+      long cs_val = (long)cellsize;
+      const char *unit = "m";
+      if (cs_val >= 1000 && cs_val % 1000 == 0) {
+        cs_val /= 1000;
+        unit = "km";
+      }
+
+      if (is_ne) {
+        snprintf(buffer, sizeof(buffer), "%ld%sN%lldE%lld", cs_val, unit,
+                 y_short, x_short);
+      } else {
+        snprintf(buffer, sizeof(buffer), "%ld%sE%lldN%lld", cs_val, unit,
+                 x_short, y_short);
+      }
+      out[i] = buffer;
+
+    } else {
+      // --- SHORT TO LONG ---
+      // Format: {res}{N|E}{val}{E|N}{val}
+
+      char *end;
+      double cs = strtod(s, &end);
+
+      // Parse unit
+      if (end[0] == 'k' && end[1] == 'm') {
+        cs *= 1000.0;
+        end += 2;
+      } else if (end[0] == 'm') {
+        end += 1;
+      } else {
+        out[i] = NA_STRING;
+        continue;
+      }
+
+      // Parse Coordinates
+      char axis1 = end[0];
+      end++;
+      long long val1 = strtoll(end, &end, 10);
+
+      char axis2 = end[0];
+      end++;
+      long long val2 = strtoll(end, &end, 10);
+
+      if (*end != '\0') {
+        out[i] = NA_STRING;
+        continue;
+      }
+
+      double multiplier = std::pow(10.0, count_trailing_zeros_cpp(cs));
+      double v1 = (double)val1 * multiplier;
+      double v2 = (double)val2 * multiplier;
+
+      double y_long, x_long;
+      if (axis1 == 'N' && axis2 == 'E') {
+        y_long = v1;
+        x_long = v2;
+      } else if (axis1 == 'E' && axis2 == 'N') {
+        x_long = v1;
+        y_long = v2;
+      } else {
+        out[i] = NA_STRING;
+        continue;
+      }
+
+      // Format Long ID
+      snprintf(buffer, sizeof(buffer), "CRS%dRES%ldmN%lldE%lld", crs, (long)cs,
+               (long long)y_long, (long long)x_long);
+      out[i] = buffer;
+    }
+  }
+  return out;
+}

@@ -52,3 +52,14 @@ parse_inspire_ids_rcpp <- function(inspire, is_long, is_short) {
     .Call(`_gridmaker_parse_inspire_ids_rcpp`, inspire, is_long, is_short)
 }
 
+#' Convert INSPIRE IDs between long and short formats (C++ Kernel)
+#'
+#' @param ids Character vector of IDs to convert.
+#' @param crs Integer EPSG code (used when converting short to long).
+#' @param axis_order String "NE" or "EN" (used when converting long to short).
+#' @return Character vector of converted IDs.
+#' @export
+convert_inspire_ids_rcpp <- function(ids, crs, axis_order) {
+    .Call(`_gridmaker_convert_inspire_ids_rcpp`, ids, crs, axis_order)
+}
+

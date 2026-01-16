@@ -152,3 +152,14 @@ test_that("inspire_id_format handles invalid units and missing units", {
   expect_false(is.na(results[2])) # 100m is valid
   expect_true(is.na(results[3])) # 100 is invalid (no unit)
 })
+
+test_that("inspire_id_format robustly handles coordinates starting with E (regression test)", {
+  # This tests a specific edge case where 'strtod' might interpret the 'E' delimiter 
+  # as part of a scientific notation number if not carefully parsed.
+  # e.g., ...N100E200... -> "100E200" might be read as 100 * 10^200
+  
+  long_id <- "CRS3035RES1mN100E200"
+  expected_short <- "1mN100E200"
+  
+  expect_equal(inspire_id_format(long_id), expected_short)
+})

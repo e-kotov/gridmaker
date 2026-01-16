@@ -250,9 +250,11 @@ stream_raster_parallel_mirai <- function(
         nrows_chunk <- chunk_def$nrows
         ncols_chunk <- chunk_def$ncols
 
-        rows <- rep(start_row:(start_row + nrows_chunk - 1), each = ncols_chunk)
-        cols <- rep(1:ncols_chunk, times = nrows_chunk)
-        cell_ids <- (rows - 1) * ncols_chunk + cols
+        # Generate continuous sequence of cell IDs directly (row-major order)
+        # Optimization: Avoid allocating large row/col vectors
+        start_id <- (start_row - 1) * ncols_chunk + 1
+        end_id <- start_id + (nrows_chunk * ncols_chunk) - 1
+        cell_ids <- start_id:end_id
 
         list(
           chunk_idx = chunk_idx,

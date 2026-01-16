@@ -1,3 +1,6 @@
+# Gridmaker Options for Testing
+options(gridmaker.quiet = TRUE)
+
 library(sf)
 
 # --- Test Data Preparation ---

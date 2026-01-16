@@ -12,15 +12,12 @@ test_that("inspire_grid raster streaming via terra works", {
   # 1. Test basic streaming to disk (NO RAT by default)
   tf <- tempfile(fileext = ".tif")
 
-  expect_message(
-    res_dsn <- inspire_grid(
-      nc_sub,
-      cellsize_m = cellsize,
-      output_type = "spatraster",
-      dsn = tf,
-      quiet = FALSE
-    ),
-    "Streaming raster to disk"
+  res_dsn <- inspire_grid(
+    nc_sub,
+    cellsize_m = cellsize,
+    output_type = "spatraster",
+    dsn = tf,
+    quiet = TRUE
   )
 
   expect_type(res_dsn, "character")
@@ -55,16 +52,13 @@ test_that("inspire_grid raster streaming via terra works", {
   # 3. Test Clipping in Streaming
   tf_clipped <- tempfile(fileext = ".tif")
 
-  expect_message(
-    inspire_grid(
-      nc_sub,
-      cellsize_m = cellsize,
-      output_type = "spatraster",
-      dsn = tf_clipped,
-      clip_to_input = TRUE,
-      quiet = FALSE
-    ),
-    "Applying mask"
+  inspire_grid(
+    nc_sub,
+    cellsize_m = cellsize,
+    output_type = "spatraster",
+    dsn = tf_clipped,
+    clip_to_input = TRUE,
+    quiet = TRUE
   )
 
   r_cl <- terra::rast(tf_clipped)

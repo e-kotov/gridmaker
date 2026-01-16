@@ -301,7 +301,8 @@ test_that("`quiet` parameter correctly suppresses messages", {
     inspire_grid_from_extent(
       grid_extent = nc,
       cellsize_m = CELLSIZE,
-      parallel = "auto" # Allow auto-detection to fall back to sequential
+      parallel = "auto", # Allow auto-detection to fall back to sequential
+      quiet = FALSE
     ),
     regexp = "No parallel backend detected"
   )
@@ -631,7 +632,7 @@ test_that("Warning for ignored point_type", {
       crs = 3857, 
       output_type = "sf_polygons",
       point_type = "llc",
-      quiet = FALSE
+      quiet = TRUE
     ),
     "Argument 'point_type'.*is ignored"
   )

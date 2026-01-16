@@ -78,7 +78,7 @@ inspire_grid <- function(
   include_llc = TRUE,
   point_type = "centroid",
   parallel = "auto",
-  quiet = FALSE,
+  quiet = getOption("gridmaker.quiet", FALSE),
   dsn = NULL,
   layer = NULL,
   max_memory_gb = NULL,
@@ -116,7 +116,7 @@ inspire_grid.sf <- function(
   include_llc = TRUE,
   point_type = "centroid",
   parallel = "auto",
-  quiet = FALSE,
+  quiet = getOption("gridmaker.quiet", FALSE),
   dsn = NULL,
   layer = NULL,
   max_memory_gb = NULL,
@@ -160,7 +160,7 @@ inspire_grid.sfc <- function(
   include_llc = TRUE,
   point_type = "centroid",
   parallel = "auto",
-  quiet = FALSE,
+  quiet = getOption("gridmaker.quiet", FALSE),
   dsn = NULL,
   layer = NULL,
   max_memory_gb = NULL,
@@ -204,7 +204,7 @@ inspire_grid.bbox <- function(
   include_llc = TRUE,
   point_type = "centroid",
   parallel = "auto",
-  quiet = FALSE,
+  quiet = getOption("gridmaker.quiet", FALSE),
   dsn = NULL,
   layer = NULL,
   max_memory_gb = NULL,
@@ -248,7 +248,7 @@ inspire_grid.numeric <- function(
   include_llc = TRUE,
   point_type = "centroid",
   parallel = "auto",
-  quiet = FALSE,
+  quiet = getOption("gridmaker.quiet", FALSE),
   dsn = NULL,
   layer = NULL,
   max_memory_gb = NULL,
@@ -292,7 +292,7 @@ inspire_grid.matrix <- function(
   include_llc = TRUE,
   point_type = "centroid",
   parallel = "auto",
-  quiet = FALSE,
+  quiet = getOption("gridmaker.quiet", FALSE),
   dsn = NULL,
   layer = NULL,
   max_memory_gb = NULL,
@@ -337,7 +337,7 @@ inspire_grid.character <- function(
   include_llc = TRUE, # Used
   point_type = "llc", # Used
   parallel = "auto", # Ignored (Sink)
-  quiet = FALSE, # Used
+  quiet = getOption("gridmaker.quiet", FALSE), # Used
   dsn = NULL, # Used
   layer = NULL, # Used
   max_memory_gb = NULL, # Ignored (Sink)
@@ -429,7 +429,7 @@ inspire_grid_from_extent <- function(
   include_llc = TRUE,
   point_type = "centroid",
   parallel = "auto",
-  quiet = FALSE,
+  quiet = getOption("gridmaker.quiet", FALSE),
   dsn = NULL,
   layer = NULL,
   max_memory_gb = NULL,

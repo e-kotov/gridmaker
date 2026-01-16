@@ -120,15 +120,20 @@ test_that("inspire_grid_from_extent handles `layer` argument correctly for disk 
   # Test 1: When layer is NULL, it defaults from dsn and gives a message
   dsn_default <- file.path(temp_dir, "default.gpkg")
 
-  expect_message(
-    inspire_grid_from_extent(
-      grid_extent = simple_extent,
-      cellsize_m = 10,
-      dsn = dsn_default,
-      layer = NULL,
-      quiet = FALSE
+  capture.output(
+    suppressMessages(
+      expect_message(
+        inspire_grid_from_extent(
+          grid_extent = simple_extent,
+          cellsize_m = 10,
+          dsn = dsn_default,
+          layer = NULL,
+          quiet = FALSE
+        ),
+        "defaulting to 'default'"
+      )
     ),
-    "defaulting to 'default'"
+    file = if (.Platform$OS.type == "windows") "NUL" else "/dev/null"
   )
 
   expect_true(file.exists(dsn_default))

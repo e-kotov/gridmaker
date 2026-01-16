@@ -23,6 +23,13 @@ as_inspire_grid <- function(
       class(df_vertices) <- "data.frame"
       attr(df_vertices, "row.names") <- .set_row_names(length(ids))
 
+      if (!requireNamespace("sfheaders", quietly = TRUE)) {
+        stop(
+          "Package 'sfheaders' is required for the legacy R backend. ",
+          "Please install it with install.packages('sfheaders')",
+          call. = FALSE
+        )
+      }
       temp_sf_obj <- sfheaders::sf_polygon(
         obj = df_vertices,
         x = "x",
@@ -90,6 +97,13 @@ as_inspire_grid_polygons <- function(coords, cellsize, crs) {
   class(df_vertices) <- "data.frame"
   attr(df_vertices, "row.names") <- .set_row_names(length(ids))
 
+  if (!requireNamespace("sfheaders", quietly = TRUE)) {
+    stop(
+      "Package 'sfheaders' is required for the legacy R backend. ",
+      "Please install it with install.packages('sfheaders')",
+      call. = FALSE
+    )
+  }
   temp_sf_obj <- sfheaders::sf_polygon(
     obj = df_vertices,
     x = "x",

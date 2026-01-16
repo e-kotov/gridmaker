@@ -27,10 +27,11 @@ inspire_grid_from_extent_internal <- function(
   }
   if (
     output_type == "sf_polygons" &&
+      vector_grid_backend == "sfheaders" &&
       !requireNamespace("sfheaders", quietly = TRUE)
   ) {
     stop(
-      "Package 'sfheaders' is required for 'sf' output. Please install it.",
+      "Package 'sfheaders' is required for the legacy R backend. Please install it.",
       call. = FALSE
     )
   }

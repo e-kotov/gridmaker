@@ -4,7 +4,7 @@ pkgdown_sha: ~
 articles:
   grid-to-disk: grid-to-disk.html
   gridmaker: gridmaker.html
-last_built: 2026-01-11T18:10Z
+last_built: 2026-01-16T09:11Z
 urls:
   reference: http://www.ekotov.pro/gridmaker/reference
   article: http://www.ekotov.pro/gridmaker/articles

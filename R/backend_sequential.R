@@ -13,7 +13,7 @@ inspire_grid_from_extent_internal <- function(
   axis_order = c("NE", "EN"),
   include_llc = TRUE,
   point_type = c("centroid", "llc"),
-  vector_grid_backend = getOption("gridmaker.vector_grid_backend", "cpp"),
+  vector_grid_backend = getOption("gridmaker.vector_grid_backend", c("cpp", "sfheaders")),
   ...
 ) {
   # --- 1. PRE-CHECKS AND HELPERS ---
@@ -21,6 +21,7 @@ inspire_grid_from_extent_internal <- function(
   id_format <- match.arg(id_format)
   axis_order <- match.arg(axis_order)
   point_type <- match.arg(point_type)
+  vector_grid_backend <- match.arg(vector_grid_backend)
 
   if (!requireNamespace("sf", quietly = TRUE)) {
     stop("The 'sf' package is required. Please install it.", call. = FALSE)

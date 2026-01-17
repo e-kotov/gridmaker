@@ -42,3 +42,4 @@ List containing geometry and IDs
 Creates the geometry (sfc compatible list of matrices) and
 INSPIRE IDs in a single pass for maximum efficiency.
 }
+\keyword{internal}

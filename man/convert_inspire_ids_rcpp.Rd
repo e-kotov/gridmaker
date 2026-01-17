@@ -19,3 +19,4 @@ Character vector of converted IDs.
 \description{
 Convert INSPIRE IDs between long and short formats (C++ Kernel)
 }
+\keyword{internal}

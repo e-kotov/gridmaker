@@ -17,7 +17,7 @@
 #' @param generate_ids Logical. If FALSE, only geometry is generated.
 #'
 #' @return List containing geometry and IDs
-#' @export
+#' @keywords internal
 grid_worker_rcpp <- function(x_llc, y_llc, cellsize, epsg, size_lbl, divider, axis_order, id_format, generate_ids = TRUE) {
     .Call(`_gridmaker_grid_worker_rcpp`, x_llc, y_llc, cellsize, epsg, size_lbl, divider, axis_order, id_format, generate_ids)
 }
@@ -36,7 +36,7 @@ grid_worker_rcpp <- function(x_llc, y_llc, cellsize, epsg, size_lbl, divider, ax
 #' @param id_format "both", "long", "short"
 #'
 #' @return List containing IDs
-#' @export
+#' @keywords internal
 generate_ids_rcpp <- function(x_llc, y_llc, cellsize, epsg, size_lbl, divider, axis_order, id_format) {
     .Call(`_gridmaker_generate_ids_rcpp`, x_llc, y_llc, cellsize, epsg, size_lbl, divider, axis_order, id_format)
 }
@@ -47,7 +47,7 @@ generate_ids_rcpp <- function(x_llc, y_llc, cellsize, epsg, size_lbl, divider, a
 #' @param is_long Logical indicator for long IDs
 #' @param is_short Logical indicator for short IDs
 #' @return DataFrame with columns: crs, cellsize, x, y
-#' @export
+#' @keywords internal
 parse_inspire_ids_rcpp <- function(inspire, is_long, is_short) {
     .Call(`_gridmaker_parse_inspire_ids_rcpp`, inspire, is_long, is_short)
 }
@@ -58,7 +58,7 @@ parse_inspire_ids_rcpp <- function(inspire, is_long, is_short) {
 #' @param crs Integer EPSG code (used when converting short to long).
 #' @param axis_order String "NE" or "EN" (used when converting long to short).
 #' @return Character vector of converted IDs.
-#' @export
+#' @keywords internal
 convert_inspire_ids_rcpp <- function(ids, crs, axis_order) {
     .Call(`_gridmaker_convert_inspire_ids_rcpp`, ids, crs, axis_order)
 }

@@ -19,3 +19,4 @@ DataFrame with columns: crs, cellsize, x, y
 \description{
 Parse INSPIRE IDs to Coordinates (C++ Kernel)
 }
+\keyword{internal}

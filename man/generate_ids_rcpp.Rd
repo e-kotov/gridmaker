@@ -38,3 +38,4 @@ List containing IDs
 \description{
 Efficiently generates INSPIRE IDs for a set of coordinates.
 }
+\keyword{internal}

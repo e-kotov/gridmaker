@@ -24,7 +24,7 @@ using namespace Rcpp;
 //' @param generate_ids Logical. If FALSE, only geometry is generated.
 //'
 //' @return List containing geometry and IDs
-//' @export
+//' @keywords internal
 // [[Rcpp::export]]
 List grid_worker_rcpp(NumericVector x_llc, NumericVector y_llc, double cellsize,
                       int epsg, std::string size_lbl, double divider,
@@ -145,7 +145,7 @@ List grid_worker_rcpp(NumericVector x_llc, NumericVector y_llc, double cellsize,
 //' @param id_format "both", "long", "short"
 //'
 //' @return List containing IDs
-//' @export
+//' @keywords internal
 // [[Rcpp::export]]
 List generate_ids_rcpp(NumericVector x_llc, NumericVector y_llc,
                        double cellsize, int epsg, std::string size_lbl,
@@ -228,7 +228,7 @@ int count_trailing_zeros_cpp(double x) {
 //' @param is_long Logical indicator for long IDs
 //' @param is_short Logical indicator for short IDs
 //' @return DataFrame with columns: crs, cellsize, x, y
-//' @export
+//' @keywords internal
 // [[Rcpp::export]]
 DataFrame parse_inspire_ids_rcpp(CharacterVector inspire, LogicalVector is_long,
                                  LogicalVector is_short) {
@@ -352,7 +352,7 @@ DataFrame parse_inspire_ids_rcpp(CharacterVector inspire, LogicalVector is_long,
 //' @param crs Integer EPSG code (used when converting short to long).
 //' @param axis_order String "NE" or "EN" (used when converting long to short).
 //' @return Character vector of converted IDs.
-//' @export
+//' @keywords internal
 // [[Rcpp::export]]
 CharacterVector convert_inspire_ids_rcpp(CharacterVector ids, int crs,
                                          std::string axis_order) {

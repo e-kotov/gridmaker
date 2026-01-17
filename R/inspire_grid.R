@@ -87,6 +87,7 @@ inspire_grid <- function(
   max_memory_gb = NULL,
   vector_grid_backend = getOption("gridmaker.vector_grid_backend", "cpp"),
   include_rat = FALSE,
+  build_spatial_index = TRUE,
   ...
 ) {
   # Validate output_type early
@@ -126,6 +127,7 @@ inspire_grid.sf <- function(
   max_memory_gb = NULL,
   vector_grid_backend = getOption("gridmaker.vector_grid_backend", "cpp"),
   include_rat = FALSE,
+  build_spatial_index = TRUE,
   ...
 ) {
   inspire_grid_from_extent(
@@ -147,6 +149,7 @@ inspire_grid.sf <- function(
     max_memory_gb = max_memory_gb,
     vector_grid_backend = vector_grid_backend,
     include_rat = include_rat,
+    build_spatial_index = build_spatial_index,
     ...
   )
 }
@@ -172,6 +175,7 @@ inspire_grid.sfc <- function(
   max_memory_gb = NULL,
   vector_grid_backend = getOption("gridmaker.vector_grid_backend", "cpp"),
   include_rat = FALSE,
+  build_spatial_index = TRUE,
   ...
 ) {
   inspire_grid_from_extent(
@@ -193,6 +197,7 @@ inspire_grid.sfc <- function(
     max_memory_gb = max_memory_gb,
     vector_grid_backend = vector_grid_backend,
     include_rat = include_rat,
+    build_spatial_index = build_spatial_index,
     ...
   )
 }
@@ -218,6 +223,7 @@ inspire_grid.bbox <- function(
   max_memory_gb = NULL,
   vector_grid_backend = getOption("gridmaker.vector_grid_backend", "cpp"),
   include_rat = FALSE,
+  build_spatial_index = TRUE,
   ...
 ) {
   inspire_grid_from_extent(
@@ -239,6 +245,7 @@ inspire_grid.bbox <- function(
     max_memory_gb = max_memory_gb,
     vector_grid_backend = vector_grid_backend,
     include_rat = include_rat,
+    build_spatial_index = build_spatial_index,
     ...
   )
 }
@@ -264,6 +271,7 @@ inspire_grid.numeric <- function(
   max_memory_gb = NULL,
   vector_grid_backend = getOption("gridmaker.vector_grid_backend", "cpp"),
   include_rat = FALSE,
+  build_spatial_index = TRUE,
   ...
 ) {
   inspire_grid_from_extent(
@@ -285,6 +293,7 @@ inspire_grid.numeric <- function(
     max_memory_gb = max_memory_gb,
     vector_grid_backend = vector_grid_backend,
     include_rat = include_rat,
+    build_spatial_index = build_spatial_index,
     ...
   )
 }
@@ -310,6 +319,7 @@ inspire_grid.matrix <- function(
   max_memory_gb = NULL,
   vector_grid_backend = getOption("gridmaker.vector_grid_backend", "cpp"),
   include_rat = FALSE,
+  build_spatial_index = TRUE,
   ...
 ) {
   inspire_grid_from_extent(
@@ -331,6 +341,7 @@ inspire_grid.matrix <- function(
     max_memory_gb = max_memory_gb,
     vector_grid_backend = vector_grid_backend,
     include_rat = include_rat,
+    build_spatial_index = build_spatial_index,
     ...
   )
 }
@@ -356,7 +367,8 @@ inspire_grid.character <- function(
   layer = NULL, # Used
   max_memory_gb = NULL, # Ignored (Sink)
   vector_grid_backend = getOption("gridmaker.vector_grid_backend", "cpp"), # Ignored (Sink)
-  include_rat = FALSE, # Ignored (Sink)
+  include_rat = FALSE,
+  build_spatial_index = TRUE, # Ignored (Sink)
   ...
 ) {
   # 1. Guardrails: Warn if specific ignored arguments are provided
@@ -394,6 +406,7 @@ inspire_grid.character <- function(
     quiet = quiet,
     dsn = dsn,
     layer = layer,
+    build_spatial_index = build_spatial_index,
     ...
   )
 }
@@ -453,6 +466,7 @@ inspire_grid_from_extent <- function(
   max_memory_gb = NULL,
   vector_grid_backend = getOption("gridmaker.vector_grid_backend", "cpp"),
   include_rat = FALSE,
+  build_spatial_index = TRUE,
   ...
 ) {
   # --- 1. Validate Arguments ---
@@ -542,6 +556,7 @@ inspire_grid_from_extent <- function(
     point_type = point_type,
     vector_grid_backend = vector_grid_backend,
     include_rat = include_rat,
+    build_spatial_index = build_spatial_index,
     ...
   )
   parallel_backend_args <- c(backend_args, list(quiet = quiet))

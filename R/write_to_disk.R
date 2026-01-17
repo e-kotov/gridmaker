@@ -303,7 +303,7 @@ stream_grid_mirai <- function(
                   dsn = dsn,
                   layer = layer,
                   append = !is_first_chunk,
-                  quiet = TRUE
+                  quiet = quiet
                 ),
                 dot_args # Pass all additional args provided by user
               )
@@ -507,7 +507,7 @@ stream_grid_sequential <- function(
           dsn = dsn,
           layer = layer,
           append = !is_first_chunk,
-          quiet = TRUE
+          quiet = quiet
         ),
         dot_args
       )

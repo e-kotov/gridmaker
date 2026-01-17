@@ -31,6 +31,7 @@ inspire_grid(
   max_memory_gb = NULL,
   vector_grid_backend = getOption("gridmaker.vector_grid_backend", "cpp"),
   include_rat = FALSE,
+  build_spatial_index = TRUE,
   ...
 )
 
@@ -53,6 +54,7 @@ inspire_grid(
   max_memory_gb = NULL,
   vector_grid_backend = getOption("gridmaker.vector_grid_backend", "cpp"),
   include_rat = FALSE,
+  build_spatial_index = TRUE,
   ...
 )
 
@@ -75,6 +77,7 @@ inspire_grid(
   max_memory_gb = NULL,
   vector_grid_backend = getOption("gridmaker.vector_grid_backend", "cpp"),
   include_rat = FALSE,
+  build_spatial_index = TRUE,
   ...
 )
 
@@ -97,6 +100,7 @@ inspire_grid(
   max_memory_gb = NULL,
   vector_grid_backend = getOption("gridmaker.vector_grid_backend", "cpp"),
   include_rat = FALSE,
+  build_spatial_index = TRUE,
   ...
 )
 
@@ -119,6 +123,7 @@ inspire_grid(
   max_memory_gb = NULL,
   vector_grid_backend = getOption("gridmaker.vector_grid_backend", "cpp"),
   include_rat = FALSE,
+  build_spatial_index = TRUE,
   ...
 )
 
@@ -141,6 +146,7 @@ inspire_grid(
   max_memory_gb = NULL,
   vector_grid_backend = getOption("gridmaker.vector_grid_backend", "cpp"),
   include_rat = FALSE,
+  build_spatial_index = TRUE,
   ...
 )
 
@@ -163,6 +169,7 @@ inspire_grid(
   max_memory_gb = NULL,
   vector_grid_backend = getOption("gridmaker.vector_grid_backend", "cpp"),
   include_rat = FALSE,
+  build_spatial_index = TRUE,
   ...
 )
 
@@ -185,6 +192,7 @@ inspire_grid_from_extent(
   max_memory_gb = NULL,
   vector_grid_backend = getOption("gridmaker.vector_grid_backend", "cpp"),
   include_rat = FALSE,
+  build_spatial_index = TRUE,
   ...
 )
 
@@ -199,6 +207,7 @@ inspire_grid_from_ids(
   dsn = NULL,
   layer = NULL,
   vector_grid_backend = getOption("gridmaker.vector_grid_backend", c("cpp", "sfheaders")),
+  build_spatial_index = TRUE,
   ...
 )
 }
@@ -315,7 +324,12 @@ Options are \code{"cpp"} (default, recommended) for the optimized C++ backend, o
 This can also be controlled globally via \code{options(gridmaker.vector_grid_backend = "cpp")}.}
 
 \item{include_rat}{Logical. If \code{TRUE}, generate a Raster Attribute Table (RAT)
-mapping numeric cell IDs to INSPIRE grid ID strings. Default is \code{FALSE}.
+mapping numeric cell IDs to INSPIRE grid ID strings. Default is \code{FALSE}.}
+
+\item{build_spatial_index}{Logical. If \code{TRUE} (default), a spatial index is created
+for GPKG/SQLite output. If \code{FALSE}, index creation is skipped. This can speed up
+write performance by 20-70\% for large grids but assumes the user will build the
+index manually later (e.g., in QGIS or via \code{ogr2ogr}) if spatial queries are needed.
 
 \strong{What is a RAT?} A Raster Attribute Table stores metadata (like INSPIRE IDs)
 for each unique raster value. Without RAT, raster cells contain only numeric

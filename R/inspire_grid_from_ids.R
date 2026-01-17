@@ -50,6 +50,7 @@ inspire_grid_from_ids <- function(
   dsn = NULL,
   layer = NULL,
   vector_grid_backend = getOption("gridmaker.vector_grid_backend", c("cpp", "sfheaders")),
+  build_spatial_index = TRUE,
   ...
 ) {
   vector_grid_backend <- match.arg(vector_grid_backend)
@@ -72,7 +73,8 @@ inspire_grid_from_ids <- function(
        dsn = dsn,
        layer = layer,
        quiet = quiet,
-       vector_grid_backend = vector_grid_backend
+       vector_grid_backend = vector_grid_backend,
+       build_spatial_index = build_spatial_index
     ),
     dots
   )

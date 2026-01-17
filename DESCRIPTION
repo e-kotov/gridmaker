@@ -36,6 +36,8 @@ Suggests:
     quarto,
     readr,
     rmarkdown,
+    RSQLite,
+    DBI,
     testthat (>= 3.0.0),
     withr
 VignetteBuilder: 

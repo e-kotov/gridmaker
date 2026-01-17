@@ -9,17 +9,27 @@ as_inspire_grid <- function(
   if (!is.null(clipping_target)) {
     n_polygons <- nrow(coords)
     if (n_polygons > 0) {
-      x_llc_rep <- rep(coords$X_LLC, each = 5)
-      y_llc_rep <- rep(coords$Y_LLC, each = 5)
-      x_coords_poly <- x_llc_rep + c(0, cellsize, cellsize, 0, 0)
-      y_coords_poly <- y_llc_rep + c(0, 0, cellsize, cellsize, 0)
+      # Pre-compute vertex coordinates
+      ids <- rep.int(seq_len(n_polygons), rep.int(5L, n_polygons))
+      x_llc_rep <- rep(coords$X_LLC, each = 5L)
+      y_llc_rep <- rep(coords$Y_LLC, each = 5L)
 
-      df_vertices <- data.frame(
-        id = rep(seq_len(n_polygons), each = 5),
-        x = x_coords_poly,
-        y = y_coords_poly
+      # Use list + class assignment (faster than data.frame() constructor)
+      df_vertices <- list(
+        id = ids,
+        x = x_llc_rep + c(0, cellsize, cellsize, 0, 0),
+        y = y_llc_rep + c(0, 0, cellsize, cellsize, 0)
       )
+      class(df_vertices) <- "data.frame"
+      attr(df_vertices, "row.names") <- .set_row_names(length(ids))
 
+      if (!requireNamespace("sfheaders", quietly = TRUE)) {
+        stop(
+          "Package 'sfheaders' is required for the legacy R backend. ",
+          "Please install it with install.packages('sfheaders')",
+          call. = FALSE
+        )
+      }
       temp_sf_obj <- sfheaders::sf_polygon(
         obj = df_vertices,
         x = "x",
@@ -73,17 +83,27 @@ as_inspire_grid_polygons <- function(coords, cellsize, crs) {
     return(empty_sf)
   }
 
-  x_llc_rep <- rep(coords$X_LLC, each = 5)
-  y_llc_rep <- rep(coords$Y_LLC, each = 5)
-  x_coords_poly <- x_llc_rep + c(0, cellsize, cellsize, 0, 0)
-  y_coords_poly <- y_llc_rep + c(0, 0, cellsize, cellsize, 0)
+  # Pre-compute vertex coordinates
+  ids <- rep.int(seq_len(n_polygons), rep.int(5L, n_polygons))
+  x_llc_rep <- rep(coords$X_LLC, each = 5L)
+  y_llc_rep <- rep(coords$Y_LLC, each = 5L)
 
-  df_vertices <- data.frame(
-    id = rep(seq_len(n_polygons), each = 5),
-    x = x_coords_poly,
-    y = y_coords_poly
+  # Use list + class assignment (faster than data.frame() constructor)
+  df_vertices <- list(
+    id = ids,
+    x = x_llc_rep + c(0, cellsize, cellsize, 0, 0),
+    y = y_llc_rep + c(0, 0, cellsize, cellsize, 0)
   )
+  class(df_vertices) <- "data.frame"
+  attr(df_vertices, "row.names") <- .set_row_names(length(ids))
 
+  if (!requireNamespace("sfheaders", quietly = TRUE)) {
+    stop(
+      "Package 'sfheaders' is required for the legacy R backend. ",
+      "Please install it with install.packages('sfheaders')",
+      call. = FALSE
+    )
+  }
   temp_sf_obj <- sfheaders::sf_polygon(
     obj = df_vertices,
     x = "x",

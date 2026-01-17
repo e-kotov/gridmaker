@@ -631,7 +631,7 @@ validate_disk_compatibility <- function(output_type, dsn) {
 #' Internal helper to write a grid chunk to disk (sf or flat file)
 #' @keywords internal
 #' @noRd
-write_grid_chunk <- function(chunk, dsn, layer, append, quiet, ...) {
+write_grid_chunk <- function(chunk, dsn, layer, append, quiet, build_spatial_index = TRUE, ...) {
   ext <- tolower(tools::file_ext(dsn))
 
   # --- Text/Delimited Output (readr) ---
@@ -667,7 +667,16 @@ write_grid_chunk <- function(chunk, dsn, layer, append, quiet, ...) {
     do.call(readr::write_delim, call_args)
   } else {
     # --- Spatial Output (sf) ---
-    # sf::st_write accepts '...' for driver specific options
+    is_db_format <- ext %in% c("gpkg", "sqlite")
+    
+    # Optional speedup: Disable spatial index on first write if requested
+    layer_options <- NULL
+    if (is_db_format && !append && !isTRUE(build_spatial_index)) {
+      layer_options <- c("SPATIAL_INDEX=NO")
+      if (!quiet) {
+        message("Note: Spatial index disabled for speed. Build manually if needed.")
+      }
+    }
 
     # Determine if we need to specify the Parquet driver explicitly
     # (GDAL doesn't auto-detect .parquet extension)
@@ -681,6 +690,7 @@ write_grid_chunk <- function(chunk, dsn, layer, append, quiet, ...) {
         driver = "Parquet",
         append = append,
         quiet = TRUE,
+        layer_options = layer_options,
         ...
       )
     } else {
@@ -690,6 +700,7 @@ write_grid_chunk <- function(chunk, dsn, layer, append, quiet, ...) {
         layer = layer,
         append = append,
         quiet = TRUE,
+        layer_options = layer_options,
         ...
       )
     }

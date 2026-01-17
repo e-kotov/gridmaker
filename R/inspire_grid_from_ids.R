@@ -49,8 +49,11 @@ inspire_grid_from_ids <- function(
   quiet = getOption("gridmaker.quiet", FALSE),
   dsn = NULL,
   layer = NULL,
+  vector_grid_backend = getOption("gridmaker.vector_grid_backend", c("cpp", "sfheaders")),
+  build_spatial_index = TRUE,
   ...
 ) {
+  vector_grid_backend <- match.arg(vector_grid_backend)
   if (!is.logical(quiet) || length(quiet) != 1) {
     stop(
       "'quiet' must be a single logical value (TRUE or FALSE).",
@@ -67,9 +70,11 @@ inspire_grid_from_ids <- function(
       include_llc = include_llc,
       id_format = id_format,
       axis_order = axis_order,
-      dsn = dsn,
-      layer = layer,
-      quiet = quiet
+       dsn = dsn,
+       layer = layer,
+       quiet = quiet,
+       vector_grid_backend = vector_grid_backend,
+       build_spatial_index = build_spatial_index
     ),
     dots
   )

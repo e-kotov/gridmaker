@@ -29,7 +29,9 @@ inspire_grid(
   dsn = NULL,
   layer = NULL,
   max_memory_gb = NULL,
+  vector_grid_backend = getOption("gridmaker.vector_grid_backend", "cpp"),
   include_rat = FALSE,
+  build_spatial_index = TRUE,
   ...
 )
 
@@ -50,7 +52,9 @@ inspire_grid(
   dsn = NULL,
   layer = NULL,
   max_memory_gb = NULL,
+  vector_grid_backend = getOption("gridmaker.vector_grid_backend", "cpp"),
   include_rat = FALSE,
+  build_spatial_index = TRUE,
   ...
 )
 
@@ -71,7 +75,9 @@ inspire_grid(
   dsn = NULL,
   layer = NULL,
   max_memory_gb = NULL,
+  vector_grid_backend = getOption("gridmaker.vector_grid_backend", "cpp"),
   include_rat = FALSE,
+  build_spatial_index = TRUE,
   ...
 )
 
@@ -92,7 +98,9 @@ inspire_grid(
   dsn = NULL,
   layer = NULL,
   max_memory_gb = NULL,
+  vector_grid_backend = getOption("gridmaker.vector_grid_backend", "cpp"),
   include_rat = FALSE,
+  build_spatial_index = TRUE,
   ...
 )
 
@@ -113,7 +121,9 @@ inspire_grid(
   dsn = NULL,
   layer = NULL,
   max_memory_gb = NULL,
+  vector_grid_backend = getOption("gridmaker.vector_grid_backend", "cpp"),
   include_rat = FALSE,
+  build_spatial_index = TRUE,
   ...
 )
 
@@ -134,7 +144,9 @@ inspire_grid(
   dsn = NULL,
   layer = NULL,
   max_memory_gb = NULL,
+  vector_grid_backend = getOption("gridmaker.vector_grid_backend", "cpp"),
   include_rat = FALSE,
+  build_spatial_index = TRUE,
   ...
 )
 
@@ -155,7 +167,9 @@ inspire_grid(
   dsn = NULL,
   layer = NULL,
   max_memory_gb = NULL,
+  vector_grid_backend = getOption("gridmaker.vector_grid_backend", "cpp"),
   include_rat = FALSE,
+  build_spatial_index = TRUE,
   ...
 )
 
@@ -176,7 +190,9 @@ inspire_grid_from_extent(
   dsn = NULL,
   layer = NULL,
   max_memory_gb = NULL,
+  vector_grid_backend = getOption("gridmaker.vector_grid_backend", "cpp"),
   include_rat = FALSE,
+  build_spatial_index = TRUE,
   ...
 )
 
@@ -190,6 +206,8 @@ inspire_grid_from_ids(
   quiet = getOption("gridmaker.quiet", FALSE),
   dsn = NULL,
   layer = NULL,
+  vector_grid_backend = getOption("gridmaker.vector_grid_backend", c("cpp", "sfheaders")),
+  build_spatial_index = TRUE,
   ...
 )
 }
@@ -301,8 +319,17 @@ not specified, it defaults to the file's base name.}
 
 \item{max_memory_gb}{A numeric value. Maximum memory in gigabytes to use for grid creation. Default is \code{NULL}, in which case there is an automatic limit based on \strong{available free system memory} (not total system RAM). Using this argument allows manual override, which is recommended on certain HPC (High Performance Computing) systems where jobs are allocated a fixed amount of memory that is less than the total free memory of the allocated node.}
 
+\item{vector_grid_backend}{Character string. Specifies the backend to use for memory-efficient \code{sf_polygons} generation.
+Options are \code{"cpp"} (default, recommended) for the optimized C++ backend, or \code{"sfheaders"} for the legacy R backend.
+This can also be controlled globally via \code{options(gridmaker.vector_grid_backend = "cpp")}.}
+
 \item{include_rat}{Logical. If \code{TRUE}, generate a Raster Attribute Table (RAT)
-mapping numeric cell IDs to INSPIRE grid ID strings. Default is \code{FALSE}.
+mapping numeric cell IDs to INSPIRE grid ID strings. Default is \code{FALSE}.}
+
+\item{build_spatial_index}{Logical. If \code{TRUE} (default), a spatial index is created
+for GPKG/SQLite output. If \code{FALSE}, index creation is skipped. This can speed up
+write performance by 20-70\% for large grids but assumes the user will build the
+index manually later (e.g., in QGIS or via \code{ogr2ogr}) if spatial queries are needed.
 
 \strong{What is a RAT?} A Raster Attribute Table stores metadata (like INSPIRE IDs)
 for each unique raster value. Without RAT, raster cells contain only numeric

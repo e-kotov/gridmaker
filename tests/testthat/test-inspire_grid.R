@@ -183,11 +183,11 @@ test_that("Function handles errors and edge cases", {
   # Invalid cell size
   expect_error(
     inspire_grid_from_extent(nc, 0, crs = TARGET_CRS),
-    "cellsize_m must be a positive integer"
+    "Argument 'cellsize_m' must be positive"
   )
   expect_error(
     inspire_grid_from_extent(nc, -100, crs = TARGET_CRS),
-    "cellsize_m must be a positive integer"
+    "Argument 'cellsize_m' must be positive"
   )
 
   # Invalid CRS (geographic)
@@ -647,5 +647,22 @@ test_that("Warning for ignored point_type", {
       point_type = "llc", 
       quiet = TRUE
     )
+  )
+})
+
+test_that("inspire_grid.character respects global options for ignored backend", {
+  # This ensures that setting the global option to something other than the default "cpp"
+  # does NOT trigger the "Arguments ... are ignored" warning in inspire_grid.character
+  # due to a mismatch in default values.
+
+  ids <- c("CRS3035RES1000mN3000000E4000000")
+
+  withr::with_options(
+    list(gridmaker.vector_grid_backend = "sfheaders"),
+    {
+      expect_silent(
+        inspire_grid(ids, quiet = TRUE)
+      )
+    }
   )
 })

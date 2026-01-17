@@ -121,18 +121,12 @@ stream_grid_raster_terra <- function(
   nc <- ncols # number of columns
 
   for (i in 1:b$n) {
-    # Get cell range for this chunk
-    # Pattern from terra/R/interpolate.R:
-    #   xyFromCell(out, cellFromRowCol(out, b$row[i], 1):cellFromRowCol(out, b$row[i]+b$nrows[i]-1, nc))
-    first_cell <- terra::cellFromRowCol(r_template, b$row[i], 1)
-    last_cell <- terra::cellFromRowCol(
-      r_template,
-      b$row[i] + b$nrows[i] - 1,
-      nc
-    )
-
-    cells <- first_cell:last_cell
-    cell_ids <- cells
+    # The cell IDs are a simple sequence. We can compute them directly
+    # without converting to coordinates and back.
+    start_cell <- terra::cellFromRowCol(r_template, b$row[i], 1)
+    n_cells_in_chunk <- b$nrows[i] * nc
+    end_cell <- start_cell + n_cells_in_chunk - 1
+    cell_ids <- start_cell:end_cell
 
     # Write chunk values
     terra::writeValues(

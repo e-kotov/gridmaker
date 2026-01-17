@@ -96,7 +96,26 @@ test_that("inspire_id_to_coords handles edge cases: malformed, NA, and empty inp
     inspire_id_to_coords(character(0)),
     "Input 'inspire' cannot be an empty vector"
   )
+  # fail on input containing empty strings
+  ids_have_empty <- c("1kmN100E200", "")
+  expect_error(
+    inspire_id_to_coords(ids_have_empty),
+    "Input 'inspire' contains empty strings"
+  )
+  # fail on input containing invalid units
+  ids_have_mm <- c("100mmN1E1")
+  expect_error(
+    inspire_id_to_coords(ids_have_mm),
+    "One or more INSPIRE IDs had a malformed format"
+  )
+  
+  ids_have_no_unit <- c("100N1E1")
+  expect_error(
+    inspire_id_to_coords(ids_have_no_unit),
+    "One or more INSPIRE IDs had a malformed format"
+  )
 })
+
 
 test_that("inspire_id_to_coords warns on multiple CRSs", {
   # This only applies to long-form IDs where CRS is parsed
@@ -109,5 +128,31 @@ test_that("inspire_id_to_coords warns on multiple CRSs", {
   expect_error(
     parsed_sf <- inspire_id_to_coords(mixed_crs_ids, as_sf = TRUE),
     "INSPIRE identifiers contain more than one CRS"
+  )
+})
+
+test_that("inspire_id_to_coords rejects IDs with trailing junk (strict validation)", {
+  # Long format with trailing junk
+  expect_error(
+    inspire_id_to_coords("CRS3035RES1000mN2684000E4334000_extra"),
+    "One or more INSPIRE IDs had a malformed format"
+  )
+  
+  # Short format with trailing junk
+  expect_error(
+    inspire_id_to_coords("1kmN2684E4334_extra"),
+    "One or more INSPIRE IDs had a malformed format"
+  )
+  
+  # Incomplete long format (missing E component)
+  expect_error(
+    inspire_id_to_coords("CRS3035RES1000mN2684000"),
+    "One or more INSPIRE IDs had a malformed format"
+  )
+  
+  # Incomplete short format (missing second axis)
+  expect_error(
+    inspire_id_to_coords("1kmN2684"),
+    "One or more INSPIRE IDs had a malformed format"
   )
 })

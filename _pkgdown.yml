@@ -39,6 +39,21 @@ home:
   title: 'gridmaker: Create INSPIRE-compliant grids with IDs'
   description: 'Create INSPIRE-compliant grids with IDs'
 
+reference:
+  - title: "Grid Creation"
+    desc: "Functions for generating INSPIRE-compliant grids from various inputs."
+    contents:
+      - inspire_grid
+      - inspire_grid_from_extent
+      - inspire_grid_from_ids
+
+  - title: "INSPIRE ID Utilities"
+    desc: "Tools for formatting and converting INSPIRE IDs."
+    contents:
+      - inspire_id_format
+      - inspire_id_to_coords
+      - inspire_id_from_coords
+
 articles:
   - title: "Get started"
     navbar: "Get Started"

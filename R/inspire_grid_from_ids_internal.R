@@ -8,12 +8,14 @@ inspire_grid_from_ids_internal <- function(
   quiet = FALSE,
   dsn = NULL,
   layer = NULL,
+  vector_grid_backend = getOption("gridmaker.vector_grid_backend", "cpp"),
   ...
 ) {
   output_type <- match.arg(output_type)
   point_type <- match.arg(point_type)
   id_format <- match.arg(id_format)
   axis_order <- match.arg(axis_order)
+  vector_grid_backend <- match.arg(vector_grid_backend, c("cpp", "sfheaders"))
 
   if (!requireNamespace("sf", quietly = TRUE)) {
     stop("The 'sf' package is required. Please install it.", call. = FALSE)

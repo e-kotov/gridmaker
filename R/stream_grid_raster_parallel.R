@@ -258,8 +258,9 @@ stream_raster_parallel_mirai <- function(
 
         # Generate continuous sequence of cell IDs directly (row-major order)
         # Optimization: Avoid allocating large row/col vectors
-        start_id <- (start_row - 1) * ncols_chunk + 1
-        end_id <- start_id + (nrows_chunk * ncols_chunk) - 1
+        # Use explicit integers to guarantee ALTREP usage and avoid fp issues
+        start_id <- as.integer((start_row - 1) * ncols_chunk + 1)
+        end_id <- as.integer(start_id + (nrows_chunk * ncols_chunk) - 1)
         cell_ids <- start_id:end_id
 
         list(

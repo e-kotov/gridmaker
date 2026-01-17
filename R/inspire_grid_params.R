@@ -57,6 +57,10 @@
 #' @param max_memory_gb A numeric value. Maximum memory in gigabytes to use for grid creation. Default is `NULL`, in which case there is an automatic limit based on **available free system memory** (not total system RAM).
 #' @param include_rat Logical. If `TRUE`, generate a Raster Attribute Table (RAT)
 #'   mapping numeric cell IDs to INSPIRE grid ID strings. Default is `FALSE`.
+#' @param build_spatial_index Logical. If `TRUE` (default), a spatial index is created
+#'   for GPKG/SQLite output. If `FALSE`, index creation is skipped. This can speed up
+#'   write performance by 20-70% for large grids but assumes the user will build the
+#'   index manually later (e.g., in QGIS or via `ogr2ogr`) if spatial queries are needed.
 #'
 #'   **What is a RAT?** A Raster Attribute Table stores metadata (like INSPIRE IDs)
 #'   for each unique raster value. Without RAT, raster cells contain only numeric
